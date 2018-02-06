@@ -1,0 +1,170 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description:
+  Create an Elastic Beanstalk Application
+
+Parameters:
+  VPCStackName:
+    Type: String
+    Description: "Name of the stack used for creating the VPC"
+  ElasticBeanstalkIAMStackName:
+    Type: String
+    Description: "Name of stack used for creation of IAM roles and instance profiles"
+  ApplicationName:
+    Type: String
+    Description: "Name for the application"
+  EnvironmentName:
+    Type: String
+    Description: "Gimme a nice name"
+  SolutionStack:
+    Type: String
+    Description: "Stack to use. List only contains what is currently used at IXOR."
+    AllowedValues: [ "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8" ]
+  InstanceType:
+    Type: String
+    Description: "Instance Type"
+  SSHKeyName:
+    Type: String
+    Description: "SSH Key Name"
+  Artifact:
+    Type: String
+    Description: "Name of Artifact on S3 bucket"
+
+Resources:
+
+  BeanstalkApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      Description: !Ref ApplicationName
+      ApplicationName: !Ref ApplicationName
+
+  Environment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      EnvironmentName: !Ref EnvironmentName
+      ApplicationName: !Ref BeanstalkApplication
+      Description: "AWS ElasticBeanstalk Sample Environment"
+      TemplateName: !Ref EnvironmentConfigurationTemplate
+      VersionLabel: !Ref ApplicationVersion
+
+  ApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName: !Ref BeanstalkApplication
+      Description: Application Version
+      SourceBundle:
+        S3Bucket: !Sub "ixor-elasticbeanstalk-${AWS::Region}"
+        S3Key: !Ref Artifact
+
+  EnvironmentConfigurationTemplate:
+    Type: AWS::ElasticBeanstalk::ConfigurationTemplate
+    Properties:
+      ApplicationName: !Ref BeanstalkApplication
+      Description: !Ref ApplicationName
+      SolutionStackName: !Ref SolutionStack
+      OptionSettings:
+        - Namespace: "aws:ec2:vpc"
+          OptionName: "VPCId"
+          Value:
+            Fn::ImportValue:
+              !Sub "${VPCStackName}-VPC"
+        - Namespace: "aws:ec2:vpc"
+          OptionName: "Subnets"
+          Value:
+            Fn::Join:
+              - ','
+              -
+                - Fn::ImportValue:
+                    !Sub "${VPCStackName}-PrivateSubnetAZ1"
+                - Fn::ImportValue:
+                    !Sub "${VPCStackName}-PrivateSubnetAZ2"
+                - Fn::ImportValue:
+                    !Sub "${VPCStackName}-PrivateSubnetAZ3"
+        - Namespace: "aws:ec2:vpc"
+          OptionName: "ELBSubnets"
+          Value:
+            Fn::Join:
+              - ','
+              -
+                - Fn::ImportValue:
+                    !Sub "${VPCStackName}-ELBSubnetAZ1"
+                - Fn::ImportValue:
+                    !Sub "${VPCStackName}-ELBSubnetAZ2"
+                - Fn::ImportValue:
+                    !Sub "${VPCStackName}-ELBSubnetAZ3"
+
+        - Namespace: "aws:elasticbeanstalk:command"
+          OptionName: "BatchSize"
+          Value: "30"
+        - Namespace: "aws:elasticbeanstalk:command"
+          OptionName: "BatchSizeType"
+          Value: "Percentage"
+        - Namespace: "aws:elasticbeanstalk:command"
+          OptionName: "DeploymentPolicy"
+          Value: "Rolling"
+        - Namespace: "aws:elasticbeanstalk:sns:topics"
+          OptionName: "Notification Endpoint"
+          Value: ""
+        - Namespace: "aws:elb:policies"
+          OptionName: "ConnectionSettingIdleTimeout"
+          Value: "3000"
+        - Namespace: "aws:elb:policies"
+          OptionName: "ConnectionDrainingEnabled"
+          Value: "true"
+        - Namespace: "aws:elb:policies"
+          OptionName: "ConnectionDrainingTimeout"
+          Value: "20"
+        - Namespace: "aws:elasticbeanstalk:container:tomcat:jvmoptions"
+          OptionName: "Xmx"
+          Value: "700m"
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "JDBC_CONNECTION_STRING"
+          Value: ""
+        - Namespace: "aws:elb:loadbalancer"
+          OptionName: "CrossZone"
+          Value: "true"
+        - Namespace: "aws:elasticbeanstalk:environment"
+          OptionName: "ServiceRole"
+          Value:
+            Fn::ImportValue:
+              !Sub "${ElasticBeanstalkIAMStackName}-AWSElasticBeanstalkServiceRole"
+        - Namespace: "aws:elasticbeanstalk:environment"
+          OptionName: "EnvironmentType"
+          Value: "LoadBalanced"
+        - Namespace: "aws:elasticbeanstalk:application"
+          OptionName: "Application Healthcheck URL"
+          Value: ""
+        - Namespace: "aws:elasticbeanstalk:healthreporting:system"
+          OptionName: "SystemType"
+          Value: "enhanced"
+        - Namespace: "aws:elasticbeanstalk:healthreporting:system"
+          OptionName: "HealthCheckSuccessThreshold"
+          Value: "Ok"
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "SecurityGroups"
+          Value:
+            Fn::Join:
+              - ','
+              -
+                - Fn::ImportValue:
+                    !Sub "${VPCStackName}-SGAPP"
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "IamInstanceProfile"
+          Value:
+            Fn::ImportValue:
+              !Sub "${ElasticBeanstalkIAMStackName}-AWSElasticBeanstalkEC2InstanceProfile"
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "InstanceType"
+          Value: !Ref InstanceType
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "EC2KeyName"
+          Value: !Ref SSHKeyName
+        - Namespace: "aws:autoscaling:asg"
+          OptionName: "MaxSize"
+          Value: "1"
+        - Namespace: "aws:autoscaling:updatepolicy:rollingupdate"
+          OptionName: "RollingUpdateType"
+          Value: "Health"
+        - Namespace: "aws:autoscaling:updatepolicy:rollingupdate"
+          OptionName: "RollingUpdateEnabled"
+          Value: "true"

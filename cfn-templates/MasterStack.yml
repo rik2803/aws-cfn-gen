@@ -1,0 +1,38 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Master template for the stack
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Referenced Stacks"
+        Parameters:
+          - VPCStackName
+      - Label:
+          default: "Beanstalk Configuration"
+        Parameters:
+          - ApplicationName
+          - SolutionStack
+
+    ParameterLabels:
+      ApplicationName:
+        default: "Name for the application"
+      SolutionStack:
+        default: "Name of the stack to use"
+
+Parameters:
+  VPCStackName:
+    Type: String
+    Description: "Keyword describing the application (also used for tagging all resources)"
+  TemplateBucket:
+    Type: String
+    Description: "The bucket where the CloudFormation template files live"
+
+Resources:
+
+  IAMStuff:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+        TemplateURL: !Sub ${TemplateBucket}/ElasticBeanstalkIAM.yml

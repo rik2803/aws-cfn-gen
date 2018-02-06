@@ -1,0 +1,39 @@
+### The account to run the CFN template on
+target_account:
+  name: "ixor.ixordocs-dev"
+  account_id: "530152727664"
+  sts_role: "admin"
+
+beanstalkenvironments:
+  - name: "doccle-engine"
+    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
+  - name: "peppol-engine"
+    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
+  - name: "portal"
+    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
+    environment:
+      - name: "ixordocs.base_url"
+        value: "https://docs-portal-test.ixor.be"
+      - name: "ixordocs.debug"
+        value: ""
+      - name: "ixordocs.engine_url"
+        value: ""
+      - name: "ixordocs.peppol_engine_url"
+        value: ""
+      - name: "ixordocs.portal_path"
+        value: ""
+      - name: "ixordocs.static_path"
+        value: ""
+      - name: "ixordocs.upload_batch_url"
+        value: ""
+      - name: "jdbc.user"
+        value: ""
+      - name: "jdbc.password"
+        value: ""
+      - name: "xxxxxjdbc.url"
+        value: "Should be created in the CFN template from the RDS output."
+        example: "jdbc:postgresql://ixordocs-test.cbxpj2s1af4j.eu-central-1.rds.amazonaws.com:5432/ixordocs"
+
+referenced_stacks:
+  VPCStackName: "VPCForIxordocsDev"
+  RDSStackName: "RDSForIxordocsDev"

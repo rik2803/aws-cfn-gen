@@ -1,0 +1,101 @@
+---
+#          TemplateBucket: "https://s3.{{ lookup('env', 'AWS_REGION') }}.amazonaws.com/cfn-{{ project }}"
+
+
+
+- name: Create users in the AWS Bastion Account
+  hosts: localhost
+  gather_facts: false
+
+  pre_tasks:
+    - name: Test AWS_REGION
+      shell: "[[ -n $AWS_REGION ]]"
+      register: region
+      failed_when: false
+      changed_when: false
+      tags: [ 'always' ]
+    - name: Test AWS_SECRET_ACCESS_KEY
+      shell: "[[ -n $AWS_SECRET_ACCESS_KEY ]]"
+      register: secret
+      failed_when: false
+      changed_when: false
+      tags: [ 'always' ]
+    - name: Test AWS_ACCESS_KEY_ID
+      shell: "[[ -n $AWS_ACCESS_KEY_ID ]]"
+      register: key
+      failed_when: false
+      changed_when: false
+      tags: [ 'always' ]
+    - name: Test AWS_SESSION_TOKEN
+      shell: "[[ -n $AWS_SESSION_TOKEN ]]"
+      register: token
+      failed_when: false
+      changed_when: false
+      tags: [ 'always' ]
+    - name: Test if config file exists
+      stat:
+        path: "{{ project }}.yml"
+      register: configfile
+      failed_when: false
+      changed_when: false
+      tags: [ 'always' ]
+    - name: Do assertions on configfile and AWS credential envvars
+      assert:
+        that:
+          - "project is defined"
+          - "key.rc == 0"
+          - "secret.rc == 0"
+          - "region.rc == 0"
+          - "token.rc == 0"
+          - "configfile.stat.exists"
+      tags: [ 'always' ]
+
+  vars_files:
+    - "{{ project }}.yml"
+
+  tasks:
+    - name: Create or Update the IAM Stack
+      cloudformation:
+        stack_name: "{{ project }}-beanstalk-iam"
+        state: "present"
+        disable_rollback: false
+        template: "cfn-templates/ElasticBeanstalkIAM.yml"
+
+    - name: Get facts for the VPC stack
+      cloudformation_facts:
+        stack_name: "{{ referenced_stacks.VPCStackName }}"
+      register: vpcfacts
+      tags: [ 'createcfntemplate' ]
+
+    - name: Dump vpcfacts
+      debug:
+        var: "vpcfacts.ansible_facts.cloudformation.{{ referenced_stacks.VPCStackName }}.stack_outputs"
+      verbosity: 2
+      tags: [ 'createcfntemplate' ]
+
+    - name: Get facts for the RDS stack
+      cloudformation_facts:
+        stack_name: "{{ referenced_stacks.RDSStackName }}"
+      register: rdsfacts
+      tags: [ 'createcfntemplate' ]
+
+    - name: Get facts for the IAM stack
+      cloudformation_facts:
+        stack_name: "{{ project }}-beanstalk-iam"
+      register: iamfacts
+      tags: [ 'createcfntemplate' ]
+
+    - name: Create CFN template from Ansible template
+      template:
+        src: "ElasticBeanstalkApplication.yml"
+        dest: "cfn-templates/cfn-{{ project }}-{{ item.name }}.yml"
+      with_items: "{{ beanstalkenvironments | default([]) }}"
+      tags: [ 'createcfntemplate' ]
+
+    - name: Create or Update the Elastic Beanstalks
+      cloudformation:
+        stack_name: "{{ project }}-beanstalk-{{ item.name }}"
+        state: "present"
+        disable_rollback: false
+        template: "cfn-templates/cfn-{{ project }}-{{ item.name }}.yml"
+      with_items: "{{ beanstalkenvironments | default([]) }}"

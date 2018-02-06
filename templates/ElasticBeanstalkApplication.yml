@@ -1,0 +1,114 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description:
+  Create an Elastic Beanstalk Application
+
+
+Resources:
+
+  BeanstalkApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      Description: "{{ item.name }}"
+      ApplicationName: "{{ item.name }}"
+
+  Environment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      EnvironmentName: "{{ item.name }}"
+      ApplicationName: !Ref BeanstalkApplication
+      Description: "AWS ElasticBeanstalk Sample Environment"
+      TemplateName: !Ref EnvironmentConfigurationTemplate
+      VersionLabel: !Ref ApplicationVersion
+
+  ApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName: !Ref BeanstalkApplication
+      Description: Application Version
+      SourceBundle:
+        S3Bucket: !Sub "ixor-elasticbeanstalk-${AWS::Region}"
+        S3Key: "{{ item.artifact | default(item.name + '.war') }}"
+
+  EnvironmentConfigurationTemplate:
+    Type: AWS::ElasticBeanstalk::ConfigurationTemplate
+    Properties:
+      ApplicationName: !Ref BeanstalkApplication
+      Description: "{{ item.name }}"
+      SolutionStackName: "{{ item.solutionstack }}"
+      OptionSettings:
+        - Namespace: "aws:ec2:vpc"
+          OptionName: "VPCId"
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+        - Namespace: "aws:ec2:vpc"
+          OptionName: "Subnets"
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+        - Namespace: "aws:ec2:vpc"
+          OptionName: "ELBSubnets"
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
+        - Namespace: "aws:elasticbeanstalk:command"
+          OptionName: "BatchSize"
+          Value: "30"
+        - Namespace: "aws:elasticbeanstalk:command"
+          OptionName: "BatchSizeType"
+          Value: "Percentage"
+        - Namespace: "aws:elasticbeanstalk:command"
+          OptionName: "DeploymentPolicy"
+          Value: "Rolling"
+        - Namespace: "aws:elasticbeanstalk:sns:topics"
+          OptionName: "Notification Endpoint"
+          Value: ""
+        - Namespace: "aws:elb:policies"
+          OptionName: "ConnectionSettingIdleTimeout"
+          Value: "3000"
+        - Namespace: "aws:elb:policies"
+          OptionName: "ConnectionDrainingEnabled"
+          Value: "true"
+        - Namespace: "aws:elb:policies"
+          OptionName: "ConnectionDrainingTimeout"
+          Value: "20"
+        - Namespace: "aws:elasticbeanstalk:container:tomcat:jvmoptions"
+          OptionName: "Xmx"
+          Value: "700m"
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "JDBC_CONNECTION_STRING"
+          Value: ""
+        - Namespace: "aws:elb:loadbalancer"
+          OptionName: "CrossZone"
+          Value: "true"
+        - Namespace: "aws:elasticbeanstalk:environment"
+          OptionName: "ServiceRole"
+          Value: "{{ iamfacts.ansible_facts.cloudformation[project + '-beanstalk-iam'].stack_outputs.AWSElasticBeanstalkServiceRole }}"
+        - Namespace: "aws:elasticbeanstalk:environment"
+          OptionName: "EnvironmentType"
+          Value: "LoadBalanced"
+        - Namespace: "aws:elasticbeanstalk:application"
+          OptionName: "Application Healthcheck URL"
+          Value: ""
+        - Namespace: "aws:elasticbeanstalk:healthreporting:system"
+          OptionName: "SystemType"
+          Value: "enhanced"
+        - Namespace: "aws:elasticbeanstalk:healthreporting:system"
+          OptionName: "HealthCheckSuccessThreshold"
+          Value: "Ok"
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "SecurityGroups"
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "IamInstanceProfile"
+          Value: "{{ iamfacts.ansible_facts.cloudformation[project + '-beanstalk-iam'].stack_outputs.AWSElasticBeanstalkEC2InstanceProfile }}"
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "InstanceType"
+          Value: "{{ item.instance_type | default('t2.micro') }}"
+        - Namespace: "aws:autoscaling:launchconfiguration"
+          OptionName: "EC2KeyName"
+          Value: "{{ item.sshkey | default('id_rsa_rik') }}"
+        - Namespace: "aws:autoscaling:asg"
+          OptionName: "MaxSize"
+          Value: "1"
+        - Namespace: "aws:autoscaling:updatepolicy:rollingupdate"
+          OptionName: "RollingUpdateType"
+          Value: "Health"
+        - Namespace: "aws:autoscaling:updatepolicy:rollingupdate"
+          OptionName: "RollingUpdateEnabled"
+          Value: "true"

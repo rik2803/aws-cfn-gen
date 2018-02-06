@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create the IAM roles and instance profiles required for the creation of
+  Elastic BeanStalk instances
+
+Resources:
+
+  AWSElasticBeanstalkServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "aws-elasticbeanstalk-service-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "elasticbeanstalk.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService"
+        - "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth"
+
+  AWSElasticBeanstalkEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "aws-elasticbeanstalk-ec2-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
+        - "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
+
+  AWSElasticBeanstalkEC2InstanceProfile:
+      Type: AWS::IAM::InstanceProfile
+      Properties:
+        InstanceProfileName: "aws-elasticbeanstalk-ec2-instanceprofile"
+        Path: "/"
+        Roles:
+          - !Ref AWSElasticBeanstalkEC2Role
+
+Outputs:
+  AWSElasticBeanstalkEC2InstanceProfile:
+    Value: "aws-elasticbeanstalk-ec2-instanceprofile"
+    Description: Application
+    Export:
+      Name: !Sub "${AWS::StackName}-AWSElasticBeanstalkEC2InstanceProfile"
+  AWSElasticBeanstalkServiceRole:
+    Value: "aws-elasticbeanstalk-service-role"
+    Description: Application
+    Export:
+      Name: !Sub "${AWS::StackName}-AWSElasticBeanstalkServiceRole"
