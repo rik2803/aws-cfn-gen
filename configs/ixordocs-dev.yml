@@ -1,0 +1,124 @@
+### The account to run the CFN template on
+target_account:
+  name: "ixor.ixordocs-dev"
+  account_id: "530152727664"
+  sts_role: "admin"
+  region: "eu-central-1"
+
+domain: ixordocs.be
+
+loadbalancers:
+  - name: ALBExt
+    scheme: "internet-facing"
+    certificate_arn: "arn:aws:acm:eu-central-1:530152727664:certificate/0dc6fb2e-6175-4be7-9758-4d04cc01a052"
+  - name: ALBInt
+    scheme: "internal"
+
+ecs_cluster:
+  keypair: "id_rsa_rik"
+  instance_type: "t2.micro"
+  cluster_size:
+    min: 1
+    max: 3
+
+# Priority should be unique within each Listener (and LB since
+# wa only add ListenerRules to 1 Listener
+applicationconfig:
+#  - name: "doccle-engine"
+#    cfn_name: DoccleEngine
+#    target: "ecs"
+#    ecs:
+#      image: "530152727664.dkr.ecr.eu-central-1.amazonaws.com/ixordocs/portal:latest"
+#      containerport: 80
+#    lb: ALBInt
+#    domains:
+#      - name: ixordocs.be
+#        cfn_name: IxordocsBe
+#        priority: 1
+#      - name: ixordocs.com
+#        cfn_name: IxordocsCom
+#        priority: 2
+#  - name: "peppol-engine"
+#    cfn_name: PeppolEngine
+#    lb: ALBInt
+#    domains:
+#      - name: ixordocs.be
+#        cfn_name: IxordocsBe
+#        priority: 3
+#      - name: ixordocs.com
+#        cfn_name: IxordocsCom
+#        priority: 4
+  - name: "portal"
+    cfn_name: Portal
+    target: "ecs"
+    ecs:
+      image: "530152727664.dkr.ecr.eu-central-1.amazonaws.com/ixordocs/portal:latest"
+      containerport: 80
+    lb: ALBExt
+    domains:
+      - name: ixordocs.be
+        cfn_name: IxordocsBe
+        priority: 5
+      - name: ixordocs.com
+        cfn_name: IxordocsCom
+        priority: 6
+    environment:
+      - name: "ixordocs.base_url"
+        value: "https://docs-portal-test.ixor.be"
+      - name: "ixordocs.debug"
+        value: "true"
+      - name: "ixordocs.engine_url"
+        value: "http://engine.ixordocs.be"
+      - name: "ixordocs.peppol_engine_url"
+        value: "http://peppol-engine.ixordocs.be"
+      - name: "ixordocs.portal_path"
+        value: "http://portal.ixordocs.be"
+      - name: "ixordocs.static_path"
+        value: "http://static.ixordocs.be"
+      - name: "ixordocs.upload_batch_url"
+        value: "http://upload.ixordocs.be"
+      - name: "jdbc.user"
+        value: "ixordocs"
+      - name: "jdbc.password"
+        value: "JNUrxSAzmfBgtbwigaz8"
+      - name: "jdbc.url"
+        value: "jdbc:postgresql://ixordocsdev.cj4fy3fhardn.eu-central-1.rds.amazonaws.com:5432/ixordocs"
+        comment: "Should be created in the CFN template from the RDS output."
+ecs_microservices:
+  - name: "portal"
+
+
+
+#beanstalkenvironments:
+#  - name: "doccle-engine"
+#    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
+#  - name: "peppol-engine"
+#    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
+#  - name: "portal"
+#    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
+#    environment:
+#      - name: "ixordocs.base_url"
+#        value: "https://docs-portal-test.ixor.be"
+#      - name: "ixordocs.debug"
+#        value: ""
+#      - name: "ixordocs.engine_url"
+#        value: ""
+#      - name: "ixordocs.peppol_engine_url"
+#        value: ""
+#      - name: "ixordocs.portal_path"
+#        value: ""
+#      - name: "ixordocs.static_path"
+#        value: ""
+#      - name: "ixordocs.upload_batch_url"
+#        value: ""
+#      - name: "jdbc.user"
+#        value: "ixordocs"
+#      - name: "jdbc.password"
+#        value: "JNUrxSAzmfBgtbwigaz8"
+#      - name: "jdbc.url"
+#        value: "jdbc:postgresql://ixordocsdev.cj4fy3fhardn.eu-central-1.rds.amazonaws.com:5432/ixordocs"
+#        comment: "Should be created in the CFN template from the RDS output."
+
+referenced_stacks:
+  VPCStackName: "VPCForIxordocsDev"
+  RDSStackName: "RDSForIxordocsDev"

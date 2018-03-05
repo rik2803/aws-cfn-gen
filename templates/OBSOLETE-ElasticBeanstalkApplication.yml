@@ -3,45 +3,19 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description:
   Create an Elastic Beanstalk Application
 
-Parameters:
-  VPCStackName:
-    Type: String
-    Description: "Name of the stack used for creating the VPC"
-  ElasticBeanstalkIAMStackName:
-    Type: String
-    Description: "Name of stack used for creation of IAM roles and instance profiles"
-  ApplicationName:
-    Type: String
-    Description: "Name for the application"
-  EnvironmentName:
-    Type: String
-    Description: "Gimme a nice name"
-  SolutionStack:
-    Type: String
-    Description: "Stack to use. List only contains what is currently used at IXOR."
-    AllowedValues: [ "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8" ]
-  InstanceType:
-    Type: String
-    Description: "Instance Type"
-  SSHKeyName:
-    Type: String
-    Description: "SSH Key Name"
-  Artifact:
-    Type: String
-    Description: "Name of Artifact on S3 bucket"
 
 Resources:
 
   BeanstalkApplication:
     Type: AWS::ElasticBeanstalk::Application
     Properties:
-      Description: !Ref ApplicationName
-      ApplicationName: !Ref ApplicationName
+      Description: "{{ item.name }}"
+      ApplicationName: "{{ item.name }}"
 
   Environment:
     Type: AWS::ElasticBeanstalk::Environment
     Properties:
-      EnvironmentName: !Ref EnvironmentName
+      EnvironmentName: "{{ item.name }}"
       ApplicationName: !Ref BeanstalkApplication
       Description: "AWS ElasticBeanstalk Sample Environment"
       TemplateName: !Ref EnvironmentConfigurationTemplate
@@ -54,45 +28,24 @@ Resources:
       Description: Application Version
       SourceBundle:
         S3Bucket: !Sub "ixor-elasticbeanstalk-${AWS::Region}"
-        S3Key: !Ref Artifact
+        S3Key: "{{ item.artifact | default(item.name + '.war') }}"
 
   EnvironmentConfigurationTemplate:
     Type: AWS::ElasticBeanstalk::ConfigurationTemplate
     Properties:
       ApplicationName: !Ref BeanstalkApplication
-      Description: !Ref ApplicationName
-      SolutionStackName: !Ref SolutionStack
+      Description: "{{ item.name }}"
+      SolutionStackName: "{{ item.solutionstack }}"
       OptionSettings:
         - Namespace: "aws:ec2:vpc"
           OptionName: "VPCId"
-          Value:
-            Fn::ImportValue:
-              !Sub "${VPCStackName}-VPC"
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
         - Namespace: "aws:ec2:vpc"
           OptionName: "Subnets"
-          Value:
-            Fn::Join:
-              - ','
-              -
-                - Fn::ImportValue:
-                    !Sub "${VPCStackName}-PrivateSubnetAZ1"
-                - Fn::ImportValue:
-                    !Sub "${VPCStackName}-PrivateSubnetAZ2"
-                - Fn::ImportValue:
-                    !Sub "${VPCStackName}-PrivateSubnetAZ3"
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
         - Namespace: "aws:ec2:vpc"
           OptionName: "ELBSubnets"
-          Value:
-            Fn::Join:
-              - ','
-              -
-                - Fn::ImportValue:
-                    !Sub "${VPCStackName}-ELBSubnetAZ1"
-                - Fn::ImportValue:
-                    !Sub "${VPCStackName}-ELBSubnetAZ2"
-                - Fn::ImportValue:
-                    !Sub "${VPCStackName}-ELBSubnetAZ3"
-
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }},{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
         - Namespace: "aws:elasticbeanstalk:command"
           OptionName: "BatchSize"
           Value: "30"
@@ -117,17 +70,12 @@ Resources:
         - Namespace: "aws:elasticbeanstalk:container:tomcat:jvmoptions"
           OptionName: "Xmx"
           Value: "700m"
-        - Namespace: "aws:elasticbeanstalk:application:environment"
-          OptionName: "JDBC_CONNECTION_STRING"
-          Value: ""
         - Namespace: "aws:elb:loadbalancer"
           OptionName: "CrossZone"
           Value: "true"
         - Namespace: "aws:elasticbeanstalk:environment"
           OptionName: "ServiceRole"
-          Value:
-            Fn::ImportValue:
-              !Sub "${ElasticBeanstalkIAMStackName}-AWSElasticBeanstalkServiceRole"
+          Value: "{{ iamfacts.ansible_facts.cloudformation[iam_stackname].stack_outputs.AWSElasticBeanstalkServiceRole }}"
         - Namespace: "aws:elasticbeanstalk:environment"
           OptionName: "EnvironmentType"
           Value: "LoadBalanced"
@@ -142,23 +90,16 @@ Resources:
           Value: "Ok"
         - Namespace: "aws:autoscaling:launchconfiguration"
           OptionName: "SecurityGroups"
-          Value:
-            Fn::Join:
-              - ','
-              -
-                - Fn::ImportValue:
-                    !Sub "${VPCStackName}-SGAPP"
+          Value: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
         - Namespace: "aws:autoscaling:launchconfiguration"
           OptionName: "IamInstanceProfile"
-          Value:
-            Fn::ImportValue:
-              !Sub "${ElasticBeanstalkIAMStackName}-AWSElasticBeanstalkEC2InstanceProfile"
+          Value: "{{ iamfacts.ansible_facts.cloudformation[iam_stackname].stack_outputs.AWSElasticBeanstalkEC2InstanceProfile }}"
         - Namespace: "aws:autoscaling:launchconfiguration"
           OptionName: "InstanceType"
-          Value: !Ref InstanceType
+          Value: "{{ item.instance_type | default('t2.micro') }}"
         - Namespace: "aws:autoscaling:launchconfiguration"
           OptionName: "EC2KeyName"
-          Value: !Ref SSHKeyName
+          Value: "{{ item.sshkey | default('id_rsa_rik') }}"
         - Namespace: "aws:autoscaling:asg"
           OptionName: "MaxSize"
           Value: "1"
@@ -168,3 +109,9 @@ Resources:
         - Namespace: "aws:autoscaling:updatepolicy:rollingupdate"
           OptionName: "RollingUpdateEnabled"
           Value: "true"
+{% for env in item.environment | default([]) %}
+        - Namespace: "aws:elasticbeanstalk:application:environment"
+          OptionName: "{{ env.name }}"
+          Value: "{{ env.value }}"
+{% endfor %}
+

@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: |
+  Create an ECS stack {{ project }}
+
+Mappings:
+  AWSRegionToAMI:
+    eu-central-1:
+      AMIID: ami-63cbae0c
+    eu-west-1:
+      AMIID: ami-a1491ad2
+    eu-west-2:
+      AMIID: ami-42a64325
+
+Resources:
+
+  ### AWS::IAM::Role and AWS::IAM::InstanceProfile
+  ECSServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['elasticloadbalancing:DeregisterInstancesFromLoadBalancer', 'elasticloadbalancing:DeregisterTargets',
+              'elasticloadbalancing:Describe*', 'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+              'elasticloadbalancing:RegisterTargets', 'ec2:Describe*', 'ec2:AuthorizeSecurityGroupIngress']
+            Resource: '*'
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ec2.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
+              'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
+              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', 'ecr:GetAuthorizationToken' ]
+            Resource: '*'
+  AutoscalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [application-autoscaling.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: service-autoscaling
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['application-autoscaling:*', 'cloudwatch:DescribeAlarms', 'cloudwatch:PutMetricAlarm',
+              'ecs:DescribeServices', 'ecs:UpdateService']
+            Resource: '*'
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref 'EC2Role']
+
+  ### Resources for the ECS Cluster and the Container Instances
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: "ecs-{{ project }}"
+
+  ContainerInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
+      SecurityGroups:
+        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+      InstanceType: "{{ ecs_cluster.instance_type }}"
+      IamInstanceProfile: !Ref 'EC2InstanceProfile'
+      KeyName: "{{ ecs_cluster.keypair }}"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
+        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
+        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+      LaunchConfigurationName: !Ref 'ContainerInstances'
+      MinSize: '{{ ecs_cluster.cluster_size.min | default('1') }}'
+      MaxSize: '{{ ecs_cluster.cluster_size.max | default('1') }}'
+      DesiredCapacity: '{{ ecs_cluster.cluster_size.desired | default('1') }}'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+
+  ### Resources for Tasks and Services
+{% for app in applicationconfig %}
+{%   if app.target | lower == 'ecs' %}
+  ### AWS::Logs::LogGroup for {{ app.name }}
+  CloudWatch{{ cfn_project }}{{ app.cfn_name }}:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "cw-{{ project }}-{{ app.name }}"
+      RetentionInDays: 14
+
+  ### AWS::ECS::TaskDefinition for {{ app.name }}
+  Task{{ cfn_project }}{{ app.cfn_name }}:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: "task-{{ project }}-{{ app.name }}"
+      ContainerDefinitions:
+        - Name: "{{ project }}-{{ app.name }}"
+          Cpu: "{{ app.ecs.cpu | default('10') }}"
+          Essential: 'true'
+          Image: "{{ app.ecs.image }}"
+          Memory: "{{ app.ecs.memory | default(300) }}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatch{{ cfn_project }}{{ app.cfn_name }}"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "{{ project }}-{{ app.name }}"
+          PortMappings:
+            - ContainerPort: {{ app.ecs.containerport }}
+          Environment:
+            - Name: Application
+              Value: "{{ project }}"
+{%     for env in app.environment | default([]) %}
+            - Name: "{{ env.name }}"
+              Value: "{{ env.value }}"
+{%     endfor %}
+
+  ### AWS::ECS::Service for {{ app.name }}
+  Service{{ cfn_project }}{{ app.cfn_name }}:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref 'ECSCluster'
+      DesiredCount: '1'
+      LoadBalancers:
+        - ContainerName: "{{ project }}-{{ app.name }}"
+          ContainerPort: "{{ app.ecs.containerport }}"
+{%     for result in lbstacks.results %}
+{%       if result.item.name == app.lb %}
+          TargetGroupArn: "{{ result.stack_outputs['TGApp' + cfn_project + app.cfn_name] }}"
+{%       endif %}
+{%     endfor %}
+      Role: !Ref 'ECSServiceRole'
+      TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
+
+
+{%   endif %}
+{% endfor %}

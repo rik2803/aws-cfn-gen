@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Create loadbalancer {{ item.name }}
 
 Resources:
-  LB{{ cfn_project }}{{ item.name }}:
+  LB{{ item.name }}:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: "lb-{{ project }}-{{ item.name }}"
@@ -26,31 +26,41 @@ Resources:
 {% endif %}
 
 {% if "internal" not in item.scheme %}
-  Listener{{ cfn_project }}{{ item.name }}HTTPS:
+  Listener{{ item.name }}:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
       - Type: forward
-        TargetGroupArn: !Ref 'TG{{ cfn_project }}DefaultHTTPS'
-      LoadBalancerArn: !Ref 'LB{{ cfn_project }}{{ item.name }}'
+        TargetGroupArn: !Ref 'TGDefaultHTTPS'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
       Port: '443'
       Protocol: HTTPS
       Certificates:
         - CertificateArn: {{ item.certificate_arn }}
-{% endif %}
-  Listener{{ cfn_project }}{{ item.name }}HTTP:
+  Listener{{ item.name }}HTTP:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
       - Type: forward
-        TargetGroupArn: !Ref 'TG{{ cfn_project }}DefaultHTTP'
-      LoadBalancerArn: !Ref 'LB{{ cfn_project }}{{ item.name }}'
+        TargetGroupArn: !Ref 'TGDefaultHTTP'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
       Port: '80'
       Protocol: HTTP
+{% else %}
+  Listener{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'TGDefaultHTTP'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
+      Port: '80'
+      Protocol: HTTP
+{% endif %}
 
-  TG{{ cfn_project }}DefaultHTTPS:
+  TGDefaultHTTPS:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    DependsOn: "LB{{ cfn_project }}{{ item.name }}"
+    DependsOn: "LB{{ item.name }}"
     Properties:
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: /
@@ -62,9 +72,10 @@ Resources:
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
-  TG{{ cfn_project }}DefaultHTTP:
+
+  TGDefaultHTTP:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    DependsOn: "LB{{ cfn_project }}{{ item.name }}"
+    DependsOn: "LB{{ item.name }}"
     Properties:
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: /
@@ -77,10 +88,54 @@ Resources:
       UnhealthyThresholdCount: 2
       VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
 
+  ## Create application listener rules
+{% for app in applicationconfig | default([]) %}
+{%   if app.lb == item.name %}
+{%     for dom in app.domains %}
+  ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref "TGApp{{ cfn_project }}{{ app.cfn_name }}"
+      Conditions:
+        - Field: host-header
+          Values:
+            - "{{ app.name }}.{{ dom.name }}"
+      ListenerArn: !Ref "Listener{{ item.name }}"
+      Priority: {{ dom.priority }}
+{%     endfor %}
+
+  ## Create the application target groups
+  TGApp{{ cfn_project }}{{ app.cfn_name }}:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: "LB{{ item.name }}"
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Name: tg-{{ project }}-{{ app.name | lower }}
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+{%   endif %}
+{% endfor %}
 
 Outputs:
   {{ item.name }}:
-    Value: !Ref "LB{{ cfn_project }}{{ item.name }}"
+    Value: !Ref "LB{{ item.name }}"
     Description: "{{ item.description | default(item.name) }}"
     Export:
       Name: !Sub "${AWS::StackName}-{{ item.name }}"
+{% for app in applicationconfig | default([]) %}
+{%   if app.lb == item.name %}
+  TGApp{{ cfn_project }}{{ app.cfn_name }}:
+    Value: !Ref "TGApp{{ cfn_project }}{{ app.cfn_name }}"
+    Description: "Target Group for application {{ app.name }} in project {{ project }}."
+    Export:
+      Name: !Sub "${AWS::StackName}-tg-{{ project }}-{{ app.name | lower }}"
+{%   endif %}
+{% endfor %}

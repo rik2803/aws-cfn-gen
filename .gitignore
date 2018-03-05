@@ -1,3 +1,2 @@
-.idea
-setenv.bash
-cfn-templates/cfn-*
+.idea/*
+generated-files/*
