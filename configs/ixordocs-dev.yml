@@ -16,12 +16,11 @@ loadbalancers:
 
 ecs_cluster:
   keypair: "id_rsa_rik"
-  instance_type: "t2.micro"
+  instance_type: "t2.xlarge"
   cluster_size:
     min: 1
     max: 3
 
-# Priority should be unique within each Listener (and LB since
 # wa only add ListenerRules to 1 Listener
 applicationconfig:
 #  - name: "doccle-engine"
@@ -52,8 +51,10 @@ applicationconfig:
     cfn_name: Portal
     target: "ecs"
     ecs:
-      image: "530152727664.dkr.ecr.eu-central-1.amazonaws.com/ixordocs/portal:latest"
+      image: "530152727664.dkr.ecr.eu-central-1.amazonaws.com/ixordocs/portal:v1.1.41-0"
       containerport: 80
+      memory: 1024
+      cpu: 512
     lb: ALBExt
     domains:
       - name: ixordocs.be
@@ -62,63 +63,9 @@ applicationconfig:
       - name: ixordocs.com
         cfn_name: IxordocsCom
         priority: 6
-    environment:
-      - name: "ixordocs.base_url"
-        value: "https://docs-portal-test.ixor.be"
-      - name: "ixordocs.debug"
-        value: "true"
-      - name: "ixordocs.engine_url"
-        value: "http://engine.ixordocs.be"
-      - name: "ixordocs.peppol_engine_url"
-        value: "http://peppol-engine.ixordocs.be"
-      - name: "ixordocs.portal_path"
-        value: "http://portal.ixordocs.be"
-      - name: "ixordocs.static_path"
-        value: "http://static.ixordocs.be"
-      - name: "ixordocs.upload_batch_url"
-        value: "http://upload.ixordocs.be"
-      - name: "jdbc.user"
-        value: "ixordocs"
-      - name: "jdbc.password"
-        value: "JNUrxSAzmfBgtbwigaz8"
-      - name: "jdbc.url"
-        value: "jdbc:postgresql://ixordocsdev.cj4fy3fhardn.eu-central-1.rds.amazonaws.com:5432/ixordocs"
-        comment: "Should be created in the CFN template from the RDS output."
+
 ecs_microservices:
   - name: "portal"
 
-
-
-#beanstalkenvironments:
-#  - name: "doccle-engine"
-#    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
-#  - name: "peppol-engine"
-#    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
-#  - name: "portal"
-#    solutionstack: "64bit Amazon Linux 2017.09 v2.7.5 running Tomcat 8 Java 8"
-#    environment:
-#      - name: "ixordocs.base_url"
-#        value: "https://docs-portal-test.ixor.be"
-#      - name: "ixordocs.debug"
-#        value: ""
-#      - name: "ixordocs.engine_url"
-#        value: ""
-#      - name: "ixordocs.peppol_engine_url"
-#        value: ""
-#      - name: "ixordocs.portal_path"
-#        value: ""
-#      - name: "ixordocs.static_path"
-#        value: ""
-#      - name: "ixordocs.upload_batch_url"
-#        value: ""
-#      - name: "jdbc.user"
-#        value: "ixordocs"
-#      - name: "jdbc.password"
-#        value: "JNUrxSAzmfBgtbwigaz8"
-#      - name: "jdbc.url"
-#        value: "jdbc:postgresql://ixordocsdev.cj4fy3fhardn.eu-central-1.rds.amazonaws.com:5432/ixordocs"
-#        comment: "Should be created in the CFN template from the RDS output."
-
 referenced_stacks:
   VPCStackName: "VPCForIxordocsDev"
-  RDSStackName: "RDSForIxordocsDev"
