@@ -181,7 +181,7 @@ Resources:
       Role: !Ref 'ECSServiceRole'
       TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
 
-  ### AWS::Route53::RecordSet for {{ app.name }}
+  ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
 {%     if route53 is defined %}
 {%       for result in lbstacks.results %}
 {%         if result.item.name == app.lb.name %}
@@ -191,14 +191,31 @@ Resources:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: !ImportValue "{{ cfn_project }}Route53-Route53PrivateHostedZone{{ domain.cfn_name }}"
-      Comment: DNS name for my instance.
-      Name: "{{ app.name }}.{{ domain.name }}."
+      Comment: "DNS name for {{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}."
+      Name: "{{ app.lb.listener_rule_host_header }}.{{ domain.name }}."
       Type: CNAME
-      TTL: '900'
+      TTL: '300'
       ResourceRecords:
         - "{{ result.stack_outputs[app.lb.name + 'DNS'] }}"
 {%           endfor %}
 {%         endif %}
+{%       endfor %}
+{%     endif %}
+
+{%     if route53 is defined %}
+{%       for domain in app.domains %}
+{%         for public_hosted_zone in route53.public_hosted_zones | default([]) %}
+{%           if app.lb.type is defined and app.lb.type == 'public' and public_hosted_zone.cfn_name == domain.cfn_name %}
+  ### AWS::Route53::RecordSet for {{ app.name }} in public hosted zones
+  Route53PublicRecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
+    Type: Custom::CNAME
+    Properties:
+      ServiceToken: {{ public_hosted_zone.sns_arn }}
+      Source: {{ app.lb.listener_rule_host_header }}.{{ domain.name }}.
+      Target: !ImportValue "{{ cfn_project }}LB{{ app.lb.name }}-{{ app.lb.name }}DNS"
+      RecordType: CNAME
+{%           endif %}
+{%         endfor %}
 {%       endfor %}
 {%     endif %}
 

@@ -99,9 +99,15 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
       Conditions:
+        ### listener_rule_host_header is always required
         - Field: host-header
           Values:
-            - "{{ app.name }}.{{ dom.name }}"
+            - "{{ app.lb.listener_rule_host_header }}.{{ dom.name }}"
+{%       if app.lb.listener_rule_path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ app.lb.listener_rule_path_pattern }}"
+{%       endif %}
       ListenerArn: !Ref "Listener{{ item.name }}"
       Priority: {{ dom.priority }}
 {%     endfor %}
