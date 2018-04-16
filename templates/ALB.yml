@@ -67,7 +67,7 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
-      Name: tg-{{ project }}-{{ item.name | lower }}-def-443
+      Name: tg-{{ shortproject }}-{{ item.name | lower }}-def-443
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 2
@@ -82,7 +82,7 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
-      Name: tg-{{ project }}-{{ item.name | lower }}-def-80
+      Name: tg-{{ shortproject }}-{{ item.name | lower }}-def-80
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 2
@@ -90,14 +90,14 @@ Resources:
 
   ## Create application listener rules
 {% for app in applicationconfig | default([]) %}
-{%   if app.lb == item.name %}
+{%   if app.lb.name == item.name %}
 {%     for dom in app.domains %}
   ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref "TGApp{{ cfn_project }}{{ app.cfn_name }}"
+          TargetGroupArn: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
       Conditions:
         - Field: host-header
           Values:
@@ -106,21 +106,25 @@ Resources:
       Priority: {{ dom.priority }}
 {%     endfor %}
 
+
   ## Create the application target groups
-  TGApp{{ cfn_project }}{{ app.cfn_name }}:
+  TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: "LB{{ item.name }}"
     Properties:
       HealthCheckIntervalSeconds: 10
-      HealthCheckPath: /
+      HealthCheckPath: {{ app.lb.healthcheckpath | default('/') }}
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
-      Name: tg-{{ project }}-{{ app.name | lower }}
+      Matcher:
+        HttpCode: {{ app.lb.healthcheckokcode | default('200-299') }}
+      Name: tg-{{ shortproject }}-{{ item.name | lower }}-{{ app.name | lower }}
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+
 {%   endif %}
 {% endfor %}
 
@@ -130,12 +134,17 @@ Outputs:
     Description: "{{ item.description | default(item.name) }}"
     Export:
       Name: !Sub "${AWS::StackName}-{{ item.name }}"
+  {{ item.name }}DNS:
+    Value: !GetAtt LB{{ item.name }}.DNSName
+    Description: "{{ item.description | default(item.name) }} DNS name"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}DNS"
 {% for app in applicationconfig | default([]) %}
-{%   if app.lb == item.name %}
-  TGApp{{ cfn_project }}{{ app.cfn_name }}:
-    Value: !Ref "TGApp{{ cfn_project }}{{ app.cfn_name }}"
+{%   if app.lb.name == item.name %}
+  TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
+    Value: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
     Description: "Target Group for application {{ app.name }} in project {{ project }}."
     Export:
-      Name: !Sub "${AWS::StackName}-tg-{{ project }}-{{ app.name | lower }}"
+      Name: !Sub "${AWS::StackName}-tg-{{ shortproject }}-{{ item.name | lower }}-{{ app.name | lower }}"
 {%   endif %}
 {% endfor %}

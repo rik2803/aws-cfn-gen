@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Create Hosted Zones
+
+Resources:
+
+{% if route53 is defined and route53.private_hosted_zones is defined %}
+{%   for hosted_zone in route53.private_hosted_zones %}
+  Route53PrivateHostedZone{{ hosted_zone.cfn_name }}:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: {{ hosted_zone.name }}
+      VPCs:
+        -
+          VPCId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+          VPCRegion: !Ref 'AWS::Region'
+      HostedZoneConfig:
+        Comment: "Private hosted zone {{ hosted_zone.name }}"
+{%   endfor %}
+{% endif %}
+
+Outputs:
+{% if route53 is defined and route53.private_hosted_zones is defined %}
+{%   for hosted_zone in route53.private_hosted_zones %}
+  Route53PrivateHostedZone{{ hosted_zone.cfn_name }}:
+    Value: !Ref "Route53PrivateHostedZone{{ hosted_zone.cfn_name }}"
+    Description: "Private hosted zone {{ hosted_zone.name }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-Route53PrivateHostedZone{{ hosted_zone.cfn_name }}"
+{%   endfor %}
+{% endif %}

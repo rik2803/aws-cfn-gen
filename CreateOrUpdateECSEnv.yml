@@ -1,8 +1,4 @@
 ---
-#          TemplateBucket: "https://s3.{{ lookup('env', 'AWS_REGION') }}.amazonaws.com/cfn-{{ project }}"
-
-
-
 - name: Create a complete Application Environment on AWS
   hosts: localhost
   gather_facts: false
@@ -11,58 +7,73 @@
     AWS_REGION: "{{ target_account.region | default('eu-central-1') }}"
 
   pre_tasks:
-    - name: Test AWS_REGION
-      shell: "[[ -n $AWS_REGION ]]"
-      register: region
-      failed_when: false
-      changed_when: false
+    - name: Pre-tasks block
+      block:
+        - name: Test AWS_REGION
+          shell: "[[ -n $AWS_REGION ]]"
+          register: region
+          failed_when: false
+          changed_when: false
+        - name: Test AWS_SECRET_ACCESS_KEY
+          shell: "[[ -n $AWS_SECRET_ACCESS_KEY ]]"
+          register: secret
+          failed_when: false
+          changed_when: false
+        - name: Test AWS_ACCESS_KEY_ID
+          shell: "[[ -n $AWS_ACCESS_KEY_ID ]]"
+          register: key
+          failed_when: false
+          changed_when: false
+        - name: Test AWS_SESSION_TOKEN
+          shell: "[[ -n $AWS_SESSION_TOKEN ]]"
+          register: token
+          failed_when: false
+          changed_when: false
+        - name: Test if config file exists
+          stat:
+            path: "{{ configfile }}"
+          register: configfilestat
+          failed_when: false
+          changed_when: false
+        - name: Do assertions on configfile and AWS credential envvars
+          assert:
+            that:
+              - "configfile is defined"
+              - "key.rc == 0"
+              - "secret.rc == 0"
+              - "region.rc == 0"
+              - "token.rc == 0"
+              - "configfilestat.stat.exists"
+
       tags: [ 'always' ]
-    - name: Test AWS_SECRET_ACCESS_KEY
-      shell: "[[ -n $AWS_SECRET_ACCESS_KEY ]]"
-      register: secret
-      failed_when: false
-      changed_when: false
-      tags: [ 'always' ]
-    - name: Test AWS_ACCESS_KEY_ID
-      shell: "[[ -n $AWS_ACCESS_KEY_ID ]]"
-      register: key
-      failed_when: false
-      changed_when: false
-      tags: [ 'always' ]
-    - name: Test AWS_SESSION_TOKEN
-      shell: "[[ -n $AWS_SESSION_TOKEN ]]"
-      register: token
-      failed_when: false
-      changed_when: false
-      tags: [ 'always' ]
-    - name: Test if config file exists
-      stat:
-        path: "configs/{{ project }}.yml"
-      register: configfile
-      failed_when: false
-      changed_when: false
-      tags: [ 'always' ]
-    - name: Do assertions on configfile and AWS credential envvars
-      assert:
-        that:
-          - "project is defined"
-          - "key.rc == 0"
-          - "secret.rc == 0"
-          - "region.rc == 0"
-          - "token.rc == 0"
-          - "configfile.stat.exists"
-      tags: [ 'always' ]
+
 
   vars_files:
-    - "configs/{{ project }}.yml"
+    - "{{ configfile }}"
 
   tasks:
-    - name: Convert project name to alpha numeric camel case
-      set_fact:
-        cfn_project: "{{ project | replace('-', ' ') | title | replace(' ', '') }}"
+    ### Set some facts
+    - name: Facts block
+      block:
+        - name: Convert project name to alpha numeric camel case
+          set_fact:
+            cfn_project: "{{ project.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}"
+        - set_fact:
+            project: "{{ project.name }}"
+            shortproject: "{{ project.shortname | default(project.name) }}"
+      tags: [ 'always' ]
+    ### Collect info from other stacks
+    - name: Get facts for the VPC stack
+      cloudformation_facts:
+        stack_name: "{{ referenced_stacks.VPCStackName }}"
+      register: vpcfacts
+      tags: [ 'always' ]
+
     - name: Set more variables
       set_fact:
         iam_stackname: "{{ cfn_project }}IAM"
+      tags: [ 'always' ]
+
     - name: Create CFN template from Ansible template for the IAM stack
       template:
         src: "ElasticBeanstalkIAM.yml"
@@ -75,27 +86,30 @@
         disable_rollback: false
         template: "generated-files/ElasticBeanstalkIAM.yml"
 
-    ### Collect info from other stacks
-    - name: Get facts for the VPC stack
-      cloudformation_facts:
-        stack_name: "{{ referenced_stacks.VPCStackName }}"
-      register: vpcfacts
-      tags: [ 'createcfntemplate' ]
-
-    - name: Dump vpcfacts
-      debug:
-        var: "vpcfacts.ansible_facts.cloudformation.{{ referenced_stacks.VPCStackName }}.stack_outputs"
-      verbosity: 2
-      tags: [ 'createcfntemplate' ]
-
     - name: Get facts for the IAM stack
       cloudformation_facts:
         stack_name: "{{ iam_stackname }}"
       register: iamfacts
       tags: [ 'createcfntemplate' ]
 
-    ### Create the CFN templates
-    - name: Create CFN template from Ansible template for the LoadBalancers
+    ### Route53 Hosted Zones
+    - name: Create template from Ansible template for the Route53 Hosted Zones
+      template:
+        src: "Route53.yml"
+        dest: "generated-files/cfn-{{ project }}-route53.yml"
+      when: route53 is defined
+      tags: [ 'createcfntemplate', 'route53' ]
+    - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
+      cloudformation:
+        stack_name: "{{ cfn_project }}Route53"
+        state: "present"
+        disable_rollback: false
+        template: "generated-files/cfn-{{ project }}-route53.yml"
+      when: route53 is defined
+      tags: [ 'createstack', 'route53' ]
+
+    ### Loadbalancers
+    - name: Create template from Ansible template for the LoadBalancers
       template:
         src: "ALB.yml"
         dest: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
@@ -111,6 +125,7 @@
       register: lbstacks
       tags: [ 'createstack', 'alb' ]
 
+    ### ECS Cluster
     - name: Create CFN template from Ansible template for the ECS Cluster
       template:
         src: ECS.yml
@@ -124,20 +139,6 @@
         template: "generated-files/cfn-{{ project }}-ecs.yml"
       tags: [ 'createstack' ]
 
-#    - name: Create CFN template from Ansible template for the Beanstalks
-#      template:
-#        src: "ElasticBeanstalkApplication.yml"
-#        dest: "generated-files/cfn-{{ project }}-beanstalk-{{ item.name }}.yml"
-#      with_items: "{{ beanstalkenvironments | default([]) }}"
-#      tags: [ 'createcfntemplate', 'beanstalk' ]
-#    - name: Create or Update the Elastic Beanstalk CloudFormation stacks
-#      cloudformation:
-#        stack_name: "{{ cfn_project }}BeanStalk{{ item.name }}"
-#        state: "present"
-#        disable_rollback: false
-#        template: "generated-files/cfn-{{ project }}-beanstalk-{{ item.name }}.yml"
-#      with_items: "{{ beanstalkenvironments | default([]) }}"
-#      tags: [ 'createstack', 'beanstalk' ]
 
 
 
