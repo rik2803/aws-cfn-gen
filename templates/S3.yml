@@ -20,7 +20,7 @@ Resources:
         Rules:
         - NoncurrentVersionExpirationInDays: 60
           Status: Enabled
-{%   if bucket.static_website_hosting is defined and bucket.static_website_hosting in [ "yes", "Yes", "true", "True", "on", "On" ] %}
+{%   if bucket.static_website_hosting is defined and ( bucket.static_website_hosting or bucket.static_website_hosting in [ "yes", "Yes", "true", "True", "on", "On" ] ) %}
       WebsiteConfiguration:
         IndexDocument: {{ bucket.indexdocument | default('index.html') }}
         ErrorDocument: {{ bucket.errordocument | default('error.html') }}
@@ -30,4 +30,7 @@ Resources:
         Value: "{{ application }}"
       - Key: Environment
         Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+
 {% endfor %}
