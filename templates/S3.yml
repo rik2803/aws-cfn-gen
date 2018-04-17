@@ -1,0 +1,33 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create S3 buckets for project {{ project }}
+Resources:
+{% for bucket in s3 %}
+  {{ cfn_project }}{{ bucket.cfn_name }}:
+    Type: AWS::S3::Bucket
+    Properties:
+{%   if bucket.access_control is defined and bucket.access_control in [ "AuthenticatedRead", "AwsExecRead", "BucketOwnerRead", "BucketOwnerFullControl", "LogDeliveryWrite", "Private", "PublicRead", "PublicReadWrite" ] %}
+      AccessControl: {{ bucket.access_control }}
+{%   else %}
+      AccessControl: Private
+{%   endif %}
+      BucketName: "{{ application }}-{{ env }}-{{ bucket.name }}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+        - NoncurrentVersionExpirationInDays: 60
+          Status: Enabled
+{%   if bucket.static_website_hosting is defined and bucket.static_website_hosting in [ "yes", "Yes", "true", "True", "on", "On" ] %}
+      WebsiteConfiguration:
+        IndexDocument: {{ bucket.indexdocument | default('index.html') }}
+        ErrorDocument: {{ bucket.errordocument | default('error.html') }}
+{%   endif %}
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+{% endfor %}

@@ -139,6 +139,21 @@
         template: "generated-files/cfn-{{ project }}-ecs.yml"
       tags: [ 'createstack' ]
 
+    ### S3 buckets
+    - name: Create CFN template from Ansible template for project S3 buckets
+      template:
+        src: S3.yml
+        dest: "generated-files/cfn-{{ project }}-s3.yml"
+      when: s3 is defined
+      tags: [ 'createcfntemplate', 's3' ]
+    - name: Create or Update the S3 CloudFormation stack
+      cloudformation:
+        stack_name: "{{ cfn_project }}S3"
+        state: "present"
+        disable_rollback: false
+        template: "generated-files/cfn-{{ project }}-s3.yml"
+      when: s3 is defined
+      tags: [ 'createstack', 's3' ]
 
 
 
