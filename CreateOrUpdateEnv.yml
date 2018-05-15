@@ -74,6 +74,20 @@
         iam_stackname: "{{ cfn_project }}IAM"
       tags: [ 'always' ]
 
+    ### ECR Repositories
+    - name: Create CFN template from Ansible template for the ECR Repositories
+      template:
+        src: "ECR.yml"
+        dest: "generated-files/cfn-{{ project }}-ecr.yml"
+      tags: [ 'ecr' ]
+    - name: Create or Update the ECR CloudFormation stack
+      cloudformation:
+        stack_name: "{{ cfn_project }}ECR"
+        state: "present"
+        disable_rollback: false
+        template: "generated-files/cfn-{{ project }}-ecr.yml"
+      tags: [ 'ecr' ]
+
     ### IAM Resources
     - name: Create CFN template from Ansible template for the IAM resources
       template:

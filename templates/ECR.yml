@@ -1,0 +1,79 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create ECS Container Registries and a ecr-push user with full ECR permissions to be able to
+  push images to the repository.
+
+  All repositories have a lifecycle attached to remove untagged images older than 14 days.
+
+Resources:
+{% for repo in ecr.repositories %}
+  {{ repo.cfn_name }}:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: "{{ repo.name }}"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+              "rules": [{
+                  "rulePriority": 1,
+                  "description": "Expire images older than 14 days",
+                  "selection": {
+                      "tagStatus": "untagged",
+                      "countType": "sinceImagePushed",
+                      "countUnit": "days",
+                      "countNumber": 14
+                  },
+                  "action": {
+                      "type": "expire"
+                  }
+              }]
+          }
+{% endfor %}
+
+  ECRPush:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: ecr-push
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+      Policies:
+        - PolicyName: AllowServiceUpdate
+          PolicyDocument:
+            Statement:
+            - Action:
+              - ecs:UpdateService
+              Effect: Allow
+              Resource: '*'
+            Version: '2012-10-17'
+
+
+  ECRPull:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: ecr-pull
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  KeyECRPush:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref ECRPush
+  KeyECRPull:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref ECRPull
+
+Outputs:
+  AccessKeyECRPush:
+    Value:
+      !Ref KeyECRPush
+  SecretKeyECRPush:
+    Value: !GetAtt KeyECRPush.SecretAccessKey
+  AccessKeyECRPull:
+    Value:
+      !Ref KeyECRPull
+  SecretKeyECRPull:
+    Value: !GetAtt KeyECRPull.SecretAccessKey
