@@ -1,4 +1,20 @@
-# Elastic Beanstalk Automation
+# AWS CloudFormation Template Generator
+
+This repository consists of:
+
+* A _Ansible_ playbook
+* A number of _Ansible_ templates that generate AWS CloudFormation templates with an external configuration
+  file as driver
+
+## Resources that can be created using this repository
+
+* AWS Application Load Balacders (ALB)
+* AWS ECR
+* AWC ECS Cluster
+* AWS ECS Tasks and Services
+* S3 buckets
+* Route 53 private Hosted Zones
+* IAM Users, Roles and Policies
 
 ## Links and Resources
 
@@ -8,7 +24,3 @@
 ## Order of installation is important
 
 ## Links
-
-* ECS optimized AMI list: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
-  * In `eu-central-1`, the AMI is `ami-63cbae0c`
-* ECS Cluster example CFN Template: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-ecs.html
