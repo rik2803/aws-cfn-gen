@@ -74,23 +74,21 @@
         iam_stackname: "{{ cfn_project }}IAM"
       tags: [ 'always' ]
 
-    - name: Create CFN template from Ansible template for the IAM stack
+    ### IAM Resources
+    - name: Create CFN template from Ansible template for the IAM resources
       template:
-        src: "ElasticBeanstalkIAM.yml"
-        dest: "generated-files/ElasticBeanstalkIAM.yml"
-      tags: [ 'createcfntemplate' ]
+        src: "IAM.yml"
+        dest: "generated-files/cfn-{{ project }}-iam.yml"
+      when: roles is defined or managed_policies is defined
+      tags: [ 'createcfntemplate_iam', 'iam' ]
     - name: Create or Update the IAM Stack
       cloudformation:
-        stack_name: "{{ iam_stackname }}"
+        stack_name: "{{ cfn_project }}IAM"
         state: "present"
         disable_rollback: false
-        template: "generated-files/ElasticBeanstalkIAM.yml"
-
-    - name: Get facts for the IAM stack
-      cloudformation_facts:
-        stack_name: "{{ iam_stackname }}"
-      register: iamfacts
-      tags: [ 'createcfntemplate' ]
+        template: "generated-files/cfn-{{ project }}-iam.yml"
+      when: roles is defined or managed_policies is defined
+      tags: [ 'iam' ]
 
     ### Route53 Hosted Zones
     - name: Create template from Ansible template for the Route53 Hosted Zones
@@ -130,6 +128,7 @@
       template:
         src: ECS.yml
         dest: "generated-files/cfn-{{ project }}-ecs.yml"
+      when: ecs is defined
       tags: [ 'createcfntemplate', 'ecs' ]
     - name: Create or Update the ECS CloudFormation stack
       cloudformation:
@@ -137,6 +136,7 @@
         state: "present"
         disable_rollback: false
         template: "generated-files/cfn-{{ project }}-ecs.yml"
+      when: ecs is defined
       tags: [ 'createstack' ]
 
     ### S3 buckets

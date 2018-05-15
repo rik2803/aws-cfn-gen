@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create IAM Resource for project {{ cfn_project }}
+
+Resources:
+
+{% for policy in managed_policies | default([]) %}
+  {{ policy.name }}Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: {{ policy.name }}
+      Description: "Managed policy {{ policy.name }} for {{ cfn_project }}"
+      PolicyDocument:
+        {{ policy.policy_document | to_json }}
+
+{% endfor %}
+
+{% for role in roles | default([]) %}
+  {{ role.name }}Role:
+    DependsOn:
+{%   for policy in managed_policies %}
+      - {{ policy.name }}Policy
+{%   endfor %}
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: {{ role.name }}
+      AssumeRolePolicyDocument:
+        {{ role.assumerole_policy_document | to_json }}
+      ManagedPolicyArns:
+{%   for policyarn in role.policy_arns %}
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policyarn }}'
+{%   endfor %}
+{% endfor %}
+
+
+{% for iam_user in iam_users | default([]) %}
+  {{ iam_user.cfn_name | default('A_BUG') }}:
+    Type: AWS::IAM::User
+    DependsOn:
+{%   for policy in managed_policies %}
+      - {{ policy.name }}Policy
+{%   endfor %}
+    Properties:
+      UserName: {{ iam_user.name }}
+{%   if iam_user.managed_policies is defined %}
+      ManagedPolicyArns:
+{%     for policy in iam_user.managed_policies %}
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policy }}'
+{%     endfor %}
+{%   endif %}
+
+{%   if iam_user.create_accesskeys is defined and iam_user.create_accesskeys %}
+  Key{{ iam_user.cfn_name | default('A_BUG') }}:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref {{ iam_user.cfn_name | default('A_BUG') }}
+{%   endif %}
+{% endfor %}
+
+Outputs:
+  Dummy:
+    Value: dummy
+{% for iam_user in iam_users | default([]) %}
+{%   if iam_user.create_accesskeys is defined and iam_user.create_accesskeys %}
+  AccessKey{{ iam_user.cfn_name | default('A_BUG') }}:
+    Value:
+      !Ref Key{{ iam_user.cfn_name }}
+  SecretKey{{ iam_user.cfn_name | default('A_BUG') }}:
+    Value: !GetAtt Key{{ iam_user.cfn_name | default('A_BUG') }}.SecretAccessKey
+{%   endif %}
+{% endfor %}

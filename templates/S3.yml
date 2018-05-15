@@ -34,3 +34,16 @@ Resources:
         Value: "{{ customer | default('NA') }}"
 
 {% endfor %}
+
+{% if s3_policies is defined %}
+{%   for policy in s3_policies %}
+  {{ cfn_project }}{{ policy.cfn_name }}:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - {{ cfn_project }}{{ policy.bucket_cfn_name }}
+    Properties:
+      Bucket: !Ref {{ cfn_project }}{{ policy.bucket_cfn_name }}
+      PolicyDocument:
+        {{ policy.policy_document | to_json }}
+{%   endfor %}
+{% endif %}

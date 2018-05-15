@@ -63,7 +63,7 @@ Resources:
     DependsOn: "LB{{ item.name }}"
     Properties:
       HealthCheckIntervalSeconds: 10
-      HealthCheckPath: /
+      HealthCheckPath: {{ item.def_tg_https_healthcheckpath | default('/') }}
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -78,7 +78,7 @@ Resources:
     DependsOn: "LB{{ item.name }}"
     Properties:
       HealthCheckIntervalSeconds: 10
-      HealthCheckPath: /
+      HealthCheckPath:  {{ item.def_tg_http_healthcheckpath | default('/') }}
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -90,7 +90,7 @@ Resources:
 
   ## Create application listener rules
 {% for app in applicationconfig | default([]) %}
-{%   if app.lb.name == item.name %}
+{%   if app.domains is defined and app.lb.name == item.name %}
 {%     for dom in app.domains %}
   ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
@@ -144,8 +144,18 @@ Outputs:
     Description: "{{ item.description | default(item.name) }} DNS name"
     Export:
       Name: !Sub "${AWS::StackName}-{{ item.name }}DNS"
+  TGDefaultHTTP:
+    Value: !Ref "TGDefaultHTTP"
+    Description: "Default Target Group for HTTP."
+    Export:
+      Name: !Sub "${AWS::StackName}-tg-{{ shortproject }}-{{ item.name | lower }}-def-80"
+  TGDefaultHTTPS:
+    Value: !Ref "TGDefaultHTTPS"
+    Description: "Default Target Group for HTTPS."
+    Export:
+      Name: !Sub "${AWS::StackName}-tg-{{ shortproject }}-{{ item.name | lower }}-def-443"
 {% for app in applicationconfig | default([]) %}
-{%   if app.lb.name == item.name %}
+{%   if app.domains is defined and app.lb.name == item.name %}
   TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
     Value: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
     Description: "Target Group for application {{ app.name }} in project {{ project }}."
