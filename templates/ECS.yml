@@ -3,14 +3,17 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: |
   Create an ECS stack {{ project }}
 
+### For latest ECS optomized AMIs: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
 Mappings:
   AWSRegionToAMI:
     eu-central-1:
-      AMIID: ami-63cbae0c
+      AMIID: ami-10e6c8fb
     eu-west-1:
-      AMIID: ami-a1491ad2
+      AMIID: ami-c91624b0
     eu-west-2:
-      AMIID: ami-42a64325
+      AMIID: ami-3622cf51
+    eu-west-3:
+      AMIID: ami-ca75c4b7
 
 Resources:
 
