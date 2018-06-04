@@ -171,7 +171,7 @@ Resources:
     Properties:
       ServiceName: "{{ project }}-{{ app.name }}"
       Cluster: !Ref 'ECSCluster'
-      DesiredCount: '1'
+      DesiredCount: '{{ app.ecs.desiredcount | default(1) }}'
       HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
       LoadBalancers:
         - ContainerName: "{{ project }}-{{ app.name }}"
@@ -193,17 +193,19 @@ Resources:
 {%       for result in lbstacks.results %}
 {%         if app.domains is defined and result.item.name == app.lb.name %}
 {%           for domain in app.domains %}
+{%             if domain.skiproute53 is not defined or not domain.skiproute53 %}
   ### {{ result.item.name }} - {{ app.lb.name }} - {{ domain.cfn_name }} - {{ domain.name }}
   Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: !ImportValue "{{ cfn_project }}Route53-Route53PrivateHostedZone{{ domain.cfn_name }}"
       Comment: "DNS name for {{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}."
-      Name: "{{ app.lb.listener_rule_host_header }}.{{ domain.name }}."
+      Name: "{{ domain.listener_rule_host_header }}."
       Type: CNAME
       TTL: '300'
       ResourceRecords:
         - "{{ result.stack_outputs[app.lb.name + 'DNS'] }}"
+{%             endif %}
 {%           endfor %}
 {%         endif %}
 {%       endfor %}
@@ -213,14 +215,19 @@ Resources:
 {%       for domain in app.domains %}
 {%         for public_hosted_zone in route53.public_hosted_zones | default([]) %}
 {%           if app.lb.type is defined and app.lb.type == 'public' and public_hosted_zone.cfn_name == domain.cfn_name %}
+{%             if domain.listener_rule_host_header != domain.name %}
+{%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
+  ### Do not create RecordSet if it is same as domainname
   ### AWS::Route53::RecordSet for {{ app.name }} in public hosted zones
   Route53PublicRecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
     Type: Custom::CNAME
     Properties:
       ServiceToken: {{ public_hosted_zone.sns_arn }}
-      Source: {{ app.lb.listener_rule_host_header }}.{{ domain.name }}.
+      Source: {{ domain.listener_rule_host_header }}.
       Target: !ImportValue "{{ cfn_project }}LB{{ app.lb.name }}-{{ app.lb.name }}DNS"
       RecordType: CNAME
+{%               endif %}
+{%             endif %}
 {%           endif %}
 {%         endfor %}
 {%       endfor %}
