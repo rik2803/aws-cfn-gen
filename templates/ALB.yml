@@ -92,7 +92,7 @@ Resources:
 {% for app in applicationconfig | default([]) %}
 {%   if app.domains is defined and app.lb.name == item.name %}
 {%     for dom in app.domains %}
-  ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}:
+  ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}{{ dom.listener_rule_path_pattern | default("All") | replace('*', 'Star') | replace('/', ' ') | title | replace(' ', '') }}:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
     Properties:
       Actions:
@@ -101,11 +101,11 @@ Resources:
       Conditions:
         - Field: host-header
           Values:
-            - "{{ app.lb.listener_rule_host_header | default(app.name) }}.{{ dom.name }}"
-{%       if app.lb.listener_rule_path_pattern is defined %}
+            - "{{ dom.listener_rule_host_header }}"
+{%       if dom.listener_rule_path_pattern is defined %}
         - Field: path-pattern
           Values:
-            - "{{ app.lb.listener_rule_path_pattern }}"
+            - "{{ dom.listener_rule_path_pattern }}"
 {%       endif %}
       ListenerArn: !Ref "Listener{{ item.name }}"
       Priority: {{ dom.priority }}
