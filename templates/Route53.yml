@@ -16,6 +16,19 @@ Resources:
           VPCRegion: !Ref 'AWS::Region'
       HostedZoneConfig:
         Comment: "Private hosted zone {{ hosted_zone.name }}"
+{%     if hosted_zone.apex_alias is defined %}
+  Route53Recordset{{ hosted_zone.cfn_name }}ApexAlias:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: "{{ hosted_zone.name | regex_replace('\.$', '') }}."
+      Comment: "Apex Alias for {{ hosted_zone.name }}"
+      RecordSets:
+        - Name: "{{ hosted_zone.name }}"
+          Type: A
+          AliasTarget:
+            HostedZoneId: !ImportValue "{{ cfn_project }}LB{{ hosted_zone.apex_alias }}-{{ hosted_zone.apex_alias }}CanonicalHostedZoneID"
+            DNSName:  !ImportValue "{{ cfn_project }}LB{{ hosted_zone.apex_alias }}-{{ hosted_zone.apex_alias }}DNS"
+{%     endif %}
 {%   endfor %}
 {% endif %}
 
