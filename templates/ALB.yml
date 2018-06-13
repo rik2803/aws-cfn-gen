@@ -144,6 +144,11 @@ Outputs:
     Description: "{{ item.description | default(item.name) }} DNS name"
     Export:
       Name: !Sub "${AWS::StackName}-{{ item.name }}DNS"
+  {{ item.name }}CanonicalHostedZoneID:
+    Value: !GetAtt LB{{ item.name }}.CanonicalHostedZoneID
+    Description: "{{ item.description | default(item.name) }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}CanonicalHostedZoneID"
   TGDefaultHTTP:
     Value: !Ref "TGDefaultHTTP"
     Description: "Default Target Group for HTTP."
