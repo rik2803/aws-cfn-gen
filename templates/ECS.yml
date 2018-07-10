@@ -241,6 +241,33 @@ Resources:
       LogGroupName: !Sub "cw-{{ project }}-{{ app.name }}"
       RetentionInDays: 14
 
+  ### AWS::CloudWatch::MetricFilter for CloudWatch logs for application {{ app.name }}
+  MetricFilterAppStart{{ cfn_project }}{{ app.cfn_name }}:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName: !Ref CloudWatch{{ cfn_project }}{{ app.cfn_name }}
+      FilterPattern: "Started Application in"
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: "{{ cfn_project }}LogMetrics"
+          MetricName: "ServiceStart"
+
+  ### AWS::CloudWatch::Alarm for MetricFilterAppStart
+  AlarmAppStart{{ cfn_project }}{{ app.cfn_name }}:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Start Alarm for {{ cfn_project }}{{ app.cfn_name }}"
+      AlarmActions:
+        - !ImportValue "IxorMonitoringSubaccount-MonitoringSNSTopic"
+      MetricName: ServiceStart
+      Namespace: {{ cfn_project }}LogMetrics
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: '1'
+      Threshold: '1'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+
   ### AWS::ECS::TaskDefinition for {{ app.name }}
   Task{{ cfn_project }}{{ app.cfn_name }}:
     Type: AWS::ECS::TaskDefinition
