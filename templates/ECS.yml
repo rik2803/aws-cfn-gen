@@ -60,6 +60,112 @@ Resources:
               'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', 'ecr:GetAuthorizationToken' ]
             Resource: '*'
 
+#  ### Default CloudWatch alerts and ScalingPolicies for ECS cluster
+#  ECSCPUReservationAlarm70Up:
+#    Type: AWS::CloudWatch::Alarm
+#    Properties:
+#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
+#      AlarmDescription: "Trigger when AWS/ECS CPUReservation is over 70 during the last 60 1 minute intervals"
+#      EvaluationPeriods: '1'
+#      Statistic: Maximum
+#      Threshold: '70'
+#      Period: '60'
+#      AlarmActions:
+#      - !Ref ECSCPUReservationScaleUpPolicy
+#      Dimensions:
+#      - Name: ClusterName
+#        Value: !Ref ECSCluster
+#      ComparisonOperator: GreaterThanThreshold
+#      MetricName: CPUReservation
+#      Namespace: AWS/ECS
+#
+#  ECSCPUReservationAlarm50Down:
+#    Type: AWS::CloudWatch::Alarm
+#    Properties:
+#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
+#      AlarmDescription: "Trigger when AWS/ECS CPUReservation is over 50 during the last 5 1 minute intervals"
+#      EvaluationPeriods: '5'
+#      Statistic: Maximum
+#      Threshold: '50'
+#      Period: '60'
+#      AlarmActions:
+#      - !Ref ECSCPUReservationScaleDownPolicy
+#      Dimensions:
+#      - Name: ClusterName
+#        Value: !Ref ECSCluster
+#      ComparisonOperator: LessThanThreshold
+#      MetricName: CPUReservation
+#      Namespace: AWS/ECS
+#
+#  ECSCPUReservationScaleUpPolicy:
+#    Type: AWS::AutoScaling::ScalingPolicy
+#    Properties:
+#      AdjustmentType: ChangeInCapacity
+#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+#      Cooldown: '300'
+#      ScalingAdjustment: '1'
+#
+#  ECSCPUReservationScaleDownPolicy:
+#    Type: AWS::AutoScaling::ScalingPolicy
+#    Properties:
+#      AdjustmentType: ChangeInCapacity
+#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+#      Cooldown: '300'
+#      ScalingAdjustment: '-1'
+#
+#  ECSMemoryReservationAlarm70Up:
+#    Type: AWS::CloudWatch::Alarm
+#    Properties:
+#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
+#      AlarmDescription: "Trigger when AWS/ECS MemoryReservation is over 70 during the last 1 minute interval"
+#      EvaluationPeriods: '1'
+#      Statistic: Maximum
+#      Threshold: '70'
+#      Period: '60'
+#      AlarmActions:
+#      - !Ref ECSMemoryReservationScaleUpPolicy
+#      Dimensions:
+#      - Name: ClusterName
+#        Value: !Ref ECSCluster
+#      ComparisonOperator: GreaterThanThreshold
+#      MetricName: MemoryReservation
+#      Namespace: AWS/ECS
+#
+#  ECSMemoryReservationAlarm50Down:
+#    Type: AWS::CloudWatch::Alarm
+#    Properties:
+#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
+#      AlarmDescription: "Trigger when AWS/ECS MemoryReservation is under 50 during the last 5 1 minute intervals"
+#      EvaluationPeriods: '5'
+#      Statistic: Maximum
+#      Threshold: '50'
+#      Period: '60'
+#      AlarmActions:
+#      - !Ref ECSMemoryReservationScaleDownPolicy
+#      Dimensions:
+#      - Name: ClusterName
+#        Value: !Ref ECSCluster
+#      ComparisonOperator: LessThanThreshold
+#      MetricName: MemoryReservation
+#      Namespace: AWS/ECS
+#
+#  ECSMemoryReservationScaleUpPolicy:
+#    Type: AWS::AutoScaling::ScalingPolicy
+#    Properties:
+#      AdjustmentType: ChangeInCapacity
+#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+#      Cooldown: '300'
+#      ScalingAdjustment: '1'
+#
+#  ECSMemoryReservationScaleDownPolicy:
+#    Type: AWS::AutoScaling::ScalingPolicy
+#    Properties:
+#      AdjustmentType: ChangeInCapacity
+#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+#      Cooldown: '300'
+#      ScalingAdjustment: '-1'
+
+
   AutoscalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -116,8 +222,8 @@ Resources:
         - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
       LaunchConfigurationName: !Ref 'ContainerInstances'
       MinSize: '{{ ecs.cluster.cluster_size.min | default('1') }}'
-      MaxSize: '{{ ecs.cluster.cluster_size.max | default('1') }}'
-      DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | default('1') }}'
+      MaxSize: '{{ ecs.cluster.cluster_size.max | default( [ ecs.cluster.cluster_size.max, 1 ] | max ) }}'
+      DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | default( [ ecs.cluster.cluster_size.min, 1 ] | max ) }}'
     CreationPolicy:
       ResourceSignal:
         Timeout: PT15M
@@ -173,6 +279,12 @@ Resources:
       Cluster: !Ref 'ECSCluster'
       DesiredCount: '{{ app.ecs.desiredcount | default(1) }}'
       HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
+      ### The DeploymentConfiguration settings are the defaults, they were added
+      ### for documentation reasons
+      ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
       LoadBalancers:
         - ContainerName: "{{ project }}-{{ app.name }}"
           ContainerPort: "{{ app.ecs.containerport }}"
