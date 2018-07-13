@@ -60,6 +60,7 @@ Resources:
               'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', 'ecr:GetAuthorizationToken' ]
             Resource: '*'
 
+
 #  ### Default CloudWatch alerts and ScalingPolicies for ECS cluster
 #  ECSCPUReservationAlarm70Up:
 #    Type: AWS::CloudWatch::Alarm
@@ -197,6 +198,24 @@ Resources:
     Properties:
       ClusterName: "ecs-{{ project }}"
 
+
+  EventRuleECSTaskStateChange:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "EventRule"
+      EventPattern:
+        source:
+          - aws.ecs
+        detail-type:
+          - ECS Task State Change
+        detail:
+          clusterArn:
+            - !GetAtt ECSCluster.Arn
+      Targets:
+        - Arn: !ImportValue "IxorMonitoringSubaccount-MonitoringSNSTopic"
+          Id: "TargetMonitoringSNSTopic"
+
+
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
@@ -249,8 +268,8 @@ Resources:
       FilterPattern: "Started Application in"
       MetricTransformations:
         - MetricValue: "1"
-          MetricNamespace: "{{ cfn_project }}LogMetrics"
-          MetricName: "ServiceStart"
+          MetricNamespace: "{{ cfn_project }}/ServiceStart"
+          MetricName: "{{ app.cfn_name }}"
 
   ### AWS::CloudWatch::Alarm for MetricFilterAppStart
   AlarmAppStart{{ cfn_project }}{{ app.cfn_name }}:
@@ -259,14 +278,14 @@ Resources:
       AlarmDescription: "Start Alarm for {{ cfn_project }}{{ app.cfn_name }}"
       AlarmActions:
         - !ImportValue "IxorMonitoringSubaccount-MonitoringSNSTopic"
-      MetricName: ServiceStart
-      Namespace: {{ cfn_project }}LogMetrics
+      MetricName: "{{ app.cfn_name }}"
+      Namespace: "{{ cfn_project }}/ServiceStart"
       Statistic: Average
       Period: '60'
       EvaluationPeriods: '1'
       Threshold: '1'
       ComparisonOperator: GreaterThanOrEqualToThreshold
-
+      TreatMissingData: notBreaching
 
   ### AWS::ECS::TaskDefinition for {{ app.name }}
   Task{{ cfn_project }}{{ app.cfn_name }}:
