@@ -44,9 +44,20 @@
               - "region.rc == 0"
               - "token.rc == 0"
               - "configfilestat.stat.exists"
+        - name: Disable all alarms during playbook execution
+          shell: >
+            aws cloudwatch disable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
 
       tags: [ 'always' ]
 
+  post_tasks:
+    - name: Post-tasks block
+      block:
+        - name: Enable all alarms after playbook execution
+          shell: >
+            aws cloudwatch enable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
+
+      tags: [ 'always' ]
 
   vars_files:
     - "{{ configfile }}"
@@ -68,6 +79,7 @@
         stack_name: "{{ referenced_stacks.VPCStackName }}"
       register: vpcfacts
       tags: [ 'always' ]
+      when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
     - name: Set more variables
       set_fact:

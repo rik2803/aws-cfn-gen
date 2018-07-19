@@ -198,6 +198,26 @@ Resources:
     Properties:
       ClusterName: "ecs-{{ project }}"
 
+  LambdaCumulativeReservationMetric:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: ecs-cumulative-cpu-and-memory-reservation-metric.lambda_handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LambdaCloudWatchAndECSListExecutionRole"
+      Environment:
+        Variables:
+          ECS_CLUSTER_NAME: "ecs-{{ project }}"
+      Code:
+        S3Bucket: "{{ lambda_function_bucket_name }}"
+        S3Key: "aws-lambda-ecs-cumulative-cpu-and-memory-reservation-metric-aeb85f697f80b78ce88d81017d3d3b169bd088dd.zip"
+      Runtime: python2.7
+
+  LambdaPermissionCumulativeReservationMetric:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaCumulativeReservationMetric.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !ImportValue "IxorMonitoringSubaccount-ScheduledRule5minArn"
 
   EventRuleECSTaskStateChange:
     Type: "AWS::Events::Rule"
