@@ -42,7 +42,17 @@ Resources:
           PolicyDocument:
             Statement:
             - Action:
-              - ecs:UpdateService
+                - ecs:UpdateService
+              Effect: Allow
+              Resource: '*'
+            Version: '2012-10-17'
+        - PolicyName: AllowCloudWatchEnableAndDisableAlarms
+          PolicyDocument:
+            Statement:
+            - Action:
+                - cloudwatch:DescribeAlarms
+                - cloudwatch:DisableAlarmActions
+                - cloudwatch:EnableAlarmActions
               Effect: Allow
               Resource: '*'
             Version: '2012-10-17'
