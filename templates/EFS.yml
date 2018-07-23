@@ -1,0 +1,57 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create one or more EFS filesystems
+
+
+Resources:
+{% for filesystem in efs %}
+  {{ filesystem.cfn_name }}:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      Encrypted: true
+      FileSystemTags:
+        - Key: Application
+          Value: "{{ application }}"
+        - Key: Environment
+          Value: "{{ env }}"
+        - Key: Customer
+          Value: "{{ customer | default('NA') }}"
+
+  {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref {{ filesystem.cfn_name }}
+      SecurityGroups:
+        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+      SubnetId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
+
+  {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref {{ filesystem.cfn_name }}
+      SecurityGroups:
+        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+      SubnetId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
+
+{%   if vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs == "3" %}
+  {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref {{ filesystem.cfn_name }}
+      SecurityGroups:
+        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+      SubnetId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+{%   endif %}
+
+{% endfor %}
+
+Outputs:
+{% for filesystem in efs %}
+  {{ filesystem.cfn_name }}Output:
+    Value: !Ref {{ filesystem.cfn_name }}
+    Description: "EFS File System ID"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ filesystem.cfn_name }}"
+
+{% endfor %}

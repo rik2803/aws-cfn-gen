@@ -81,24 +81,49 @@
       tags: [ 'always' ]
       when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
+#    - name: Dump vpcfacts
+#      debug:
+#        var: vpcfacts
+#      tags: [ 'always' ]
+
     - name: Set more variables
       set_fact:
         iam_stackname: "{{ cfn_project }}IAM"
       tags: [ 'always' ]
 
     ### ECR Repositories
-    - name: Create CFN template from Ansible template for the ECR Repositories
-      template:
-        src: "ECR.yml"
-        dest: "generated-files/cfn-{{ project }}-ecr.yml"
+    - name: ECR
+      block:
+        - name: Create CFN template from Ansible template for the ECR Repositories
+          template:
+            src: "ECR.yml"
+            dest: "generated-files/cfn-{{ project }}-ecr.yml"
+        - name: Create or Update the ECR CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}ECR"
+            state: "present"
+            disable_rollback: false
+            template: "generated-files/cfn-{{ project }}-ecr.yml"
+
+      when: "ecr is defined"
       tags: [ 'ecr' ]
-    - name: Create or Update the ECR CloudFormation stack
-      cloudformation:
-        stack_name: "{{ cfn_project }}ECR"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-ecr.yml"
-      tags: [ 'ecr' ]
+
+    ### EFS
+    - name: EFS
+      block:
+      - name: Create CFN template from Ansible template for the EFS Filesystems
+        template:
+          src: "EFS.yml"
+          dest: "generated-files/cfn-{{ project }}-efs.yml"
+      - name: Create or Update the EFS CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}EFS"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-efs.yml"
+
+      when: "efs is defined"
+      tags: [ 'efs' ]
 
     ### IAM Resources
     - name: Create CFN template from Ansible template for the IAM resources
