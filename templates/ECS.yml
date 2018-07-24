@@ -246,11 +246,28 @@ Resources:
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
       KeyName: "{{ ecs.cluster.keypair }}"
       UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -xe
-          echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
-          yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+        Fn::Base64:
+          Fn::Sub:
+          - |
+            #!/bin/bash -xe
+{% if ecs.efs is defined %}
+            yum install -y nfs-utils
+{% for fs in ecs.efs | default([]) %}
+            mkdir -p fs.mountpoint
+            echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ /efs nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
+            mount -a
+{% endfor %}
+{% endif %}
+            echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+            yum install -y aws-cfn-bootstrap
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+          -
+{% for fs in ecs.efs | default([]) %}
+            {{ fs.export_name }}:
+              Fn::ImportValue:
+                "{{ fs.export_name }}"
+{% endfor %}
+
 
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
