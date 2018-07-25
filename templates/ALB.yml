@@ -127,6 +127,13 @@ Resources:
       Name: tg-{{ shortproject }}-{{ item.name | lower }}-{{ app.name | lower }}
       Port: 80
       Protocol: HTTP
+{%     if app.lb.sticky is defined and app.lb.sticky %}
+      TargetGroupAttributes:
+        - Key: "stickyness.enabled"
+          Value: "true"
+        - Key: "stickyness.type"
+          Value: "lb_cookie"
+{%     endif %}
       UnhealthyThresholdCount: 2
       VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
 
