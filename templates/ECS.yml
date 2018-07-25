@@ -343,6 +343,14 @@ Resources:
               awslogs-stream-prefix: "{{ project }}-{{ app.name }}"
           PortMappings:
             - ContainerPort: {{ app.ecs.containerport }}
+{%     if app.ecs.volumes is defined %}
+          Volumes:
+{%       for volume in app.ecs.volumes %}
+            Name: {{ volume.containerpath }}
+            Host:
+              SourcePath: {{ volume.hostpath }}
+{%       endfor %}
+{%     endif %}
           Environment:
             - Name: Application
               Value: "{{ project }}"
