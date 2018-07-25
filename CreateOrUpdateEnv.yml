@@ -125,6 +125,23 @@
       when: "efs is defined"
       tags: [ 'efs' ]
 
+    ### CloudFront
+    - name: CloudFront
+      block:
+      - name: Create CFN template from Ansible template for the CloudFront CDNs
+        template:
+          src: "CloudFront.yml"
+          dest: "generated-files/cfn-{{ project }}-cloudfront.yml"
+      - name: Create or Update the EFS CloudFront stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}CloudFront"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-cloudfront.yml"
+
+      when: "cloudfront_distributions is defined"
+      tags: [ 'cloudfront' ]
+
     ### IAM Resources
     - name: Create CFN template from Ansible template for the IAM resources
       template:
@@ -181,14 +198,14 @@
         dest: "generated-files/cfn-{{ project }}-ecs.yml"
       when: ecs is defined
       tags: [ 'createcfntemplate', 'ecs' ]
-    - name: Create or Update the ECS CloudFormation stack
-      cloudformation:
-        stack_name: "{{ cfn_project }}ECS"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-ecs.yml"
-      when: ecs is defined
-      tags: [ 'ecs', 'createstack' ]
+#    - name: Create or Update the ECS CloudFormation stack
+#      cloudformation:
+#        stack_name: "{{ cfn_project }}ECS"
+#        state: "present"
+#        disable_rollback: false
+#        template: "generated-files/cfn-{{ project }}-ecs.yml"
+#      when: ecs is defined
+#      tags: [ 'ecs', 'createstack' ]
 
     ### S3 buckets
     - name: Create CFN template from Ansible template for project S3 buckets

@@ -1,0 +1,246 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create CloudFront distributions. The real users of the distribution
+  can plug-in their bucket, Origin and behaviour any time after creation of this CFN stack.
+
+  Creates:
+    - empty S3 bucket with:
+      - Website enabled
+      - Encrypted data-at-rest
+      - Policy to enforce encryption
+    - Cloudfront configuration
+    - Add origin to default cache behaviour
+    - All Origins, behaviors and S3 buckets described in the
+      envoronment's configuration file
+
+  Ansible should be used to manipulate the stack, because the CloudFormation
+  template is generated from the template and the data in the configuration
+  file
+
+Resources:
+
+  DeployUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: "deploy-{{ project }}"
+      Path: "/"
+      Policies:
+        - PolicyName: AllowAccessToBuckets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:PutObjectACL
+                Resource:
+{% for cloudfront in cloudfront_distributions %}
+{%   if cloudfront.origins_and_cachebehaviors is defined %}
+{%     for origin in cloudfront.origins_and_cachebehaviors %}
+                  - "arn:aws:s3:::{{ origin.origin_name }}/*"
+{%     endfor %}
+{%   endif %}
+{% endfor %}
+              - Effect: Allow
+                Action:
+                  - s3:ListAllMyBuckets
+                Resource:
+                  - "arn:aws:s3:::*"
+        - PolicyName: AllowInvalidationAccessToCloudFrontDistribution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "acm:ListCertificates"
+                  - "cloudfront:GetDistribution"
+                  - "cloudfront:GetDistributionConfig"
+                  - "cloudfront:ListDistributions"
+                  - "cloudfront:ListCloudFrontOriginAccessIdentities"
+                  - "cloudfront:CreateInvalidation"
+                  - "cloudfront:GetInvalidation"
+                  - "cloudfront:ListInvalidations"
+                  - "elasticloadbalancing:DescribeLoadBalancers"
+                  - "iam:ListServerCertificates"
+                  - "sns:ListSubscriptionsByTopic"
+                  - "sns:ListTopics"
+                  - "waf:GetWebACL"
+                  - "waf:ListWebACLs"
+                Resource:
+                  - "*"
+
+  DeployAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref DeployUser
+
+{% for cloudfront in cloudfront_distributions %}
+{%   for origin in cloudfront.origins_and_cachebehaviors %}
+  S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
+{%   if cloudfront.logging is defined %}
+    DependsOn:
+      - S3{{ cfn_project }}{{ cloudfront.name }}Logs
+{% endif %}
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: "{{ origin.origin_name }}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - NoncurrentVersionExpirationInDays: 60
+            Status: Enabled
+{%     if cloudfront.logging is defined %}
+      LoggingConfiguration:
+        DestinationBucketName: "{{ project }}-{{ cloudfront.name }}-logs"
+        LogFilePrefix: s3-{{ cloudfront.logging.prefix | default('') }}
+{%     endif %}
+      Tags:
+        - Key: Application
+          Value: "{{ application }}"
+        - Key: Customer
+          Value: "{{ customer | default('NA') }}"
+        - Key: Environment
+          Value: "{{ env }}"
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+{%   endfor %}
+{% endfor %}
+
+{% for cloudfront in cloudfront_distributions %}
+  S3{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: "{{ cloudfront.name }}-default-cloudfront-origin"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      LifecycleConfiguration:
+        Rules:
+          -
+            NoncurrentVersionExpirationInDays: 60
+            Status: Enabled
+
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: errror.html
+
+{%   if cloudfront.logging is defined %}
+  S3{{ cfn_project }}{{ cloudfront.name }}Logs:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: {{ project }}-{{ cloudfront.name }}-logs
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: "AES256"
+      AccessControl: "LogDeliveryWrite"
+{%   endif %}
+
+  CloudFrontDistribution{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}:
+    DependsOn:
+      - S3{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin
+{%   if cloudfront.logging is defined %}
+      - S3{{ cfn_project }}{{ cloudfront.name }}Logs
+{% endif %}
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Aliases:
+{%   for cname in cloudfront.cnames %}
+          - "{{ cname }}"
+{%   endfor %}
+        Comment: "CloudFront distribution for {{ application }}"
+        Enabled: true
+        HttpVersion: http2
+        DefaultRootObject: "index.html"
+        CacheBehaviors:
+{%   for origin in cloudfront.origins_and_cachebehaviors %}
+          - ForwardedValues:
+              QueryString: true
+{%     if origin.forward_headers is defined %}
+              Headers:
+{%       for header in origin.forward_headers %}
+                - {{ header }}
+{%       endfor %}
+{%     endif %}
+{%     if origin.allowed_http_methods is defined and origin.allowed_http_methods == 'options' %}
+            AllowedMethods: ["GET", "HEAD", "OPTIONS"]
+{%     endif %}
+{%     if origin.allowed_http_methods is defined and origin.allowed_http_methods == 'all' %}
+            AllowedMethods: ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+{%     endif %}
+            TargetOriginId: "{{ origin.origin_name }}-origin"
+            PathPattern: "{{ origin.path_pattern | default('/*') }}"
+            ViewerProtocolPolicy: "redirect-to-https"
+{%   endfor %}
+
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: "{{ cloudfront.name }}-default-cloudfront-origin"
+          ViewerProtocolPolicy: allow-all
+
+{%   if cloudfront.logging is defined %}
+        Logging:
+          Bucket: "{{ project }}-{{ cloudfront.name }}-logs.s3.amazonaws.com"
+          Prefix: "cloudfront-{{ cloudfront.logging.prefix | default('') }}"
+          IncludeCookies: "{{ cloudfront.logging.includecookies | default('false') }}"
+{%   endif %}
+        Origins:
+          - Id: "{{ cloudfront.name }}-default-cloudfront-origin"
+            DomainName: "{{ cloudfront.name }}-default-cloudfront-origin.s3-website.{{ target_account.region }}.amazonaws.com"
+            #S3OriginConfig:
+            #    OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: http-only
+
+{%   for origin in cloudfront.origins_and_cachebehaviors %}
+          - Id: "{{ origin.origin_name }}-origin"
+            DomainName: "{{ origin.origin_name }}.s3-website.{{ target_account.region }}.amazonaws.com"
+            #S3OriginConfig:
+            #  OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: http-only
+{%   endfor %}
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          AcmCertificateArn: "{{ cloudfront.certificate_arn }}"
+          SslSupportMethod: sni-only
+
+      Tags:
+        - Key: Application
+          Value: {{ application | default('NA') }}
+        - Key: Environment
+          Value: {{ env | default('NA') }}
+        - Key: Customer
+          Value: {{ customer | default('NA') }}
+
+{% endfor %}
+
+  AssetsCloudFrontOriginAccessIdentity:
+      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+      Properties:
+          CloudFrontOriginAccessIdentityConfig:
+              Comment: Access Identity for the Ixortalk assets
+
+
+Outputs:
+  AccessKeyDeployUser:
+    Value:
+      !Ref DeployAccessKey
+  SecretKeyDeployUser:
+    Value: !GetAtt DeployAccessKey.SecretAccessKey
