@@ -129,9 +129,9 @@ Resources:
       Protocol: HTTP
 {%     if app.lb.sticky is defined and app.lb.sticky %}
       TargetGroupAttributes:
-        - Key: "stickyness.enabled"
+        - Key: "stickiness.enabled"
           Value: "true"
-        - Key: "stickyness.type"
+        - Key: "stickiness.type"
           Value: "lb_cookie"
 {%     endif %}
       UnhealthyThresholdCount: 2

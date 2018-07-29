@@ -198,14 +198,14 @@
         dest: "generated-files/cfn-{{ project }}-ecs.yml"
       when: ecs is defined
       tags: [ 'createcfntemplate', 'ecs' ]
-#    - name: Create or Update the ECS CloudFormation stack
-#      cloudformation:
-#        stack_name: "{{ cfn_project }}ECS"
-#        state: "present"
-#        disable_rollback: false
-#        template: "generated-files/cfn-{{ project }}-ecs.yml"
-#      when: ecs is defined
-#      tags: [ 'ecs', 'createstack' ]
+    - name: Create or Update the ECS CloudFormation stack
+      cloudformation:
+        stack_name: "{{ cfn_project }}ECS"
+        state: "present"
+        disable_rollback: false
+        template: "generated-files/cfn-{{ project }}-ecs.yml"
+      when: ecs is defined
+      tags: [ 'ecs', 'createstack' ]
 
     ### S3 buckets
     - name: Create CFN template from Ansible template for project S3 buckets
