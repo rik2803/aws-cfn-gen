@@ -52,6 +52,6 @@ Outputs:
     Value: !Ref {{ filesystem.cfn_name }}
     Description: "EFS File System ID"
     Export:
-      Name: !Sub "${AWS::StackName}-{{ filesystem.cfn_name }}"
+      Name: !Sub "${AWS::StackName}{{ filesystem.cfn_name }}"
 
 {% endfor %}
