@@ -282,6 +282,19 @@ Resources:
       MinSize: '{{ ecs.cluster.cluster_size.min | default('1') }}'
       MaxSize: '{{ ecs.cluster.cluster_size.max | default( [ ecs.cluster.cluster_size.max, 1 ] | max ) }}'
       DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | default( [ ecs.cluster.cluster_size.min, 1 ] | max ) }}'
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+        PropagateAtLaunch: true
+      - Key: Environment
+        Value: "{{ env }}"
+        PropagateAtLaunch: true
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+        PropagateAtLaunch: true
+      - Key: ECSClusterName
+        Value: "ecs-{{ project }}"
+        PropagateAtLaunch: true
     CreationPolicy:
       ResourceSignal:
         Timeout: PT15M
