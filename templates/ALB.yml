@@ -124,7 +124,7 @@ Resources:
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: {{ app.lb.healthcheckokcode | default('200-299') }}
-      Name: tg-{{ shortproject }}-{{ item.name | lower }}-{{ app.name | lower }}
+      Name: {{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}
       Port: 80
       Protocol: HTTP
 {%     if app.lb.sticky is defined and app.lb.sticky %}
@@ -172,6 +172,6 @@ Outputs:
     Value: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
     Description: "Target Group for application {{ app.name }} in project {{ project }}."
     Export:
-      Name: !Sub "${AWS::StackName}-tg-{{ shortproject }}-{{ item.name | lower }}-{{ app.name | lower }}"
+      Name: !Sub "${AWS::StackName}-{{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}"
 {%   endif %}
 {% endfor %}
