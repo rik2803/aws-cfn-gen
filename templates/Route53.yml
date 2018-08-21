@@ -18,6 +18,7 @@ Resources:
         Comment: "Private hosted zone {{ hosted_zone.name }}"
 {%     if hosted_zone.apex_alias is defined %}
   Route53Recordset{{ hosted_zone.cfn_name }}ApexAlias:
+    DependsOn: Route53PrivateHostedZone{{ hosted_zone.cfn_name }}
     Type: AWS::Route53::RecordSetGroup
     Properties:
       HostedZoneName: "{{ hosted_zone.name | regex_replace('\.$', '') }}."
