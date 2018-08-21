@@ -109,6 +109,7 @@ Resources:
 {%       endif %}
       ListenerArn: !Ref "Listener{{ item.name }}"
       Priority: {{ dom.priority }}
+
 {%     endfor %}
 
 
