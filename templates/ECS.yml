@@ -60,113 +60,6 @@ Resources:
               'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', 'ecr:GetAuthorizationToken' ]
             Resource: '*'
 
-
-#  ### Default CloudWatch alerts and ScalingPolicies for ECS cluster
-#  ECSCPUReservationAlarm70Up:
-#    Type: AWS::CloudWatch::Alarm
-#    Properties:
-#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
-#      AlarmDescription: "Trigger when AWS/ECS CPUReservation is over 70 during the last 60 1 minute intervals"
-#      EvaluationPeriods: '1'
-#      Statistic: Maximum
-#      Threshold: '70'
-#      Period: '60'
-#      AlarmActions:
-#      - !Ref ECSCPUReservationScaleUpPolicy
-#      Dimensions:
-#      - Name: ClusterName
-#        Value: !Ref ECSCluster
-#      ComparisonOperator: GreaterThanThreshold
-#      MetricName: CPUReservation
-#      Namespace: AWS/ECS
-#
-#  ECSCPUReservationAlarm50Down:
-#    Type: AWS::CloudWatch::Alarm
-#    Properties:
-#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
-#      AlarmDescription: "Trigger when AWS/ECS CPUReservation is over 50 during the last 5 1 minute intervals"
-#      EvaluationPeriods: '5'
-#      Statistic: Maximum
-#      Threshold: '50'
-#      Period: '60'
-#      AlarmActions:
-#      - !Ref ECSCPUReservationScaleDownPolicy
-#      Dimensions:
-#      - Name: ClusterName
-#        Value: !Ref ECSCluster
-#      ComparisonOperator: LessThanThreshold
-#      MetricName: CPUReservation
-#      Namespace: AWS/ECS
-#
-#  ECSCPUReservationScaleUpPolicy:
-#    Type: AWS::AutoScaling::ScalingPolicy
-#    Properties:
-#      AdjustmentType: ChangeInCapacity
-#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
-#      Cooldown: '300'
-#      ScalingAdjustment: '1'
-#
-#  ECSCPUReservationScaleDownPolicy:
-#    Type: AWS::AutoScaling::ScalingPolicy
-#    Properties:
-#      AdjustmentType: ChangeInCapacity
-#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
-#      Cooldown: '300'
-#      ScalingAdjustment: '-1'
-#
-#  ECSMemoryReservationAlarm70Up:
-#    Type: AWS::CloudWatch::Alarm
-#    Properties:
-#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
-#      AlarmDescription: "Trigger when AWS/ECS MemoryReservation is over 70 during the last 1 minute interval"
-#      EvaluationPeriods: '1'
-#      Statistic: Maximum
-#      Threshold: '70'
-#      Period: '60'
-#      AlarmActions:
-#      - !Ref ECSMemoryReservationScaleUpPolicy
-#      Dimensions:
-#      - Name: ClusterName
-#        Value: !Ref ECSCluster
-#      ComparisonOperator: GreaterThanThreshold
-#      MetricName: MemoryReservation
-#      Namespace: AWS/ECS
-#
-#  ECSMemoryReservationAlarm50Down:
-#    Type: AWS::CloudWatch::Alarm
-#    Properties:
-#      ### AlarmName: Do not use AlarmName because changing it requires replacing the resource
-#      AlarmDescription: "Trigger when AWS/ECS MemoryReservation is under 50 during the last 5 1 minute intervals"
-#      EvaluationPeriods: '5'
-#      Statistic: Maximum
-#      Threshold: '50'
-#      Period: '60'
-#      AlarmActions:
-#      - !Ref ECSMemoryReservationScaleDownPolicy
-#      Dimensions:
-#      - Name: ClusterName
-#        Value: !Ref ECSCluster
-#      ComparisonOperator: LessThanThreshold
-#      MetricName: MemoryReservation
-#      Namespace: AWS/ECS
-#
-#  ECSMemoryReservationScaleUpPolicy:
-#    Type: AWS::AutoScaling::ScalingPolicy
-#    Properties:
-#      AdjustmentType: ChangeInCapacity
-#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
-#      Cooldown: '300'
-#      ScalingAdjustment: '1'
-#
-#  ECSMemoryReservationScaleDownPolicy:
-#    Type: AWS::AutoScaling::ScalingPolicy
-#    Properties:
-#      AdjustmentType: ChangeInCapacity
-#      AutoScalingGroupName: !Ref ECSAutoScalingGroup
-#      Cooldown: '300'
-#      ScalingAdjustment: '-1'
-
-
   AutoscalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -304,7 +197,7 @@ Resources:
 
   ### Resources for Tasks and Services
 {% for app in applicationconfig %}
-{%   if app.target | lower == 'ecs' %}
+{%   if (app.target | lower == 'ecs') or (app.target | lower == 'ecs_scheduled_task') %}
   ### AWS::Logs::LogGroup for {{ app.name }}
   CloudWatch{{ cfn_project }}{{ app.cfn_name }}:
     Type: AWS::Logs::LogGroup
@@ -323,6 +216,7 @@ Resources:
           MetricNamespace: "{{ cfn_project }}/ServiceStart"
           MetricName: "{{ app.cfn_name }}"
 
+{%     if app.disable_alarm is not defined or app.disable_alarm %}
   ### AWS::CloudWatch::Alarm for MetricFilterAppStart
   AlarmAppStart{{ cfn_project }}{{ app.cfn_name }}:
     Type: AWS::CloudWatch::Alarm
@@ -338,6 +232,7 @@ Resources:
       Threshold: '1'
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
+{%     endif %}
 
   ### AWS::ECS::TaskDefinition for {{ app.name }}
   Task{{ cfn_project }}{{ app.cfn_name }}:
@@ -358,6 +253,14 @@ Resources:
           Essential: 'true'
           Image: "{{ app.ecs.image }}"
           Memory: "{{ app.ecs.memory | default(1024) }}"
+{%     if app.ecs.volumes is defined %}
+          MountPoints:
+{%       for volume in app.ecs.volumes %}
+            - ContainerPath: {{ volume.containerpath }}
+              SourceVolume: {{ volume.name }}
+              ReadOnly: false
+{%       endfor %}
+{%     endif %}
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -377,6 +280,23 @@ Resources:
       TaskRoleArn: "{{ app.ecs.task_role_arn }}"
 {%     endif %}
 
+{%     if app.target | lower == 'ecs_scheduled_task' %}
+  EventRuleScheduledTask{{ cfn_project }}{{ app.cfn_name }}:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Schedule for Scheduled Task for {{ app.cfn_name }}
+      ScheduleExpression: "{{ app.execution_schedule | default('cron(0 3 * * ? *)') }}"
+      State: ENABLED
+      Targets:
+      - Arn: !GetAtt ECSCluster.Arn
+        Id: Target{{ cfn_project }}{{ app.cfn_name }}
+        RoleArn: "{{ app.ecs.task_role_arn }}"
+        EcsParameters:
+          TaskCount: 1
+          TaskDefinitionArn: !Ref Task{{ cfn_project }}{{ app.cfn_name }}
+{%     endif %}
+
+{%     if app.target | lower == 'ecs' %}
   ### AWS::ECS::Service for {{ app.name }}
   Service{{ cfn_project }}{{ app.cfn_name }}:
     Type: AWS::ECS::Service
@@ -388,24 +308,25 @@ Resources:
       ### for documentation reasons
       ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html
       DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 100
+        MaximumPercent: {{ app.deploymentconfiguration.max_percent | default(200) }}
+        MinimumHealthyPercent: {{ app.deploymentconfiguration.max_percent | default(100) }}
       TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
-{%     if app.lb is defined %}
+{%       if app.lb is defined %}
       HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
       Role: !Ref 'ECSServiceRole'
       LoadBalancers:
         - ContainerName: "{{ project }}-{{ app.name }}"
           ContainerPort: "{{ app.ecs.containerport }}"
-{%       for result in lbstacks.results %}
-{%         if result.item.name == app.lb.name %}
-{%           if app.lb.targetgroup is defined %}
+{%         for result in lbstacks.results %}
+{%           if result.item.name == app.lb.name %}
+{%             if app.lb.targetgroup is defined %}
           TargetGroupArn: "{{ result.stack_outputs[app.lb.targetgroup] }}"
-{%           else %}
+{%             else %}
           TargetGroupArn: "{{ result.stack_outputs['TGApp' + cfn_project + result.item.name + app.cfn_name] }}"
+{%             endif %}
 {%           endif %}
-{%         endif %}
-{%       endfor %}
+{%         endfor %}
+{%       endif %}
 
   ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
 {%       if route53 is defined %}
