@@ -82,7 +82,7 @@ Resources:
   S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
 {%   if cloudfront.logging is defined %}
     DependsOn:
-      - S3{{ cfn_project }}{{ cloudfront.name }}Logs
+      - S3{{ cfn_project }}{{ cloudfront.cfn_name }}Logs
 {% endif %}
     Type: AWS::S3::Bucket
     Properties:
@@ -135,7 +135,7 @@ Resources:
         ErrorDocument: errror.html
 
 {%   if cloudfront.logging is defined %}
-  S3{{ cfn_project }}{{ cloudfront.name }}Logs:
+  S3{{ cfn_project }}{{ cloudfront.cfn_name }}Logs:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: {{ project }}-{{ cloudfront.name }}-logs
@@ -146,11 +146,11 @@ Resources:
       AccessControl: "LogDeliveryWrite"
 {%   endif %}
 
-  CloudFrontDistribution{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}:
+  CloudFrontDistribution{{ cloudfront.cfn_name }}:
     DependsOn:
-      - S3{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin
+      - S3{{ cloudfront.cfn_name }}DefaultCloudfrontOrigin
 {%   if cloudfront.logging is defined %}
-      - S3{{ cfn_project }}{{ cloudfront.name }}Logs
+      - S3{{ cfn_project }}{{ cloudfront.cfn_name }}Logs
 {% endif %}
     Type: "AWS::CloudFront::Distribution"
     Properties:
