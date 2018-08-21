@@ -158,22 +158,6 @@
       when: roles is defined or managed_policies is defined
       tags: [ 'iam' ]
 
-    ### Route53 Hosted Zones
-    - name: Create template from Ansible template for the Route53 Hosted Zones
-      template:
-        src: "Route53.yml"
-        dest: "generated-files/cfn-{{ project }}-route53.yml"
-      when: route53 is defined
-      tags: [ 'createcfntemplate', 'route53' ]
-    - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
-      cloudformation:
-        stack_name: "{{ cfn_project }}Route53"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-route53.yml"
-      when: route53 is defined
-      tags: [ 'createstack', 'route53' ]
-
     ### Loadbalancers
     - name: Create template from Ansible template for the LoadBalancers
       template:
@@ -190,6 +174,22 @@
       with_items: "{{ loadbalancers | default([]) }}"
       register: lbstacks
       tags: [ 'ecs', 'createstack', 'alb' ]
+
+  ### Route53 Hosted Zones
+    - name: Create template from Ansible template for the Route53 Hosted Zones
+      template:
+        src: "Route53.yml"
+        dest: "generated-files/cfn-{{ project }}-route53.yml"
+      when: route53 is defined
+      tags: [ 'createcfntemplate', 'route53' ]
+    - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
+      cloudformation:
+        stack_name: "{{ cfn_project }}Route53"
+        state: "present"
+        disable_rollback: false
+        template: "generated-files/cfn-{{ project }}-route53.yml"
+      when: route53 is defined
+      tags: [ 'createstack', 'route53' ]
 
     ### ECS Cluster
     - name: Create CFN template from Ansible template for the ECS Cluster
