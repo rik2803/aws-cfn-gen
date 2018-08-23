@@ -210,7 +210,7 @@ Resources:
     Type: "AWS::Logs::MetricFilter"
     Properties:
       LogGroupName: !Ref CloudWatch{{ cfn_project }}{{ app.cfn_name }}
-      FilterPattern: "Started Application in"
+      FilterPattern: "{{ (app.monitoring | default({})).start_filter_string | default('Started Application in') }}"
       MetricTransformations:
         - MetricValue: "1"
           MetricNamespace: "{{ cfn_project }}/ServiceStart"
@@ -307,9 +307,11 @@ Resources:
       ### The DeploymentConfiguration settings are the defaults, they were added
       ### for documentation reasons
       ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html
+{%       if app.deploymentconfiguration is defined %}
       DeploymentConfiguration:
         MaximumPercent: {{ app.deploymentconfiguration.max_percent | default(200) }}
         MinimumHealthyPercent: {{ app.deploymentconfiguration.max_percent | default(100) }}
+{%       endif %}
       TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
 {%       if app.lb is defined %}
       HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
