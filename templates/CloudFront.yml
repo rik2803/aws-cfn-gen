@@ -116,10 +116,10 @@ Resources:
 {% endfor %}
 
 {% for cloudfront in cloudfront_distributions %}
-  S3{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin:
+  S3{{ cfn_project }}{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: "{{ cloudfront.name }}-default-cloudfront-origin"
+      BucketName: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin"
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -148,7 +148,7 @@ Resources:
 
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
     DependsOn:
-      - S3{{ cloudfront.cfn_name }}DefaultCloudfrontOrigin
+      - S3{{ cfn_project }}{{ cloudfront.cfn_name }}DefaultCloudfrontOrigin
 {%   if cloudfront.logging is defined %}
       - S3{{ cfn_project }}{{ cloudfront.cfn_name }}Logs
 {% endif %}
@@ -187,7 +187,7 @@ Resources:
         DefaultCacheBehavior:
           ForwardedValues:
             QueryString: true
-          TargetOriginId: "{{ cloudfront.name }}-default-cloudfront-origin"
+          TargetOriginId: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin"
           ViewerProtocolPolicy: allow-all
 
 {%   if cloudfront.logging is defined %}
@@ -197,8 +197,8 @@ Resources:
           IncludeCookies: "{{ cloudfront.logging.includecookies | default('false') }}"
 {%   endif %}
         Origins:
-          - Id: "{{ cloudfront.name }}-default-cloudfront-origin"
-            DomainName: "{{ cloudfront.name }}-default-cloudfront-origin.s3-website.{{ target_account.region }}.amazonaws.com"
+          - Id: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin"
+            DomainName: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin.s3-website.{{ target_account.region }}.amazonaws.com"
             #S3OriginConfig:
             #    OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
             CustomOriginConfig:
