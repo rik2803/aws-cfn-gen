@@ -132,7 +132,7 @@
         template:
           src: "CloudFront.yml"
           dest: "generated-files/cfn-{{ project }}-cloudfront.yml"
-      - name: Create or Update the EFS CloudFront stack
+      - name: Create or Update the CloudFront CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}CloudFront"
           state: "present"
