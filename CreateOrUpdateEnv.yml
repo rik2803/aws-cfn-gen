@@ -160,6 +160,7 @@
         template:
           src: "ALB.yml"
           dest: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
+        with_items: "{{ loadbalancers | default([]) }}"
       - name: Create or Update the Elastic LoadBalancer CloudFormation stacks
         cloudformation:
           stack_name: "{{ cfn_project }}LB{{ item.name }}"
@@ -167,8 +168,8 @@
           disable_rollback: false
           template: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
         register: lbstacks
+        with_items: "{{ loadbalancers | default([]) }}"
 
-      with_items: "{{ loadbalancers | default([]) }}"
       tags: [ 'ecs', 'alb' ]
 
     - name: Route 53
