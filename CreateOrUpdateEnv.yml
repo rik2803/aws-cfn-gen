@@ -63,7 +63,6 @@
     - "{{ configfile }}"
 
   tasks:
-    ### Set some facts
     - name: Facts block
       block:
         - name: Convert project name to alpha numeric camel case
@@ -91,7 +90,6 @@
         iam_stackname: "{{ cfn_project }}IAM"
       tags: [ 'always' ]
 
-    ### ECR Repositories
     - name: ECR
       block:
         - name: Create CFN template from Ansible template for the ECR Repositories
@@ -108,7 +106,6 @@
       when: "ecr is defined"
       tags: [ 'ecr' ]
 
-    ### EFS
     - name: EFS
       block:
       - name: Create CFN template from Ansible template for the EFS Filesystems
@@ -125,7 +122,6 @@
       when: "efs is defined"
       tags: [ 'efs' ]
 
-    ### CloudFront
     - name: CloudFront
       block:
       - name: Create CFN template from Ansible template for the CloudFront CDNs
@@ -142,86 +138,86 @@
       when: "cloudfront_distributions is defined"
       tags: [ 'cloudfront' ]
 
-    ### IAM Resources
-    - name: Create CFN template from Ansible template for the IAM resources
-      template:
-        src: "IAM.yml"
-        dest: "generated-files/cfn-{{ project }}-iam.yml"
-      when: roles is defined or managed_policies is defined
-      tags: [ 'createcfntemplate_iam', 'iam' ]
-    - name: Create or Update the IAM Stack
-      cloudformation:
-        stack_name: "{{ cfn_project }}IAM"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-iam.yml"
+    - name: IAM
+      block:
+      - name: Create CFN template from Ansible template for the IAM resources
+        template:
+          src: "IAM.yml"
+          dest: "generated-files/cfn-{{ project }}-iam.yml"
+      - name: Create or Update the IAM Stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}IAM"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-iam.yml"
+
       when: roles is defined or managed_policies is defined
       tags: [ 'iam' ]
 
-    ### Loadbalancers
-    - name: Create template from Ansible template for the LoadBalancers
-      template:
-        src: "ALB.yml"
-        dest: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
+    - name: Loadbalancers
+      block:
+      - name: Create template from Ansible template for the LoadBalancers
+        template:
+          src: "ALB.yml"
+          dest: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
+      - name: Create or Update the Elastic LoadBalancer CloudFormation stacks
+        cloudformation:
+          stack_name: "{{ cfn_project }}LB{{ item.name }}"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
+        register: lbstacks
+
       with_items: "{{ loadbalancers | default([]) }}"
-      tags: [ 'ecs', 'createcfntemplate', 'alb' ]
-    - name: Create or Update the Elastic LoadBalancer CloudFormation stacks
-      cloudformation:
-        stack_name: "{{ cfn_project }}LB{{ item.name }}"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
-      with_items: "{{ loadbalancers | default([]) }}"
-      register: lbstacks
-      tags: [ 'ecs', 'createstack', 'alb' ]
+      tags: [ 'ecs', 'alb' ]
 
-  ### Route53 Hosted Zones
-    - name: Create template from Ansible template for the Route53 Hosted Zones
-      template:
-        src: "Route53.yml"
-        dest: "generated-files/cfn-{{ project }}-route53.yml"
+    - name: Route 53
+      block:
+        - name: Create template from Ansible template for the Route53 Hosted Zones
+          template:
+            src: "Route53.yml"
+            dest: "generated-files/cfn-{{ project }}-route53.yml"
+        - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
+          cloudformation:
+            stack_name: "{{ cfn_project }}Route53"
+            state: "present"
+            disable_rollback: false
+            template: "generated-files/cfn-{{ project }}-route53.yml"
+
       when: route53 is defined
-      tags: [ 'createcfntemplate', 'route53' ]
-    - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
-      cloudformation:
-        stack_name: "{{ cfn_project }}Route53"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-route53.yml"
-      when: route53 is defined
-      tags: [ 'createstack', 'route53' ]
+      tags: [ 'createstack', 'route53', 'ecs' ]
 
-    ### ECS Cluster
-    - name: Create CFN template from Ansible template for the ECS Cluster
-      template:
-        src: ECS.yml
-        dest: "generated-files/cfn-{{ project }}-ecs.yml"
-      when: ecs is defined
-      tags: [ 'createcfntemplate', 'ecs' ]
-    - name: Create or Update the ECS CloudFormation stack
-      cloudformation:
-        stack_name: "{{ cfn_project }}ECS"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-ecs.yml"
-      when: ecs is defined
-      tags: [ 'ecs', 'createstack' ]
+    - name: ECS Cluster
+      block:
+      - name: Create CFN template from Ansible template for the ECS Cluster
+        template:
+          src: ECS.yml
+          dest: "generated-files/cfn-{{ project }}-ecs.yml"
+      - name: Create or Update the ECS CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}ECS"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-ecs.yml"
 
-    ### S3 buckets
-    - name: Create CFN template from Ansible template for project S3 buckets
-      template:
-        src: S3.yml
-        dest: "generated-files/cfn-{{ project }}-s3.yml"
+      when: ecs is defined
+      tags: [ 'ecs' ]
+
+    - name: S3 buckets
+      block:
+      - name: Create CFN template from Ansible template for project S3 buckets
+        template:
+          src: S3.yml
+          dest: "generated-files/cfn-{{ project }}-s3.yml"
+      - name: Create or Update the S3 CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}S3"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-s3.yml"
+
       when: s3 is defined
-      tags: [ 'createcfntemplate', 's3' ]
-    - name: Create or Update the S3 CloudFormation stack
-      cloudformation:
-        stack_name: "{{ cfn_project }}S3"
-        state: "present"
-        disable_rollback: false
-        template: "generated-files/cfn-{{ project }}-s3.yml"
-      when: s3 is defined
-      tags: [ 'createstack', 's3' ]
+      tags: [ 's3' ]
 
 
 
