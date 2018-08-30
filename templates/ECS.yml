@@ -101,7 +101,7 @@ Resources:
           ECS_CLUSTER_NAME: "ecs-{{ project }}"
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
-        S3Key: "aws-lambda-ecs-cumulative-cpu-and-memory-reservation-metric-b5e058e1891cb255908417928e868e895811581b.zip"
+        S3Key: "aws-lambda-ecs-cumulative-cpu-and-memory-reservation-metric-8df91afee7676cb9623e6a4c37cb569425104725.zip"
       Runtime: python2.7
 
   LambdaPermissionCumulativeReservationMetric:
@@ -110,7 +110,7 @@ Resources:
       FunctionName: !GetAtt LambdaCumulativeReservationMetric.Arn
       Action: 'lambda:InvokeFunction'
       Principal: events.amazonaws.com
-      SourceArn: !ImportValue "{{ organization.cfn_name }}MonitoringSubaccount-ScheduledRule5minArn"
+      SourceArn: !ImportValue "{{ organization.cfn_name | title }}MonitoringSubaccount-ScheduledRule5minArn"
 
   EventRuleECSTaskStateChange:
     Type: "AWS::Events::Rule"
@@ -125,7 +125,7 @@ Resources:
           clusterArn:
             - !GetAtt ECSCluster.Arn
       Targets:
-        - Arn: !ImportValue "{{ organization.cfn_name }}MonitoringSubaccount-MonitoringSNSTopic"
+        - Arn: !ImportValue "{{ organization.cfn_name | title}}MonitoringSubaccount-MonitoringSNSTopic"
           Id: "TargetMonitoringSNSTopic"
 
 
@@ -223,7 +223,7 @@ Resources:
     Properties:
       AlarmDescription: "Start Alarm for {{ cfn_project }}{{ app.cfn_name }}"
       AlarmActions:
-        - !ImportValue "{{ organization.cfn_name }}MonitoringSubaccount-MonitoringSNSTopic"
+        - !ImportValue "{{ organization.cfn_name | title }}MonitoringSubaccount-MonitoringSNSTopic"
       MetricName: "{{ app.cfn_name }}"
       Namespace: "{{ cfn_project }}/ServiceStart"
       Statistic: Average
@@ -310,7 +310,7 @@ Resources:
 {%       if app.deploymentconfiguration is defined %}
       DeploymentConfiguration:
         MaximumPercent: {{ app.deploymentconfiguration.max_percent | default(200) }}
-        MinimumHealthyPercent: {{ app.deploymentconfiguration.max_percent | default(100) }}
+        MinimumHealthyPercent: {{ app.deploymentconfiguration.min_healthy_percent | default(100) }}
 {%       endif %}
       TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
 {%       if app.lb is defined %}
