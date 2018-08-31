@@ -14,19 +14,19 @@ Resources:
 
 {% endfor %}
 
-{% for role in roles | default([]) %}
-  {{ role.name }}Role:
+{% for awsrole in awsroles | default([]) %}
+  {{ awsrole.name }}Role:
     DependsOn:
 {%   for policy in managed_policies %}
       - {{ policy.name }}Policy
 {%   endfor %}
     Type: AWS::IAM::Role
     Properties:
-      RoleName: {{ role.name }}
+      RoleName: {{ awsrole.name }}
       AssumeRolePolicyDocument:
-        {{ role.assumerole_policy_document | to_json }}
+        {{ awsrole.assumerole_policy_document | to_json }}
       ManagedPolicyArns:
-{%   for policyarn in role.policy_arns %}
+{%   for policyarn in awsrole.policy_arns %}
         - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policyarn }}'
 {%   endfor %}
 {% endfor %}

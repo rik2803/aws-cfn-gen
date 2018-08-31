@@ -151,7 +151,7 @@
           disable_rollback: false
           template: "generated-files/cfn-{{ project }}-iam.yml"
 
-      when: roles is defined or managed_policies is defined
+      when: awsroles is defined or managed_policies is defined
       tags: [ 'iam' ]
 
     - name: Loadbalancers
