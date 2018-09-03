@@ -8,20 +8,23 @@ This repository consists of:
 
 ## Resources that can be created using this repository
 
-* AWS Application Load Balacders (ALB)
+* AWS Application Load Balancers (ALB)
 * AWS ECR
 * AWC ECS Cluster
 * AWS ECS Tasks and Services
 * S3 buckets
 * Route 53 private Hosted Zones
 * IAM Users, Roles and Policies
-
-## Links and Resources
-
-* General Elastic Beanstalk options for all environments: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html
-* Platform specific options: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-specific.html
+* CloudFront distribution
 
 ## Order of installation is important
+
+The template for certain resources may depend on resources created by other
+templates. Those templates obviously have to be deployed for the dependencies
+to exist.
+
+Therefor, the order of resource creation in the main playbook (`CreateOrUpdateEnv.yml`)
+should not be changed.
 
 ## Configuration file
 
@@ -96,5 +99,24 @@ accounts for 1024 CPU shares. The available number of CPI shares on the cluster 
 For a list of vCPUs per instance type, look [here](http://aws.amazon.com/ec2/instance-types/).
 
 ##### `application.ecs.desiredcount`
+
+##### `application.ecs.deploymentconfiguration`
+
+##### `application.ecs.deploymentconfiguration.max_percent`
+
+##### `application.ecs.deploymentconfiguration.min_healthy_percent`
+
+
+#### `application.lb`
+
+##### `application.lb.name`
+
+##### `application.lb.type`
+
+##### `application.lb.healthcheckpath`
+
+##### `application.lb.healthcheckokcode`
+
+##### `application.lb.targetgroup`
 
 ## Links
