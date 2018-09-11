@@ -164,7 +164,7 @@ Resources:
         HttpVersion: http2
         DefaultRootObject: "index.html"
         CacheBehaviors:
-{%   for origin in cloudfront.origins_and_cachebehaviors %}
+{%   for origin in cloudfront.origins_and_cachebehaviors | sort(attribute='priority') %}
           - ForwardedValues:
               QueryString: true
 {%     if origin.forward_headers is defined %}
