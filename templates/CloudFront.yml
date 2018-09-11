@@ -208,7 +208,13 @@ Resources:
 
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
           - Id: "{{ origin.origin_name }}-origin"
+{%     if origin.origin_name.domain is defined %}
+{%       if origin.origin_name.domain.type == 'import' %}
+            DomainName: !ImportValue "{{ origin.origin_name.domain.name }}"
+{%       endif %}
+{%     else %}
             DomainName: "{{ origin.origin_name }}.s3-website.{{ target_account.region }}.amazonaws.com"
+{%     endif %}
             #S3OriginConfig:
             #  OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
             CustomOriginConfig:
