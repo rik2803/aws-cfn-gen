@@ -180,7 +180,11 @@ Resources:
 {%     if origin.forward_headers is defined %}
               Headers:
 {%       for header in origin.forward_headers %}
+{%         if header == 'asterisk' %}
+                - '*'
+{%         else %}
                 - {{ header }}
+{%         endif %}
 {%       endfor %}
 {%     endif %}
 {%     if origin.allowed_http_methods is defined and origin.allowed_http_methods == 'options' %}
