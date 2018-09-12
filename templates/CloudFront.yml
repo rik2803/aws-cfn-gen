@@ -164,6 +164,15 @@ Resources:
         Enabled: true
         HttpVersion: http2
         DefaultRootObject: "index.html"
+{%   if cloudfront.custom_error_responses is defined %}
+        CustomErrorResponses:
+{%     for err in cloudfront.custom_error_responses %}
+          - ErrorCachingMinTTL: {{ err.error_caching_min_ttl | default('300') }}
+            ErrorCode: {{ err.error_code | default('404') }}
+            ResponseCode:  {{ err.reponse_code | default('200') }}
+            ResponsePagePath:  {{ err.response_page_path | default('/index.html') }}
+{%     endfor %}
+{%   endif %}
         CacheBehaviors:
 {%   for origin in cloudfront.origins_and_cachebehaviors | sort(attribute='priority') %}
           - ForwardedValues:

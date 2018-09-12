@@ -122,22 +122,6 @@
       when: "efs is defined"
       tags: [ 'efs' ]
 
-    - name: CloudFront
-      block:
-      - name: Create CFN template from Ansible template for the CloudFront CDNs
-        template:
-          src: "CloudFront.yml"
-          dest: "generated-files/cfn-{{ project }}-cloudfront.yml"
-      - name: Create or Update the CloudFront CloudFormation stack
-        cloudformation:
-          stack_name: "{{ cfn_project }}CloudFront"
-          state: "present"
-          disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-cloudfront.yml"
-
-      when: "cloudfront_distributions is defined"
-      tags: [ 'cloudfront' ]
-
     - name: IAM
       block:
       - name: Create CFN template from Ansible template for the IAM resources
@@ -171,6 +155,22 @@
         with_items: "{{ loadbalancers | default([]) }}"
 
       tags: [ 'ecs', 'alb' ]
+
+    - name: CloudFront
+      block:
+      - name: Create CFN template from Ansible template for the CloudFront CDNs
+        template:
+          src: "CloudFront.yml"
+          dest: "generated-files/cfn-{{ project }}-cloudfront.yml"
+      - name: Create or Update the CloudFront CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}CloudFront"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-cloudfront.yml"
+
+      when: "cloudfront_distributions is defined"
+      tags: [ 'cloudfront' ]
 
     - name: Route 53
       block:
