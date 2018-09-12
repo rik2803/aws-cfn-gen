@@ -213,8 +213,6 @@ Resources:
         Origins:
           - Id: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin"
             DomainName: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin.s3-website.{{ target_account.region }}.amazonaws.com"
-            #S3OriginConfig:
-            #    OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -232,8 +230,6 @@ Resources:
 {%     else %}
             DomainName: "{{ origin.origin_name }}.s3-website.{{ target_account.region }}.amazonaws.com"
 {%     endif %}
-            #S3OriginConfig:
-            #  OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -253,13 +249,6 @@ Resources:
           Value: {{ customer | default('NA') }}
 
 {% endfor %}
-
-  AssetsCloudFrontOriginAccessIdentity:
-      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-      Properties:
-          CloudFrontOriginAccessIdentityConfig:
-              Comment: Access Identity for the Ixortalk assets
-
 
 Outputs:
   AccessKeyDeployUser:
