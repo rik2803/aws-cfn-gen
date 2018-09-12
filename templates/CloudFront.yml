@@ -224,7 +224,7 @@ Resources:
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
-              OriginProtocolPolicy: http-only
+              OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
 {%   endfor %}
         PriceClass: PriceClass_100
         ViewerCertificate:
