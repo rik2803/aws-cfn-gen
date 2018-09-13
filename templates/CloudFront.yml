@@ -177,6 +177,16 @@ Resources:
 {%   for origin in cloudfront.origins_and_cachebehaviors | sort(attribute='priority') %}
           - ForwardedValues:
               QueryString: true
+{%     if origin.forward_cookies is defined %}
+              Cookies:
+                Forward: {{ origin.forward_cookies.forward | default('all') }}
+{%       if origin.forward_cookies.whitelisted_names is defined and origin.forward_cookies.forward == 'whitelist' %}
+                WhitelistedNames:
+{%         for wl in origin.forward_cookies.whitelisted_names %}
+                  - {{ wl }}
+{%         endfor %}
+{%       endif %}
+{%     endif %}
 {%     if origin.forward_headers is defined %}
               Headers:
 {%       for header in origin.forward_headers %}
