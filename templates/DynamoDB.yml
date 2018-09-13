@@ -1,0 +1,45 @@
+Resources:
+{% for table in dynamodb %}
+  DDBTable{{ table.table_name | title }}:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: {{ table.table_name }}
+      AttributeDefinitions:
+{%   for att in table.attributes %}
+      - AttributeName: "{{ att.attribute_name }}"
+        AttributeType: "{{ att.attribute_type }}"
+{%   endfor %}
+      KeySchema:
+{%   for att in table.key_schema %}
+        - AttributeName: "{{ att.attribute_name }}"
+          KeyType: "{{ att.key_type }}"
+{%   endfor %}
+      ProvisionedThroughput:
+{%   if table.provisioned_throughput is defined %}
+        ReadCapacityUnits: {{ table.provisioned_throughput.read_capacity_units | default('5') }}
+        WriteCapacityUnits: {{ table.provisioned_throughput.write_capacity_units | default('5') }}
+{%   else %}
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+{%   endif %}
+{%   if table.local_secondary_indexes is defined %}
+      LocalSecondaryIndexes:
+{%     for lsi in table.local_secondary_indexes %}
+        - IndexName: "{{ lsi.index_name }}"
+          KeySchema:
+{%       for key in lsi.key_schema %}
+            - AttributeName: "{{ key.attribute_name }}"
+              KeyType: "{{ key.key_type }}"
+{%       endfor %}
+          Projection:
+            ProjectionType: "{{ lsi.projection.projection_type }}"
+{%     endfor %}
+{%   endif %}
+      Tags:
+        - Key: Application
+          Value: "{{ application }}"
+        - Key: Environment
+          Value: "{{ env }}"
+        - Key: Customer
+          Value: "{{ customer | default('NA') }}"
+{% endfor %}

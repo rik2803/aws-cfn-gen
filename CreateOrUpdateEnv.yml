@@ -122,6 +122,22 @@
       when: "efs is defined"
       tags: [ 'efs' ]
 
+    - name: DynamoDB
+      block:
+      - name: Create CFN template from Ansible template for DynamoDB tables
+        template:
+          src: "DynamoDB.yml"
+          dest: "generated-files/cfn-{{ project }}-dynamodb.yml"
+      - name: Create or Update the DynamoDB CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}DynamoDB"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-dynamodb.yml"
+
+      when: "dynamodb is defined"
+      tags: [ 'dynamodb' ]
+
     - name: IAM
       block:
       - name: Create CFN template from Ansible template for the IAM resources
