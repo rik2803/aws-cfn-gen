@@ -269,6 +269,15 @@ Resources:
               awslogs-stream-prefix: "{{ project }}-{{ app.name }}"
           PortMappings:
             - ContainerPort: {{ app.ecs.containerport }}
+{%     if app.ecs.extra_portmappings is defined %}
+{%       for portmapping in app.ecs.extra_portmappings %}
+            - ContainerPort: {{ portmapping.container_port }}
+{%         if portmapping.host_port is defined %}
+              HostPort: {{ portmapping.host_port }}
+{%         endif %}
+              Protocol: {{ portmapping.protocol | default('tcp') }}
+{%       endfor %}
+{%     endif %}
           Environment:
             - Name: Application
               Value: "{{ project }}"
