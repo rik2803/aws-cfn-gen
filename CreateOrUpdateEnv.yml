@@ -106,6 +106,22 @@
       when: "ecr is defined"
       tags: [ 'ecr' ]
 
+    - name: Lambda
+      block:
+      - name: Create CFN template from Ansible template for the Lambda functions
+        template:
+          src: "Lambda.yml"
+          dest: "generated-files/cfn-{{ project }}-lambda.yml"
+      - name: Create or Update the Lambda CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}Lambda"
+          state: "present"
+          disable_rollback: false
+          template: "generated-files/cfn-{{ project }}-lambda.yml"
+
+      when: "lambda_functions is defined"
+      tags: [ 'lambda' ]
+
     - name: EFS
       block:
       - name: Create CFN template from Ansible template for the EFS Filesystems

@@ -1,0 +1,41 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create Lambda functions
+
+Resources:
+{% for lambda in lambda_functions | default([]) %}
+  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: "{{ lambda.name }}.{{ lambda.handler }}"
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LambdaBasicExecutionRole"
+{%   if lambda.environment is defined %}
+      Environment:
+        Variables:
+{%     for env in lambda.environment %}
+         {{ env.name }}: "{{ env.value }}"
+{%     endfor %}
+{%   endif %}
+      Code:
+        S3Bucket: "{{ lambda.code.s3_bucket }}"
+        S3Key: "{{ lambda.code.s3_key }}"
+      Runtime: {{ lambda.runtime | default('python2.7') }}
+      Tags:
+        - Key: Application
+          Value: "{{ application }}"
+        - Key: Environment
+          Value: "{{ env }}"
+        - Key: Customer
+          Value: "{{ customer | default('NA') }}"
+{% endfor %}
+
+Outputs:
+{% for lambda in lambda_functions %}
+  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}Output:
+    Value: !Ref {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}
+    Description: "Lambda function {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}"
+
+{% endfor %}
