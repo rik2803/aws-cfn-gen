@@ -28,14 +28,30 @@ Resources:
           Value: "{{ env }}"
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
+
+{%   for liv in lambda.invoke_permissions | default([]) %}
+{%     if liv.type == 'predefined' and liv.name == 'logs' %}
+  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}CWLogsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}
+      Principal: !Sub "logs.${AWS::Region}.amazonaws.com"
+      SourceAccount: !Ref AWS::AccountId
+{%     endif %}
+{%   endfor %}
 {% endfor %}
 
 Outputs:
 {% for lambda in lambda_functions %}
   {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}Output:
     Value: !Ref {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}
-    Description: "Lambda function {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}"
+    Description: "Lambda function {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }} resource logical name"
     Export:
       Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}"
-
+  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}ArnOutput:
+    Value: !GetAtt {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}.Arn
+    Description: "Lambda function {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }} Arn"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}Arn"
 {% endfor %}
