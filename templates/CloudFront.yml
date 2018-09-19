@@ -149,7 +149,7 @@ Resources:
 
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
     DependsOn:
-      - S3{{ cfn_project }}{{ cloudfront.cfn_name }}DefaultCloudfrontOrigin
+      - S3{{ cfn_project }}{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin
 {%   if cloudfront.logging is defined %}
       - S3{{ cfn_project }}{{ cloudfront.cfn_name }}Logs
 {%   endif %}
