@@ -264,6 +264,8 @@ element in tha `applicationconfig` list contains the application description.
 
 #### `applicationconfig.name`
 
+**Important**: The `name` should only contain letters, numbers, hyphens and colons, underscores are not allowed.
+
 #### `applicationconfig.target`
 
 *TODO*: Refactor this property away 
