@@ -138,6 +138,9 @@ Resources:
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
       KeyName: "{{ ecs.cluster.keypair }}"
+{% if ecs.cluster.spot_price is defined %}
+      SpotPrice: "{{ ecs.cluster.spot_price }}"
+{% endif %}
       UserData:
         Fn::Base64:
           Fn::Sub:
