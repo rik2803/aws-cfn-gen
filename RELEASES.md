@@ -1,10 +1,189 @@
 # Release notes
 
+## `0.1.2` (20180923)
+
+### Features
+
+#### IAM
+
+Before this enhancement, `ManagedPolicyArns` in a role could only be specified by the
+name of the role, not by the full _ARN_. To be able to alse attach AWS Managed policies
+to a role, the policy can now also be defined by its full _ARN_:
+
+```yaml
+awsroles:
+  - name: MyAWSRole
+    policy_arns:
+      - MyCustomPolicy
+      - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+      - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+    assumerole_policy_document:
+      Version: '2012-10-17'
+      Statement:
+        - Sid: ''
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+          Action: sts:AssumeRole
+```
+
+#### Lambda
+
+Allow the creation of _Lambda_ functions. `lambda_functions` is a list of functions to be created. The 
+function code should be available from a S3 bucket where the _CloudFormation_ template has access to. 
+
+```yaml
+lambda_functions:
+  - name: aws-lambda-datadog-logshipper
+    handler: lambda_handler
+    runtime: python2.7
+    code:
+      s3_bucket: "{{ lambda_function_bucket_name }}"
+      s3_key: aws-lambda-datadog-logshipper-4c4579dfe5ab32ca8c5b9ecd8eb06b1281e5a5b7.zip
+    environment:
+      - name: APPLICATION
+        value: MyAppName
+      - name: ENVIRONMENT
+        value: "{{ env }}"
+      - name: DD_API_KEY
+        value: 123456789123456789
+    invoke_permissions:
+      - type: predefined
+        name: logs
+```
+
+The `invoke_permissions` only support `type: predefined`. Future requirements allow the mechanism
+to be extended.
+
+#### DynamoDB
+
+Offers the possibility to create _DynamoDB_ tables. Does not support _Global Secondary Indexes_ yet.
+
+An example:
+
+```yaml
+dynamodb:
+  - table_name: snapshots
+    attributes:
+      - attribute_name: par
+        attribute_type: S
+      - attribute_name: seq
+        attribute_type: N
+      - attribute_name: ts
+        attribute_type: N
+    key_schema:
+      - attribute_name: par
+        key_type: HASH
+      - attribute_name: seq
+        key_type: RANGE
+    local_secondary_indexes:
+      - index_name: ts-idx
+        key_schema:
+          - attribute_name: par
+            key_type: HASH
+          - attribute_name: ts
+            key_type: RANGE
+        projection:
+          projection_type: ALL
+    provisioned_throughput:
+      read_capacity_units: 5
+      write_capacity_units: 5
+```
+
+#### ECS
+
+* By specifying `ecs.cluster.spot_price` in the configuration file, the ECS cluster will run
+  on _Spot Instances_.
+* The `extra_portmappings` in `applicationconfig.ecs` can be used to expose extra ports from the
+  container, for example to allow debuggers to attach to the corresponding host port over a ssh
+  tunnel. Only `container_port` is required. Default for `protocol` is `tcp` and default for
+  `host_port` is for it to be dynamic.
+  
+```yaml
+applicationconfig:
+  - name: myapp
+    ...
+    ecs:
+      ...
+      extra_portmappings:
+        - container_port: 8002
+          protocol: tcp
+       ...
+     ...
+```
+
+#### CloudWatch
+
+Possibility to attach _Subscription Filters_ to a _CloudWatch Log Group_. This requires a
+lambda function and a new attribute for the `application` configuration.
+
+See above on how to create a _Lambda_ function.
+
+And using that _Lambda_ function as the log subscription filter:
+
+```yaml
+applicationconfig:
+  - name: "myapp"
+    cfn_name: MyApp
+    target: "ecs"
+    logs_subscription_filter:
+      type: lambda
+      ### lambda_cfn_export_name only has to contain the last part (after the dash) of the export.
+      ### The first part is (cfn_project) prepended by the templates
+      lambda_cfn_export_name: AwsLambdaDatadogLogshipperArn
+      filter_pattern: "-DEBUG"
+```
+
+#### CloudFront
+
+Set the property `forward_cookies` in the list of `origins_and_cachebehaviors` for a
+dictribution to forward cookies to the origin.
+
+The `forward` property can have `all` or `whitelist` as the value. In case of `whitelist`,
+a list `whitelisted_names` is required.
+
+```yaml
+cloudfront_distributions:
+  - name: my-cloudfront
+    origins_and_cachebehaviors:
+      - origin_name: "my-cloudfront"
+        forward_cookies:
+          forward: whitelist
+          whitelisted_names:
+            - cookie1
+            - cookie2
+```
+
+An example:
+
+```yaml
+cloudfront_distributions:
+  - name: my-cloudfront
+    ...
+    origins_and_cachebehaviors:
+      - origin_name: "my-cloudfront"
+        ...
+        forward_cookies:
+          forward: all
+        ...
+     ...
+```
+
+### Bugfixes
+
+#### CloudFront
+
+S3 bucket name was incorrectly referenced in the `AWS::CloudFront::Distribution` definition.
+
+#### Documentation
+
+* Add warning about the valid characters in the name of an application
+
 ## `0.1.1` (20180912)
 
 ### Features
 
-#### _CloudFormation_
+#### _CloudFront_
 
 * Introduce `priority` in `cloudfront_distributions[*].origins_and_cachebehaviors[*]` to
   order the cachebehaviours, lower number is higher priority. The behaviors are

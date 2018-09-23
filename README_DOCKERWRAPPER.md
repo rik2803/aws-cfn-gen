@@ -21,7 +21,7 @@ The use of the image is simple and straightforward, but there are some prerequis
 
 ### Required
 
-* A _Docker_ on the machine where you will run the container
+* A _Docker_ daemon on the machine where you will run the container
 * A configuration file
 * AWS authentication information has to be provided to the container.
   This can be done in several ways, see further down for more information.
