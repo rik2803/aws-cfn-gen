@@ -95,13 +95,13 @@
         - name: Create CFN template from Ansible template for the ECR Repositories
           template:
             src: "ECR.yml"
-            dest: "generated-files/cfn-{{ project }}-ecr.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml"
         - name: Create or Update the ECR CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}ECR"
             state: "present"
             disable_rollback: false
-            template: "generated-files/cfn-{{ project }}-ecr.yml"
+            template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml"
 
       when: "ecr is defined"
       tags: [ 'ecr' ]
@@ -111,13 +111,13 @@
       - name: Create CFN template from Ansible template for the Lambda functions
         template:
           src: "Lambda.yml"
-          dest: "generated-files/cfn-{{ project }}-lambda.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml"
       - name: Create or Update the Lambda CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}Lambda"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-lambda.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml"
 
       when: "lambda_functions is defined"
       tags: [ 'lambda' ]
@@ -127,13 +127,13 @@
       - name: Create CFN template from Ansible template for the EFS Filesystems
         template:
           src: "EFS.yml"
-          dest: "generated-files/cfn-{{ project }}-efs.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml"
       - name: Create or Update the EFS CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}EFS"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-efs.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml"
 
       when: "efs is defined"
       tags: [ 'efs' ]
@@ -143,13 +143,13 @@
       - name: Create CFN template from Ansible template for DynamoDB tables
         template:
           src: "DynamoDB.yml"
-          dest: "generated-files/cfn-{{ project }}-dynamodb.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml"
       - name: Create or Update the DynamoDB CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}DynamoDB"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-dynamodb.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml"
 
       when: "dynamodb is defined"
       tags: [ 'dynamodb' ]
@@ -159,13 +159,13 @@
       - name: Create CFN template from Ansible template for the IAM resources
         template:
           src: "IAM.yml"
-          dest: "generated-files/cfn-{{ project }}-iam.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml"
       - name: Create or Update the IAM Stack
         cloudformation:
           stack_name: "{{ cfn_project }}IAM"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-iam.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml"
 
       when: awsroles is defined or managed_policies is defined
       tags: [ 'iam' ]
@@ -175,14 +175,14 @@
       - name: Create template from Ansible template for the LoadBalancers
         template:
           src: "ALB.yml"
-          dest: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml"
         with_items: "{{ loadbalancers | default([]) }}"
       - name: Create or Update the Elastic LoadBalancer CloudFormation stacks
         cloudformation:
           stack_name: "{{ cfn_project }}LB{{ item.name }}"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml"
         register: lbstacks
         with_items: "{{ loadbalancers | default([]) }}"
 
@@ -193,13 +193,13 @@
       - name: Create CFN template from Ansible template for the CloudFront CDNs
         template:
           src: "CloudFront.yml"
-          dest: "generated-files/cfn-{{ project }}-cloudfront.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml"
       - name: Create or Update the CloudFront CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}CloudFront"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-cloudfront.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml"
 
       when: "cloudfront_distributions is defined"
       tags: [ 'cloudfront' ]
@@ -209,13 +209,13 @@
         - name: Create template from Ansible template for the Route53 Hosted Zones
           template:
             src: "Route53.yml"
-            dest: "generated-files/cfn-{{ project }}-route53.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml"
         - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
           cloudformation:
             stack_name: "{{ cfn_project }}Route53"
             state: "present"
             disable_rollback: false
-            template: "generated-files/cfn-{{ project }}-route53.yml"
+            template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml"
 
       when: route53 is defined
       tags: [ 'createstack', 'route53', 'ecs' ]
@@ -225,13 +225,13 @@
       - name: Create CFN template from Ansible template for the ECS Cluster
         template:
           src: ECS.yml
-          dest: "generated-files/cfn-{{ project }}-ecs.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml"
       - name: Create or Update the ECS CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}ECS"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-ecs.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml"
 
       when: ecs is defined
       tags: [ 'ecs' ]
@@ -241,13 +241,13 @@
       - name: Create CFN template from Ansible template for project S3 buckets
         template:
           src: S3.yml
-          dest: "generated-files/cfn-{{ project }}-s3.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
       - name: Create or Update the S3 CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}S3"
           state: "present"
           disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-s3.yml"
+          template: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
 
       when: s3 is defined
       tags: [ 's3' ]
