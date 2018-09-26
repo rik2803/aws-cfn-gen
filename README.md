@@ -20,7 +20,7 @@ AWS CloudFormation templates, and deploys these templates to you AWS account.
   [this repository](https://github.com/rik2803/aws-cfn-templates). This should disappear
   in the future, but until then, we've got to deal with it.
 
-## Running the playbook in a controlled manner
+## Running the playbook in a controlled way
 
 ### Background
 
@@ -225,7 +225,7 @@ iam_users:
 ### `applicationconfig`
 
 `applicationconfig` is a list of applications to run in the ECS cluster. Each
-element in tha `applicationconfig` list contains the application description.
+element in the `applicationconfig` list contains the application description.
 
 ```javascript
   - name: "servicename"
@@ -262,15 +262,30 @@ element in tha `applicationconfig` list contains the application description.
         skiproute53: false
 ```
 
-#### `applicationconfig.name`
+#### `applicationconfig[n].name`
 
-**Important**: The `name` should only contain letters, numbers, hyphens and colons, underscores are not allowed.
+**Important**: The `name` should only contain letters, numbers, hyphens and colons. Underscores are not allowed.
 
-#### `applicationconfig.target`
+**Important**: The `name` should not be changed one the service was created. If it **is** changed, the service
+and the related reources might be recreated and will cause downtime.
 
-*TODO*: Refactor this property away 
+The name defines the name to be used for the service. It is alse used to create related resources:
 
-#### `applicationconfig.environment`
+* _Listener Rule_ name in the `ALB.yml` template
+* _Target Group_ CloudFormation export for use in other templates in `ALB.yml`
+* Name of the _CloudWatch Log Group_ in `ECS.yml`
+* Name of the _Task Definition_ in `ECS.yml`
+
+#### `applicationconfig[n].cfn_name`
+
+CloudFormation logical names are restricted to letters and numbers only. All `cfn_` properties are used
+for naming _CloudFormation_ resource logical names.
+
+#### `applicationconfig[n].target`
+
+Where the service will be running, `ecs` is currently the only target. For future extensions.
+
+#### `applicationconfig[n].environment`
 
 A list of key-value pairs to add to the environment variables of the running container
 
@@ -280,40 +295,93 @@ A list of key-value pairs to add to the environment variables of the running con
         value: "-Xmx2048m"
 ```
 
-#### `application.ecs`
+#### `application[n].ecs`
 
-##### `application.ecs.image`
+##### `application[n].ecs.image`
 
-##### `application.ecs.containerport`
-##### `application.ecs.memory`
-##### `application.ecs.cpu`
+The image to run in the container. This can be a ECR repository, or a (public) _Docker Hub_
+repository.
+
+Private _Docker Hub_ repositories are not supported at the moment.
+
+##### `application[n].ecs.containerport`
+
+The port the service inside the container is listening on. When the task is started, a port
+mapping will be created by the ECS Agent (which also runs in a Docker container), and that
+port will be registered with the Target Group to which the service is linked, in order for
+loadbalancing to do its job.
+
+##### `application[n].ecs.memory`
+
+The number on MB to reserve for the container. If the container requires more memory than
+is available (i.e. not reserved) on any of the ECS cluster nodes, the task will not be started.
+This will be logged in the service’s events in de AWS Console.
+
+##### `application[n].ecs.cpu`
 
 The number of CPU shares to allocate to the running container. Each vCPU on AWS
-accounts for 1024 CPU shares. The available number of CPI shares on the cluster is
+accounts for 1024 CPU shares. The available number of CPU shares in the cluster is
 `1024 * sum_of_vCPUs_of_all_clusternodes`.
 
 For a list of vCPUs per instance type, look [here](http://aws.amazon.com/ec2/instance-types/).
 
-##### `application.ecs.desiredcount`
+##### `application[n].ecs.desiredcount`
 
-##### `application.ecs.deploymentconfiguration`
+The number of instances to start and maintain for that service.
 
-##### `application.ecs.deploymentconfiguration.max_percent`
+##### `application[n].ecs.deploymentconfiguration`
 
-##### `application.ecs.deploymentconfiguration.min_healthy_percent`
+Describes how the services will behave when a service is redeployed.
+
+##### `application[n].ecs.deploymentconfiguration.max_percent`
+
+The maximum number of tasks, specified as a percentage of the Amazon ECS service's
+_DesiredCount_ value, that can run in a service during a deployment. To calculate
+the maximum number of tasks, Amazon ECS uses this formula: the value of
+`DesiredCount * (the value of the MaximumPercent/100)`, rounded down to the nearest
+integer value.
+
+(From the [AWS Documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ecs-service-deploymentconfiguration.html))
+
+##### `application[n].ecs.deploymentconfiguration.min_healthy_percent`
+
+The minimum number of tasks, specified as a percentage of the Amazon ECS service's
+DesiredCount value, that must continue to run and remain healthy during a deployment.
+To calculate the minimum number of tasks, Amazon ECS uses this formula: the value of
+`DesiredCount * (the value of the MinimumHealthyPercent/100)`, rounded up to the 
+nearest integer value.
+
+(From the [AWS Documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ecs-service-deploymentconfiguration.html))
+
+#### `application[n].lb`
+
+##### `application[n].lb.name`
+
+The name of the LoadBalancer behind which the service should be put. External services
+should get their traffic from the external load balancer, while internal services should
+be put behind an internal load balancer. Internal traffic can be HTTP, while external
+traffic should be HTTPS.
+
+##### `application[n].lb.type`
+
+Only used if DNS records have to be made for external services. This only works if the
+domain is hosted in _Route 53_, and if the value of the property is `public`.
+
+##### `application[n].lb.healthcheckpath`
+
+The path to check the health of the service.
+
+##### `application[n].lb.healthcheckokcode`
+
+The HTTP code that reflects a healthy services. For example:
+
+* `200`
+* `200-299`
+* `200-499`
+* Values in the `500` range cannot be used
 
 
-#### `application.lb`
-
-##### `application.lb.name`
-
-##### `application.lb.type`
-
-##### `application.lb.healthcheckpath`
-
-##### `application.lb.healthcheckokcode`
-
-##### `application.lb.targetgroup`
+##### `application[n].lb.targetgroup`
 
 ### `ecr`: _Elastic Container Registry_
 
