@@ -355,6 +355,14 @@ nearest integer value.
 
 #### `application[n].lb`
 
+**Important**: Changing the LB requires the `AWS::ECS::Service` resource to be
+recreated. Since the framework assigns a nam to the `AWS::ECS::Service` resource,
+this means that the template will fail unless (or):
+
+* the `application[n]` with the changed loadbalancer is first deleted (remove it
+  from the configuration file and deploy) and recreated
+* **or** the `application[n].name` is changed
+
 ##### `application[n].lb.name`
 
 The name of the LoadBalancer behind which the service should be put. External services
