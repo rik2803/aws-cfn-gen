@@ -442,7 +442,29 @@ loadbalancers:
     def_tg_https_healthcheckpath: /health
   - name: ALBInt
     scheme: "internal"
+    idle_timeout_seconds: 120
+    accesslogs:
+      state: enabled
+      log_expiry_days: 14    
 ```
+
+#### `access_logs`
+
+When `access_logs` is defined and `state` is `enabled`,
+following resources are created:
+
+* A S3 bucket named `{{application }}-{{ env }}-accesslogs-{{ lbname }}`
+* An lifecycle rule that expires the access logs after `log_expiry_days` days
+* A bucket policy that allows the AWS ALB account in the current region to
+  write to that bucket
+
+And the loadbalancer will get the attributes required to enable access logs, as specified
+[here](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html).
+
+#### `idle_timeout_seconds`
+
+Default is `60`, sets the LB `LoadBalancerAttribute` named `idle_timeout.timeout_seconds` to this
+value.
 
 ### `route53`
 

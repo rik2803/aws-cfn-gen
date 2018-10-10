@@ -1,7 +1,82 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Create loadbalancer {{ item.name }}
 
+Mappings:
+  Region2ELBAccountId:
+    us-east-1:
+      AccountId: "127311923021"
+    us-west-1:
+      AccountId: "027434742980"
+    us-west-2:
+      AccountId: "797873946194"
+    eu-west-1:
+      AccountId: "156460612806"
+    eu-west-2:
+      AccountId: "652711504416"
+    eu-west-3:
+      AccountId: "009996457667"
+    ap-northeast-1:
+      AccountId: "582318560864"
+    ap-northeast-2:
+      AccountId: "600734575887"
+    ap-northeast-3:
+      AccountId: "383597477331"
+    ap-southeast-1:
+      AccountId: "114774131450"
+    ap-southeast-2:
+      AccountId: "783225319266"
+    ap-south-1:
+      AccountId: "718504428378"
+    us-east-2:
+      AccountId: "033677994240"
+    sa-east-1:
+      AccountId: "507241528517"
+    cn-north-1:
+      AccountId: "638102146993"
+    eu-central-1:
+      AccountId: "054676820928"
+
+
 Resources:
+
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+  S3ALBAccessLogs{{ item.name }}:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: "{{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+        - ExpirationInDays: {{ item.accesslogs.log_expiry_days | default('1') }}
+          Status: "Enabled"
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+
+  S3ALBAccessLogsBucketPolicy{{ item.name }}:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3ALBAccessLogs{{ item.name }}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        -   Sid: S3AccessForLoadbalancer
+            Effect: Allow
+            Action: "s3:PutObject"
+            Resource: !Sub arn:aws:s3:::{{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}/*
+            Principal:
+              AWS: !FindInMap [Region2ELBAccountId, !Ref 'AWS::Region', AccountId]
+
+{% endif %}
+
   LB{{ item.name }}:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -24,6 +99,25 @@ Resources:
         - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
         - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
 {% endif %}
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: {{ item.idle_timeout_seconds | default('60') }}
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+        - Key: access_logs.s3.enabled
+          Value: true
+        - Key: access_logs.s3.bucket
+          Value: {{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}
+{% else %}
+        - Key: access_logs.s3.enabled
+          Value: false
+{% endif %}
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
 
 {% if "internal" not in item.scheme %}
   Listener{{ item.name }}:
