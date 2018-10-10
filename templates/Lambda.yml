@@ -5,10 +5,14 @@ Description: |
 
 Resources:
 {% for lambda in lambda_functions | default([]) %}
-  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}:
+  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}:
     Type: AWS::Lambda::Function
     Properties:
+{%   if 'java' in lambda.runtime %}
+      Handler: "{{ lambda.name }}.{{ lambda.class_name | default('Handler') }}::{{ lambda.handler }}"
+{%   else %}
       Handler: "{{ lambda.name }}.{{ lambda.handler }}"
+{% endif %}
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LambdaBasicExecutionRole"
 {%   if lambda.environment is defined %}
       Environment:
@@ -31,11 +35,11 @@ Resources:
 
 {%   for liv in lambda.invoke_permissions | default([]) %}
 {%     if liv.type == 'predefined' and liv.name == 'logs' %}
-  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}CWLogsInvokePermission:
+  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}CWLogsInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}
+      FunctionName: !Ref {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}
       Principal: !Sub "logs.${AWS::Region}.amazonaws.com"
       SourceAccount: !Ref AWS::AccountId
 {%     endif %}
@@ -44,14 +48,14 @@ Resources:
 
 Outputs:
 {% for lambda in lambda_functions %}
-  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}Output:
-    Value: !Ref {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}
-    Description: "Lambda function {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }} resource logical name"
+  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}Output:
+    Value: !Ref {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}
+    Description: "Lambda function {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }} resource logical name"
     Export:
-      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}"
-  {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}ArnOutput:
-    Value: !GetAtt {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}.Arn
-    Description: "Lambda function {{ lambda.name | replace('-', ' ') | title | replace(' ', '') }} Arn"
+      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}"
+  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}ArnOutput:
+    Value: !GetAtt {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}.Arn
+    Description: "Lambda function {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }} Arn"
     Export:
-      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | title | replace(' ', '') }}Arn"
+      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}Arn"
 {% endfor %}
