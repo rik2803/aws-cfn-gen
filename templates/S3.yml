@@ -17,9 +17,15 @@ Resources:
         - ServerSideEncryptionByDefault:
             SSEAlgorithm: AES256
       LifecycleConfiguration:
+{%   if bucket.lifecycle_configuration is not defined %}
         Rules:
         - NoncurrentVersionExpirationInDays: 60
           Status: Enabled
+{%   else %}
+{%     for line in bucket.lifecycle_configuration.split('\n') %}
+        {{ line }}
+{%     endfor %}
+{%   endif %}
 {%   if bucket.static_website_hosting is defined and ( bucket.static_website_hosting or bucket.static_website_hosting in [ "yes", "Yes", "true", "True", "on", "On" ] ) %}
       WebsiteConfiguration:
         IndexDocument: {{ bucket.indexdocument | default('index.html') }}

@@ -462,6 +462,65 @@ s3:
     cfn_name: MyBucket
     access_control: Private
     static_website_hosting: no
+    lifecycle_configuration: |
+      Rules:
+        - ExpirationInDays: 14
+```
+
+#### `name`
+
+The name for the bucket. The resulting name will be the value of this variable,
+prefixed with `{{ application }}-{{ env }}-`.
+
+```yaml
+application: mybigapplication
+env: prd
+
+...
+
+s3:
+  - name: mybucket
+    cfn_name: MyBucket
+    access_control: Private
+    static_website_hosting: no
+```
+
+For the above configuration, the resulting bucket will be named `mybigapplication-prd-mybucket`.
+
+#### `cfn_name`
+
+The name to be used for the _CloudFormation_ logical resource.
+
+#### `access_control`
+
+This setting grants predefined permissions to the bucket. All object created after this setting
+was set or updated will get that ACL.
+
+See [here](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) for valid values.
+
+
+#### `static_website_hosting`
+
+Valid values:
+
+* `yes` or `Yes`
+* `true` or `True`
+* `on` or `On`
+
+All other values will not enable website hosting on the bucket.
+
+**Important**: This potentially exposes object to the evil internet.
+
+#### `lifecycle_configuration`
+
+Use the exact same _yaml_ as described in [Amazon S3 Bucket Rule](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-lifecycleconfig-rule.html).
+
+If `lifecycle_configuration` is not specified, the default lifecycle rule is:
+
+```yaml
+        Rules:
+          - NoncurrentVersionExpirationInDays: 60
+            Status: Enabled
 ```
 
 ### `cloudfront_distributions`
