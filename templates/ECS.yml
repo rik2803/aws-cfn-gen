@@ -343,11 +343,11 @@ Resources:
         - ContainerName: "{{ project }}-{{ app.name }}"
           ContainerPort: "{{ app.ecs.containerport }}"
 {%         for result in lbstacks.results %}
-{%           if result.item.name == app.lb.name %}
+{%           if result.item.item.name == app.lb.name %}
 {%             if app.lb.targetgroup is defined %}
           TargetGroupArn: "{{ result.stack_outputs[app.lb.targetgroup] }}"
 {%             else %}
-          TargetGroupArn: "{{ result.stack_outputs['TGApp' + cfn_project + result.item.name + app.cfn_name] }}"
+          TargetGroupArn: "{{ result.stack_outputs['TGApp' + cfn_project + result.item.item.name + app.cfn_name] }}"
 {%             endif %}
 {%           endif %}
 {%         endfor %}
@@ -356,10 +356,10 @@ Resources:
   ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
 {%       if route53 is defined %}
 {%         for result in lbstacks.results %}
-{%           if app.domains is defined and result.item.name == app.lb.name %}
+{%           if app.domains is defined and result.item.item.name == app.lb.name %}
 {%             for domain in app.domains %}
 {%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
-  ### {{ result.item.name }} - {{ app.lb.name }} - {{ domain.cfn_name }} - {{ domain.name }}
+  ### {{ result.item.item.name }} - {{ app.lb.name }} - {{ domain.cfn_name }} - {{ domain.name }}
   Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
     Type: AWS::Route53::RecordSet
     Properties:
