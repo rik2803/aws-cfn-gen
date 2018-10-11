@@ -1,5 +1,68 @@
 # Release notes
 
+## `0.1.3` (20181011)
+
+### Features
+
+#### Keep generated files when using `dockerwrapper`
+
+Make generated files directory configurable to enable to retain those
+files when using dockerwrapper ([ixor/ansible-aws-cfn-gen]() docker image).
+
+#### Create or Update _CloudFormation_ stacks from templates on a S3 bucket
+
+Because the template size limit was hit for some projects, the _CloudFormation_
+templates have to be installed from a location on S3.
+
+The bucket is created by the playbooks, a signed URL with limited validity in
+time in generated and uses to access the template on S3. That way, the
+bucket can remain private.
+
+#### `S3` Lifecycle Rules
+
+Introduce lifecycle rules. Refer to the README.md for details on how to use lifecycle rules.
+
+```yaml
+s3:
+  - name: mybucket
+    cfn_name: MyBucket
+    access_control: Private
+    static_website_hosting: no
+    lifecycle_configuration: |
+      Rules:
+        - ExpirationInDays: 14
+```
+
+#### `ALB` idle time-out
+
+
+#### `ALB` Access Logs
+
+Enable or disable ALB access logs by adding this to the ALB definition:
+
+```yaml
+loadbalancers:
+  - name: ALBInt
+     ...
+     accesslogs:
+      state: enabled
+      log_expiry_days: 14    
+
+```
+
+It creates:
+
+* A S3 bucket named `{{application }}-{{ env }}-accesslogs-{{ lbname }}`
+* An lifecycle rule that expires the access logs after `log_expiry_days` days
+* A bucket policy that allows the AWS ALB account in the current region to
+  write to that bucket
+
+### Documentation
+
+Misc documentation updates
+
+### Bugfixes
+
 ## `0.1.2` (20180923)
 
 ### Features

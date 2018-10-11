@@ -474,8 +474,8 @@ TODO
 
 Create S3 buckets.
 
-Other S3 buckets might be created implicitely by the other components (i.e. _CloudFront_), but `s3` can be used
-to explicitely create buckets.
+Other S3 buckets might be created implicitely by the other components (i.e. _CloudFront_),
+but `s3` can be used to explicitely create buckets.
 
 
 ```yaml
