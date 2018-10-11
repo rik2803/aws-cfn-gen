@@ -4,10 +4,14 @@
 
 ### Features
 
+#### `ECS` Update AMIs to latest version
+
+Update the ECS AMI's to the latest version.
+
 #### Keep generated files when using `dockerwrapper`
 
 Make generated files directory configurable to enable to retain those
-files when using dockerwrapper ([ixor/ansible-aws-cfn-gen]() docker image).
+files when using dockerwrapper ([ixor/ansible-aws-cfn-gen](https://hub.docker.com/r/ixor/ansible-aws-cfn-gen/) docker image).
 
 #### Create or Update _CloudFormation_ stacks from templates on a S3 bucket
 
