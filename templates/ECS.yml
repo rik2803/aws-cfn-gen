@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: |
-  Create an ECS stack {{ project }}
+  Create an ECS stack for {{ project }}
 
 ### For latest ECS optomized AMIs: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
 Mappings:
@@ -137,6 +137,12 @@ Resources:
         - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
+{% if ecs.cluster.ebs_size is defined %}
+      BlockDeviceMappings:
+      - DeviceName: "/dev/xvdcz"
+        Ebs:
+          VolumeSize: '{{ ecs.cluster.ebs_size }}'
+{% endif %}
       KeyName: "{{ ecs.cluster.keypair }}"
 {% if ecs.cluster.spot_price is defined %}
       SpotPrice: "{{ ecs.cluster.spot_price }}"
@@ -145,18 +151,41 @@ Resources:
         Fn::Base64:
           Fn::Sub:
           - |
+            Content-Type: multipart/mixed; boundary="===============8943416319660996992=="
+            MIME-Version: 1.0
+
+{% if ecs.cluster.dm_basesize is defined %}
+            --===============8943416319660996992==
+            Content-Type: text/cloud-boothook; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="docker_options.cloudinit"
+
+            #cloud-boothook
+              cloud-init-per once docker_options echo 'OPTIONS="$OPTIONS --storage-opt dm.basesize=20G"' >> /etc/sysconfig/docker
+
+{% endif %}
+            --===============8943416319660996992==
+            Content-Type: text/x-shellscript; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="ecs_config.cloudinit"
+
             #!/bin/bash -xe
+
 {% if ecs.efs is defined %}
             yum install -y nfs-utils
-{% for fs in ecs.efs | default([]) %}
+{%   for fs in ecs.efs | default([]) %}
             mkdir -p {{ fs.mountpoint }}
             echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ {{ fs.mountpoint }} nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
             mount -a
-{% endfor %}
+{%   endfor %}
 {% endif %}
             echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
             yum install -y aws-cfn-bootstrap
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+
+            --===============8943416319660996992==--
           -
             dummy:
               "dummy"

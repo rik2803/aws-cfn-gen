@@ -1,5 +1,7 @@
 # AWS CloudFormation Template Generator
 
+[toc]
+
 ## TL;DR
 
 This repository consists of:
@@ -222,6 +224,158 @@ iam_users:
     create_accesskeys: true
 ```
 
+### `ecs`: _Elastic Container Services_
+
+Create an (empty) ECS cluster.
+
+```yaml
+ecs:
+  cluster:
+    keypair: "id_rsa_ixor.ixordocs-prd"
+    instance_type: "t2.xlarge"
+    cluster_size:
+      min: 2
+      max: 5
+      desired: 2
+    ebs_size: 40
+    dnm_basesize: 20G
+```
+
+#### `ecs.ebs_size`
+
+Override the default 20GB ECS Cluster instance EBS size. Unit is `GB`.
+
+#### `ecs.dm_basesize`
+
+Override the default 10GB of thin provisioned container storage. Unit is required (i.e. `20G`)
+
+### `loadbalancers`: Create _Application Load Balancers_
+
+`loadbalancers` is a list of, you guessed it, loadbalancers.
+
+It creates a typical loadbalancer, with these components:
+
+* An application loadbalancer (`AWS::ElasticLoadBalancingV2::LoadBalancer`). This can be an
+  internet-facing loadbalancer (`scheme: internet-facing`), or an internal loadbalancer (`scheme: internal`).
+  The _Security Groups_ and subnets used for the loadbalancer are extracted from the
+  VPC stack mentioned before. That stack uses AWSs reference architecture and matches most setups.
+* A HTTP listener on both internet-facing andinternal loadbalancers.
+* A HTTPS listener on the ointernet-facing loadbalancer. This requires a certificate for TLS
+  termination.
+* A default target group for HTTP and HTTPS
+
+```yaml
+loadbalancers:
+  - name: ALBExt
+    scheme: "internet-facing"
+    certificate_arn: "arn:aws:acm:eu-central-1:632928949881:certificate/2e225841-3a4a-41cd-a677-325f7d2cf262"
+    def_tg_http_healthcheckpath: /health
+    def_tg_https_healthcheckpath: /health
+  - name: ALBInt
+    scheme: "internal"
+    idle_timeout_seconds: 120
+    accesslogs:
+      state: enabled
+      log_expiry_days: 14    
+```
+
+#### `access_logs`
+
+When `access_logs` is defined and `state` is `enabled`,
+following resources are created:
+
+* A S3 bucket named `{{application }}-{{ env }}-accesslogs-{{ lbname }}`
+* An lifecycle rule that expires the access logs after `log_expiry_days` days
+* A bucket policy that allows the AWS ALB account in the current region to
+  write to that bucket
+
+And the loadbalancer will get the attributes required to enable access logs, as specified
+[here](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html).
+
+#### `idle_timeout_seconds`
+
+Default is `60`, sets the LB `LoadBalancerAttribute` named `idle_timeout.timeout_seconds` to this
+value.
+
+### `route53`
+
+TODO
+
+### `s3`
+
+Create S3 buckets.
+
+Other S3 buckets might be created implicitely by the other components (i.e. _CloudFront_),
+but `s3` can be used to explicitely create buckets.
+
+
+```yaml
+s3:
+  - name: mybucket
+    cfn_name: MyBucket
+    access_control: Private
+    static_website_hosting: no
+    lifecycle_configuration: |
+      Rules:
+        - ExpirationInDays: 14
+```
+
+#### `name`
+
+The name for the bucket. The resulting name will be the value of this variable,
+prefixed with `{{ application }}-{{ env }}-`.
+
+```yaml
+application: mybigapplication
+env: prd
+
+...
+
+s3:
+  - name: mybucket
+    cfn_name: MyBucket
+    access_control: Private
+    static_website_hosting: no
+```
+
+For the above configuration, the resulting bucket will be named `mybigapplication-prd-mybucket`.
+
+#### `cfn_name`
+
+The name to be used for the _CloudFormation_ logical resource.
+
+#### `access_control`
+
+This setting grants predefined permissions to the bucket. All object created after this setting
+was set or updated will get that ACL.
+
+See [here](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) for valid values.
+
+
+#### `static_website_hosting`
+
+Valid values:
+
+* `yes` or `Yes`
+* `true` or `True`
+* `on` or `On`
+
+All other values will not enable website hosting on the bucket.
+
+**Important**: This potentially exposes object to the evil internet.
+
+#### `lifecycle_configuration`
+
+Use the exact same _yaml_ as described in [Amazon S3 Bucket Rule](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-lifecycleconfig-rule.html).
+
+If `lifecycle_configuration` is not specified, the default lifecycle rule is:
+
+```yaml
+        Rules:
+          - NoncurrentVersionExpirationInDays: 60
+            Status: Enabled
+```
+
 ### `applicationconfig`
 
 `applicationconfig` is a list of applications to run in the ECS cluster. Each
@@ -401,148 +555,6 @@ ecr:
   repositories:
     - name: acme/mydockerimage
       cfn_name: AcmeMyDockerImage
-```
-
-### `ecs`: _Elastic Container Services_
-
-Create an (empty) ECS cluster.
-
-```yaml
-ecs:
-  cluster:
-    keypair: "id_rsa_ixor.ixordocs-prd"
-    instance_type: "t2.xlarge"
-    cluster_size:
-      min: 2
-      max: 5
-      desired: 2
-```
-
-### `loadbalancers`: Create _Application Load Balancers_
-
-`loadbalancers` is a list of, you guessed it, loadbalancers.
-
-It creates a typical loadbalancer, with these components:
-
-* An application loadbalancer (`AWS::ElasticLoadBalancingV2::LoadBalancer`). This can be an
-  internet-facing loadbalancer (`scheme: internet-facing`), or an internal loadbalancer (`scheme: internal`).
-  The _Security Groups_ and subnets used for the loadbalancer are extracted from the
-  VPC stack mentioned before. That stack uses AWSs reference architecture and matches most setups.
-* A HTTP listener on both internet-facing andinternal loadbalancers.
-* A HTTPS listener on the ointernet-facing loadbalancer. This requires a certificate for TLS
-  termination.
-* A default target group for HTTP and HTTPS
-
-```yaml
-loadbalancers:
-  - name: ALBExt
-    scheme: "internet-facing"
-    certificate_arn: "arn:aws:acm:eu-central-1:632928949881:certificate/2e225841-3a4a-41cd-a677-325f7d2cf262"
-    def_tg_http_healthcheckpath: /health
-    def_tg_https_healthcheckpath: /health
-  - name: ALBInt
-    scheme: "internal"
-    idle_timeout_seconds: 120
-    accesslogs:
-      state: enabled
-      log_expiry_days: 14    
-```
-
-#### `access_logs`
-
-When `access_logs` is defined and `state` is `enabled`,
-following resources are created:
-
-* A S3 bucket named `{{application }}-{{ env }}-accesslogs-{{ lbname }}`
-* An lifecycle rule that expires the access logs after `log_expiry_days` days
-* A bucket policy that allows the AWS ALB account in the current region to
-  write to that bucket
-
-And the loadbalancer will get the attributes required to enable access logs, as specified
-[here](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html).
-
-#### `idle_timeout_seconds`
-
-Default is `60`, sets the LB `LoadBalancerAttribute` named `idle_timeout.timeout_seconds` to this
-value.
-
-### `route53`
-
-TODO
-
-### `s3`
-
-Create S3 buckets.
-
-Other S3 buckets might be created implicitely by the other components (i.e. _CloudFront_),
-but `s3` can be used to explicitely create buckets.
-
-
-```yaml
-s3:
-  - name: mybucket
-    cfn_name: MyBucket
-    access_control: Private
-    static_website_hosting: no
-    lifecycle_configuration: |
-      Rules:
-        - ExpirationInDays: 14
-```
-
-#### `name`
-
-The name for the bucket. The resulting name will be the value of this variable,
-prefixed with `{{ application }}-{{ env }}-`.
-
-```yaml
-application: mybigapplication
-env: prd
-
-...
-
-s3:
-  - name: mybucket
-    cfn_name: MyBucket
-    access_control: Private
-    static_website_hosting: no
-```
-
-For the above configuration, the resulting bucket will be named `mybigapplication-prd-mybucket`.
-
-#### `cfn_name`
-
-The name to be used for the _CloudFormation_ logical resource.
-
-#### `access_control`
-
-This setting grants predefined permissions to the bucket. All object created after this setting
-was set or updated will get that ACL.
-
-See [here](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) for valid values.
-
-
-#### `static_website_hosting`
-
-Valid values:
-
-* `yes` or `Yes`
-* `true` or `True`
-* `on` or `On`
-
-All other values will not enable website hosting on the bucket.
-
-**Important**: This potentially exposes object to the evil internet.
-
-#### `lifecycle_configuration`
-
-Use the exact same _yaml_ as described in [Amazon S3 Bucket Rule](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-lifecycleconfig-rule.html).
-
-If `lifecycle_configuration` is not specified, the default lifecycle rule is:
-
-```yaml
-        Rules:
-          - NoncurrentVersionExpirationInDays: 60
-            Status: Enabled
 ```
 
 ### `cloudfront_distributions`
