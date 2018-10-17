@@ -245,9 +245,15 @@ ecs:
 
 Override the default 20GB ECS Cluster instance EBS size. Unit is `GB`.
 
+**Downtime Warning**: Changing this setting will cause the launch configuration
+to change and will consequently spawn new ECS instances.
+
 #### `ecs.dm_basesize`
 
 Override the default 10GB of thin provisioned container storage. Unit is required (i.e. `20G`)
+
+**Downtime Warning**: Changing this setting will cause the launch configuration
+to change and will consequently spawn new ECS instances.
 
 ### `loadbalancers`: Create _Application Load Balancers_
 

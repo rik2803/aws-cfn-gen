@@ -1,5 +1,23 @@
 # Release notes
 
+## `0.1.4` (20181017)
+
+### Features
+
+#### `ecs` EBS and container volume settings
+
+* Setting the property `ecs.cluster.dm_basesize` configures the _Docker_
+  devicemapper storage to assign that amount of thin-provisioned storage
+  to every container on the ECS instance. Specify the unit (i.e. `G`)
+* Setting the property `ecs.cluster.ebs_size` changes the size of the
+  volume attached to the ECS instance for the _DeviceMapper_ LVOL. Use
+  numbers only, the unit is `GB`.
+  
+**Downtime Warning**: Changing these settings will cause the launch configuration
+to change and will consequently spawn new ECS instances.
+
+### Bugfixes
+
 ## `0.1.3` (20181011)
 
 ### Features
