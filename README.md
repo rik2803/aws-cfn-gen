@@ -13,6 +13,12 @@ This repository consists of:
 In combination with the configuration file, the _Ansible_  playbook creates a set of
 AWS CloudFormation templates, and deploys these templates to you AWS account.
 
+Example execution command:
+
+```
+ansible-playbook CreateOrUpdateEnv.yml --extra-vars 
+```
+
 ## Dependencies and Prerequisites
 
 * A _Docker_ engine when using the `dockerwrapper` to build and deploy the templates
@@ -321,6 +327,7 @@ s3:
     cfn_name: MyBucket
     access_control: Private
     static_website_hosting: no
+    versioning: {Enabled|Suspended}
     lifecycle_configuration: |
       Rules:
         - ExpirationInDays: 14
@@ -369,6 +376,16 @@ Valid values:
 All other values will not enable website hosting on the bucket.
 
 **Important**: This potentially exposes object to the evil internet.
+
+#### `versioning`
+
+Enable or disable (suspend) bucket versioning.
+
+Allowed values:
+
+* `Enabled`
+* `Suspended`
+
 
 #### `lifecycle_configuration`
 

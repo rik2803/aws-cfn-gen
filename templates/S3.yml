@@ -16,11 +16,15 @@ Resources:
         ServerSideEncryptionConfiguration:
         - ServerSideEncryptionByDefault:
             SSEAlgorithm: AES256
+{%   if bucket.versioning is defined %}
+      VersioningConfiguration:
+        Status: {{ bucket.versioning | lower | title }}
+{%   endif %}
       LifecycleConfiguration:
 {%   if bucket.lifecycle_configuration is not defined %}
         Rules:
-        - NoncurrentVersionExpirationInDays: 60
-          Status: Enabled
+          - NoncurrentVersionExpirationInDays: 60
+            Status: Enabled
 {%   else %}
 {%     for line in bucket.lifecycle_configuration.split('\n') %}
         {{ line }}
