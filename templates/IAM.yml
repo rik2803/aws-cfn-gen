@@ -48,7 +48,11 @@ Resources:
 {%   if iam_user.managed_policies is defined %}
       ManagedPolicyArns:
 {%     for policy in iam_user.managed_policies %}
+{%       if 'arn:aws:iam' in policy %}
+        - {{ policy }}
+{%       else %}
         - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policy }}'
+{%       endif %}
 {%     endfor %}
 {%   endif %}
 
