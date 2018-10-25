@@ -2,6 +2,9 @@
 
 ## `0.1.4` (20181017)
 
+**Downtime Warning**: Using this version for the first time will cause the ECS
+cluster (if any) to be rebuild.
+
 ### Features
 
 #### `ecs` EBS and container volume settings
@@ -15,6 +18,9 @@
   
 **Downtime Warning**: Changing these settings will cause the launch configuration
 to change and will consequently spawn new ECS instances.
+
+**Downtime Warning**: Using this version for the first time will cause the ECS
+cluster to be rebuild.
 
 ### Bugfixes
 
