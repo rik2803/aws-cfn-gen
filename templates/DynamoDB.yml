@@ -4,6 +4,8 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: {{ table.table_name }}
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: {{ table.backup | default('false') }}
       AttributeDefinitions:
 {%   for att in table.attributes %}
       - AttributeName: "{{ att.attribute_name }}"

@@ -101,6 +101,7 @@ follow these steps:
 * Route 53 private Hosted Zones
 * IAM Users, Roles and Policies
 * CloudFront distribution
+* DynamoDB tables
 
 ## Order of installation is important
 
@@ -605,4 +606,37 @@ cloudfront_distributions:
         allowed_http_methods: options
         priority: 999
 ```
+
+### `dynamodb`
+
+An example:
+
+```yaml
+dynamodb:
+  - table_name: journal
+    backup: true
+    attributes:
+      - attribute_name: par
+        attribute_type: S
+      - attribute_name: num
+        attribute_type: N
+    key_schema:
+      - attribute_name: par
+        key_type: HASH
+      - attribute_name: num
+        key_type: RANGE
+    provisioned_throughput:
+      read_capacity_units: 5
+      write_capacity_units: 5
+```
+
+#### `backup`
+
+This setting enables or disables the PITR for the table.
+
+Allowed values:
+
+* `true`
+* `false` (default)
+
 ## Links
