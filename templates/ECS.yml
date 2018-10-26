@@ -342,7 +342,7 @@ Resources:
       Targets:
       - Arn: !GetAtt ECSCluster.Arn
         Id: Target{{ cfn_project }}{{ app.cfn_name }}
-        RoleArn: "{{ app.ecs.task_role_arn }}"
+        RoleArn: "{{ app.ecs.target_role_arn | default('arn:aws:iam::' + target_account.account_id + ':role/ecsEventsRole' }}"
         EcsParameters:
           TaskCount: 1
           TaskDefinitionArn: !Ref Task{{ cfn_project }}{{ app.cfn_name }}
