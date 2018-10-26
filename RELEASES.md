@@ -288,10 +288,10 @@ S3 bucket name was incorrectly referenced in the `AWS::CloudFront::Distribution`
   * `match-viewer`
   * `https-only`
 * Add `domain` property to `cloudfront_distributions[*].origins_and_cachebehaviors[*]`
-  and determines the type of the origin. If missing, a S# bucket is assumed and
+  to determine the type of the origin. If missing, a S3 bucket is assumed and
   implicitely created. The `domain` is a _dict_ with 2 keys: `type` and `name`. Type
-  can be any of `s3` or `import`. `name` is the name of an existing S3 bucket (for tpye `s3`)
-  or the name of a variable to import (the CloudFormation way).
+  can be any of `s3` or `import`. `name` is the name of an existing S3 bucket (for type `s3`)
+  or the name of a variable to import (the _CloudFormation_ way).
 * Add `custom_error_responses` to `cloudfront_distributions[*]`. This defines what to do in
   case a (any) origin returns a certain HTTP code
   
