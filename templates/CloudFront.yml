@@ -39,7 +39,15 @@ Resources:
 {% for cloudfront in cloudfront_distributions %}
 {%   if cloudfront.origins_and_cachebehaviors is defined %}
 {%     for origin in cloudfront.origins_and_cachebehaviors %}
+{#       Also take explicit bucket naming into account with domain.name and domain.type #}
+{%       if origin.domain is defined %}
+{%         if origin.domain.type == 's3' %}
+{#           No need for bucket access it domain.type is import #}
+                  - "arn:aws:s3:::{{ origin.domain.name }}/*"
+{%         endif %}
+{%       else %}
                   - "arn:aws:s3:::{{ origin.origin_name }}/*"
+{%       endif %}
 {%     endfor %}
 {%   endif %}
 {% endfor %}
