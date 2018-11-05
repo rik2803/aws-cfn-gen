@@ -607,6 +607,108 @@ cloudfront_distributions:
         priority: 999
 ```
 
+#### Working with custom origins
+
+The default behaviour, when no `domain` property is defined, is to use a
+S3 bucket as the origin for the distribution.
+
+In that case, the bucket will be implicitely created and be given the name `origin.name`.
+
+When using the `domain` property and `type` `s3`, the bucket is assumed to already exist in
+the AWS account where the CloudFormation template is bing deployed.
+
+
+```yaml
+    origins_and_cachebehaviors:
+      - ...
+      - origin_name: "{{ application }}-{{ env }}-name"
+        domain:
+          type: import
+          name: TheNameACloudformationExport
+          origin_path: /mypath
+        ...  
+```
+
+```yaml
+    origins_and_cachebehaviors:
+      - ...
+      - origin_name: "{{ application }}-{{ env }}-name"
+        domain:
+          type: s3
+          name: my-bucket
+          origin_path: /prefix
+        ...  
+```
+
+```yaml
+    origins_and_cachebehaviors:
+      - ...
+      - origin_name: "{{ application }}-{{ env }}-name"
+        domain:
+          type: custom
+          origin_domain_name: "google.be"
+          orinig_path: "/nl"
+        ...  
+```
+
+##### `origins_and_cachebehaviors[n].origin_name`
+
+The value of this propery is used to:
+
+* Name the origin
+* Implicitely create a bucket with the same name (mind the global uniqueness!!)
+
+##### `origins_and_cachebehaviors[n].domain.type`
+
+Can be one of these values:
+
+* `import`: When `type` is `import`, following properties are allowed:
+  * `name`: The name of the _CloudFormation_ export to be used for the import
+  * `origin_path` (**optional**): If you want _CloudFront_ to request your content from a 
+                                  directory in your Amazon S3 bucket or your custom origin,
+                                  enter the directory name here, beginning with a `/`.
+                                  _CloudFront_ appends the directory name to the value of
+                                  `origin_domain_name` when forwarding the request to your origin,
+                                  for example, `myawsbucket/production`. Do not include a `/`
+                                  at the end of the directory name. 
+
+* `s3`: Use the value of the `name` property as the name of the bucket in the
+        same region as the region where the _CloudFormation_
+        stack is being deployed. The domain that will be used by the _CloudFront_
+        distribution will be
+        `{{ origin.domain.name }}.s3-website.{{ target_account.region }}.amazonaws.com`
+  * `name`
+  * `origin_path` (**optional**): If you want _CloudFront_ to request your content from a 
+                                  directory in your Amazon S3 bucket or your custom origin,
+                                  enter the directory name here, beginning with a `/`.
+                                  _CloudFront_ appends the directory name to the value of
+                                  `origin_domain_name` when forwarding the request to your origin,
+                                  for example, `myawsbucket/production`. Do not include a `/`
+                                  at the end of the directory name.
+
+* `custom`: When `type` is `custom`, following porperties are allowed:
+  * `origin_domain_name`: The name of the domain to use as the origin, for example `google.com`.
+  * `origin_path` (**optional**): If you want _CloudFront_ to request your content from a 
+                                  directory in your Amazon S3 bucket or your custom origin,
+                                  enter the directory name here, beginning with a `/`.
+                                  _CloudFront_ appends the directory name to the value of
+                                  `origin_domain_name` when forwarding the request to your origin,
+                                  for example, `myawsbucket/production`. Do not include a `/`
+                                  at the end of the directory name. 
+
+#### Custom Error Responses
+
+```yaml
+cloudfront_distributions:
+  - name: servicedesk
+    ...
+    custom_error_responses:
+      - error_caching_min_ttl: 300
+        error_code: 404
+        response_code: 200
+        response_page_path: /index.html
+```
+
 ### `dynamodb`
 
 An example:
