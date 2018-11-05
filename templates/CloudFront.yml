@@ -1,3 +1,21 @@
+{# Create a list of origin buckets to be used in the deploy user creation #}
+{% set s3_origin_list = [] %}
+{% for cloudfront in cloudfront_distributions %}
+{%   if cloudfront.origins_and_cachebehaviors is defined %}
+{%     for origin in cloudfront.origins_and_cachebehaviors %}
+{#       Also take explicit bucket naming into account with domain.name and domain.type #}
+{%       if origin.domain is defined %}
+{%         if origin.domain.type == 's3' %}
+{#           No need for bucket access it domain.type is not s3 #}
+{%           set _ = s3_origin_list.append("arn:aws:s3:::" + origin.domain.name + "/*") %}
+{%         endif %}
+{%       else %}
+{%           set _ = s3_origin_list.append("arn:aws:s3:::" + origin.origin_name + "/*") %}
+{%       endif %}
+{%     endfor %}
+{%   endif %}
+{% endfor %}
+
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
@@ -26,6 +44,7 @@ Resources:
       UserName: "deploy-{{ project }}"
       Path: "/"
       Policies:
+{% if s3_origin_list|length > 0 %}
         - PolicyName: AllowAccessToBuckets
           PolicyDocument:
             Version: '2012-10-17'
@@ -36,26 +55,15 @@ Resources:
                   - s3:PutObject
                   - s3:PutObjectACL
                 Resource:
-{% for cloudfront in cloudfront_distributions %}
-{%   if cloudfront.origins_and_cachebehaviors is defined %}
-{%     for origin in cloudfront.origins_and_cachebehaviors %}
-{#       Also take explicit bucket naming into account with domain.name and domain.type #}
-{%       if origin.domain is defined %}
-{%         if origin.domain.type == 's3' %}
-{#           No need for bucket access it domain.type is import #}
-                  - "arn:aws:s3:::{{ origin.domain.name }}/*"
-{%         endif %}
-{%       else %}
-                  - "arn:aws:s3:::{{ origin.origin_name }}/*"
-{%       endif %}
-{%     endfor %}
-{%   endif %}
-{% endfor %}
+{%   for s3 in s3_origin_list %}
+                  - "{{ s3 }}"
+{%   endfor %}
               - Effect: Allow
                 Action:
                   - s3:ListAllMyBuckets
                 Resource:
                   - "arn:aws:s3:::*"
+{% endif %}
         - PolicyName: AllowInvalidationAccessToCloudFrontDistribution
           PolicyDocument:
             Version: '2012-10-17'
@@ -87,7 +95,7 @@ Resources:
 
 {% for cloudfront in cloudfront_distributions %}
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
-{%     if origin.domain is not defined or origin.domain.type == 's3' %}
+{%     if origin.domain is not defined %}
   S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
 {%       if cloudfront.logging is defined %}
     DependsOn:
@@ -110,6 +118,23 @@ Resources:
         DestinationBucketName: "{{ project }}-{{ cloudfront.name }}-logs"
         LogFilePrefix: s3-{{ cloudfront.logging.prefix | default('') }}
 {%       endif %}
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+{%       if origin.origin_bucket_redirects is defined %}
+        RoutingRules:
+{%         for redirect in origin.origin_bucket_redirects %}
+          - RedirectRule:
+              HostName: "{{ redirect.redirect_rule.hostname }}"
+              HttpRedirectCode: "{{ redirect.redirect_rule.http_redirect_code | default('301') }}"
+              Protocol: "{{ redirect.redirect_rule.protocol | default('https') }}"
+              ReplaceKeyWith: "{{ redirect.redirect_rule.replace_key_with | default('') }}"
+            RoutingRuleCondition:
+{%           if redirect.routing_rule_condition.type == 'http_error_code_returned_equals' %}
+              HttpErrorCodeReturnedEquals: "{{ redirect.routing_rule_condition.value | default('404') }}"
+{%           endif%}
+{%         endfor %}
+{%       endif %}
       Tags:
         - Key: Application
           Value: "{{ application }}"
@@ -117,9 +142,6 @@ Resources:
           Value: "{{ customer | default('NA') }}"
         - Key: Environment
           Value: "{{ env }}"
-      WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: error.html
 {%     endif %}
 {%   endfor %}
 {% endfor %}
@@ -244,6 +266,12 @@ Resources:
 {%       endif %}
 {%       if origin.domain.type == 's3' %}
             DomainName: "{{ origin.domain.name }}.s3-website.{{ target_account.region }}.amazonaws.com"
+{%       endif %}
+{%       if origin.domain.type == 'custom' %}
+            DomainName: "{{ origin.domain.origin_domain_name }}"
+{%       endif %}
+{%       if origin.domain.origin_path is defined %}
+            OriginPath: "{{ origin.domain.origin_path }}"
 {%       endif %}
 {%     else %}
             DomainName: "{{ origin.origin_name }}.s3-website.{{ target_account.region }}.amazonaws.com"
