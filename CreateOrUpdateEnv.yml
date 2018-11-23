@@ -66,6 +66,7 @@
       tags: [ 'always' ]
 
   vars_files:
+    - "vars/bitbucket.yml"
     - "{{ configfile }}"
 
   tasks:
@@ -78,7 +79,32 @@
             project: "{{ project.name }}"
             shortproject: "{{ project.shortname | default(project.name) }}"
       tags: [ 'always' ]
-    ### Collect info from other stacks
+
+    - name: VPC
+      block:
+      - name: Create CFN template from Ansible template for the VPC
+        template:
+          src: "VPC.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml"
+      - name: Put CFN template on s3
+        shell: |
+          aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml" \
+                    "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpc.yml"
+      - name: Get presigned URL for the template on S3
+        shell: |
+          aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpc.yml"
+        register: presign
+      - name: Create or Update the VPC CloudFormation stack
+        cloudformation:
+          stack_name: "{{ vpc.stackname }}"
+          state: "present"
+          disable_rollback: false
+          template_url: "{{ presign.stdout }}"
+
+      tags: [ 'vpc' ]
+
+  ### Collect info from other stacks
+  ### Should remain after the VPC creation
     - name: Get facts for the VPC stack
       cloudformation_facts:
         stack_name: "{{ referenced_stacks.VPCStackName }}"
@@ -86,15 +112,40 @@
       tags: [ 'always' ]
       when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
-#    - name: Dump vpcfacts
-#      debug:
-#        var: vpcfacts
-#      tags: [ 'always' ]
+    - name: Dump vpcfacts
+      debug:
+        var: vpcfacts
+      tags: [ 'always' ]
 
     - name: Set more variables
       set_fact:
         iam_stackname: "{{ cfn_project }}IAM"
+        vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
       tags: [ 'always' ]
+
+
+    - name: VPCEndPoint
+      block:
+      - name: Create CFN template from Ansible template for the VPCEndPoints
+        template:
+          src: "VPCEndpoint.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
+      - name: Put CFN template on s3
+        shell: |
+          aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml" \
+                    "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+      - name: Get presigned URL for the template on S3
+        shell: |
+          aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+        register: presign
+      - name: Create or Update the VPC Endpoints CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}VPCEndpoint"
+          state: "present"
+          disable_rollback: false
+          template_url: "{{ presign.stdout }}"
+
+      tags: [ 'vpc_endpoints', 'vpc' ]
 
     - name: ECR
       block:
