@@ -63,6 +63,7 @@ Resources:
 
   S3ALBAccessLogsBucketPolicy{{ item.name }}:
     Type: AWS::S3::BucketPolicy
+    DependsOn: "S3ALBAccessLogs{{ item.name }}"
     Properties:
       Bucket: !Ref S3ALBAccessLogs{{ item.name }}
       PolicyDocument:
@@ -79,6 +80,9 @@ Resources:
 
   LB{{ item.name }}:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn:
+      - "S3ALBAccessLogs{{ item.name }}"
+      - "S3ALBAccessLogsBucketPolicy{{ item.name }}"
     Properties:
       Name: "lb-{{ project }}-{{ item.name }}"
       Scheme: "{{ item.scheme }}"
