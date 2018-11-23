@@ -204,7 +204,7 @@ Resources:
         - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
         - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
       LaunchConfigurationName: !Ref 'ContainerInstances'
-      MinSize: '{{ ecs.cluster.cluster_size.min | default('1') }}'
+      MinSize: '{{ ecs.cluster.cluster_size.min | default("1") }}'
       MaxSize: '{{ ecs.cluster.cluster_size.max | default( [ ecs.cluster.cluster_size.max, 1 ] | max ) }}'
       DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | default( [ ecs.cluster.cluster_size.min, 1 ] | max ) }}'
       Tags:
@@ -342,7 +342,7 @@ Resources:
       Targets:
       - Arn: !GetAtt ECSCluster.Arn
         Id: Target{{ cfn_project }}{{ app.cfn_name }}
-        RoleArn: "{{ app.ecs.target_role_arn | default('arn:aws:iam::' + target_account.account_id + ':role/ecsEventsRole' }}"
+        RoleArn: "{{ app.ecs.target_role_arn | default('arn:aws:iam::' + target_account.account_id + ':role/ecsEventsRole') }}"
         EcsParameters:
           TaskCount: 1
           TaskDefinitionArn: !Ref Task{{ cfn_project }}{{ app.cfn_name }}
