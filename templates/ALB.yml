@@ -89,19 +89,19 @@ Resources:
       Type: "application"
 {% if "internal" in item.scheme %}
       SecurityGroups:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
+        - "{{ vpc_sg_app }}"
+        - "{{ vpc_sg_elb }}"
       Subnets:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+        - "{{ vpc_private_subnet_az1 }}"
+        - "{{ vpc_private_subnet_az2 }}"
+        - "{{ vpc_private_subnet_az3 }}"
 {% else %}
       SecurityGroups:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
+        - "{{ vpc_sg_elb }}"
       Subnets:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
+        - "{{ vpc_elbsubnet_az1 }}"
+        - "{{ vpc_elbsubnet_az2 }}"
+        - "{{ vpc_elbsubnet_az3 }}"
 {% endif %}
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
@@ -169,7 +169,7 @@ Resources:
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 2
-      VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+      VpcId: "{{ vpc_id }}"
 
   TGDefaultHTTP:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -184,7 +184,7 @@ Resources:
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 2
-      VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+      VpcId: "{{ vpc_id }}"
 
   ## Create application listener rules
 {% for app in applicationconfig | default([]) %}
@@ -234,7 +234,7 @@ Resources:
           Value: "lb_cookie"
 {%     endif %}
       UnhealthyThresholdCount: 2
-      VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+      VpcId: "{{ vpc_id }}"
 
 {%   endif %}
 {% endfor %}

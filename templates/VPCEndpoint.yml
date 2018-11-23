@@ -6,8 +6,8 @@ Resources:
   VPCEndpointS3:
     Type: AWS::EC2::VPCEndpoint
     Properties:
-      VpcId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+      VpcId: "{{ vpc_id }}"
       RouteTableIds:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
+        - "{{ vpc_privatesubnet_routetable }}"
+        - "{{ vpc_publicsubnet_routetable }}"
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
