@@ -358,6 +358,9 @@ For the above configuration, the resulting bucket will be named `mybigapplicatio
 
 The name to be used for the _CloudFormation_ logical resource.
 
+The final _CloudFormation_ logical name will be `{{ cfn_project }}{{ bucket.cfn_name }}` where
+`{{ cfn_project }}`.
+
 #### `access_control`
 
 This setting grants predefined permissions to the bucket. All object created after this setting
