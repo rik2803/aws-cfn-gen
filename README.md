@@ -730,6 +730,7 @@ dynamodb:
         key_type: HASH
       - attribute_name: num
         key_type: RANGE
+    billing_mode: PROVISIONED | PAY_PER_REQUEST
     provisioned_throughput:
       read_capacity_units: 5
       write_capacity_units: 5
@@ -743,5 +744,16 @@ Allowed values:
 
 * `true`
 * `false` (default)
+
+#### `billing_mode` and `provisioned_throughput`
+
+`billing_mode` can have 2 values:
+
+* `PROVISIONED` (default)
+* `PAY_PER_REQUEST`
+
+`provisioned_throughput` is ignored if `billing_mode` is `PAY_PER_REQUEST`.
+
+See the [AWS documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-billingmode) for more details.
 
 ## Links
