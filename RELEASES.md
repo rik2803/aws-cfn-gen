@@ -32,6 +32,10 @@ cluster to be rebuild.
 
 Update the ECS AMI's to the latest version.
 
+**Downtime Warning**: Using this version for the first time will cause the ECS
+cluster to be rebuild because of the new AMI's.
+
+
 #### Keep generated files when using `dockerwrapper`
 
 Make generated files directory configurable to enable to retain those
