@@ -4,16 +4,26 @@ Description: |
   Create Lambda functions
 
 Resources:
+
+### Create the Lambda functinos
 {% for lambda in lambda_functions | default([]) %}
-  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}:
+{#   Create some variables #}
+{%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set lambda_fn_name = (lambda.name.split('_'))[0] %}
+
+  {{ lambda_cfn_name }}:
     Type: AWS::Lambda::Function
     Properties:
 {%   if 'java' in lambda.runtime %}
-      Handler: "{{ lambda.name }}.{{ lambda.class_name | default('Handler') }}::{{ lambda.handler }}"
+      Handler: "{{ lambda_fn_name }}.{{ lambda.class_name | default('Handler') }}::{{ lambda.handler }}"
 {%   else %}
-      Handler: "{{ lambda.name }}.{{ lambda.handler }}"
+      Handler: "{{ lambda_fn_name }}.{{ lambda.handler }}"
 {% endif %}
+{% if lambda.role is not defined %}
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LambdaBasicExecutionRole"
+{% else %}
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/{{ lambda.role }}"
+{% endif %}
 {%   if lambda.environment is defined %}
       Environment:
         Variables:
@@ -35,27 +45,43 @@ Resources:
 
 {%   for liv in lambda.invoke_permissions | default([]) %}
 {%     if liv.type == 'predefined' and liv.name == 'logs' %}
-  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}CWLogsInvokePermission:
+  {{ lambda_cfn_name }}CWLogsInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}
+      FunctionName: !Ref {{ lambda_cfn_name }}
       Principal: !Sub "logs.${AWS::Region}.amazonaws.com"
       SourceAccount: !Ref AWS::AccountId
 {%     endif %}
+
+{%     if liv.type == 'predefined' and liv.name == 's3' %}
+  {{ lambda_cfn_name }}CWLogsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref {{ lambda_cfn_name }}
+      Principal: "s3.amazonaws.com"
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: "{{ liv.bucket_arn }}"
+{%     endif %}
+
 {%   endfor %}
 {% endfor %}
 
 Outputs:
 {% for lambda in lambda_functions %}
-  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}Output:
-    Value: !Ref {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}
-    Description: "Lambda function {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }} resource logical name"
+{#   Create some variables #}
+{%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+
+  {{ lambda_cfn_name }}Output:
+    Value: !Ref {{ lambda_cfn_name }}
+    Description: "Lambda function {{ lambda_cfn_name }} resource logical name"
     Export:
-      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}"
-  {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}ArnOutput:
-    Value: !GetAtt {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}.Arn
-    Description: "Lambda function {{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }} Arn"
+      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}"
+
+  {{ lambda_cfn_name }}ArnOutput:
+    Value: !GetAtt {{ lambda_cfn_name }}.Arn
+    Description: "Lambda function {{ lambda_cfn_name }} Arn"
     Export:
-      Name: !Sub "${AWS::StackName}-{{ lambda.name | replace('-', ' ') | replace('.', ' ') | title | replace(' ', '') }}Arn"
+      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}Arn"
 {% endfor %}
