@@ -53,6 +53,12 @@ Resources:
         Rules:
         - ExpirationInDays: {{ item.accesslogs.log_expiry_days | default('1') }}
           Status: "Enabled"
+{%   if item.accesslogs is defined and item.accesslogs.s3_objectcreated_lambda_import is defined %}
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function: !ImportValue "{{ item.accesslogs.s3_objectcreated_lambda_import }}"
+          Event: "s3:ObjectCreated:*"
+{%   endif %}
       Tags:
       - Key: Application
         Value: "{{ application }}"
@@ -76,6 +82,25 @@ Resources:
             Principal:
               AWS: !FindInMap [Region2ELBAccountId, !Ref 'AWS::Region', AccountId]
 
+  CloudWatch{{ item.name }}:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "{{ item.accesslogs.cw_logs_subscription_filter.log_group_name }}"
+      RetentionInDays: "{{ item.accesslogs.log_expiry_days }}"
+
+{%     if item.accesslogs.cw_logs_subscription_filter is defined %}
+  CWSubscrFilter{{ item.name }}:
+    Type: AWS::Logs::SubscriptionFilter
+    DependsOn:
+      - CloudWatch{{ item.name }}
+    Properties:
+{%       if item.accesslogs.cw_logs_subscription_filter.type == 'lambda' %}
+      DestinationArn: !ImportValue "{{ cfn_project }}Lambda-{{ item.accesslogs.cw_logs_subscription_filter.lambda_cfn_export_name }}"
+{%     endif %}
+      FilterPattern: '{{ item.accesslogs.cw_logs_subscription_filter.filter_pattern | default('') }}'
+      LogGroupName: "{{ item.accesslogs.cw_logs_subscription_filter.log_group_name }}"
+{%     endif %}
+
 {% endif %}
 
   LB{{ item.name }}:
@@ -92,9 +117,9 @@ Resources:
         - "{{ vpc_sg_app }}"
         - "{{ vpc_sg_elb }}"
       Subnets:
-        - "{{ vpc_private_subnet_az1 }}"
-        - "{{ vpc_private_subnet_az2 }}"
-        - "{{ vpc_private_subnet_az3 }}"
+        - "{{ vpc_privatesubnet_az1 }}"
+        - "{{ vpc_privatesubnet_az2 }}"
+        - "{{ vpc_privatesubnet_az3 }}"
 {% else %}
       SecurityGroups:
         - "{{ vpc_sg_elb }}"
