@@ -167,6 +167,76 @@ target_account:
   region: "eu-central-1"
 ```
 
+### Create _Lambda_ functions
+
+Let's start with an example:
+
+```yaml
+  - name: aws-lambda-s3-logs-to-cloudwatch
+    handler: handler
+    runtime: nodejs8.10
+    role: S3ToCloudwatchLogsRole
+    code:
+      s3_bucket: "{{ lambda_function_bucket_name }}"
+      s3_key: aws-lambda-s3-logs-to-cloudwatch-06b0c5cda86555d95f5939bedeca17830c81ff98.zip
+    environment:
+      - name: LOGGROUP_NAME
+        value: lb_access_logs
+      - name: LOGSTREAM_NAME
+        value: albint
+    invoke_permissions:
+      - type: predefined
+        description: "Allows bucket events to trigger this lambda function"
+        name: s3
+        bucket_arn: "arn:aws:s3:::ixordocs-dev-accesslogs-albint"
+```
+
+**How to use the same function more than once in an environment?**
+
+Sometimes, the same function needs to be used more than once, for example if there are different
+triggers or a different set onf environment variables that influence the execution and the result
+of the function.
+
+To achieve this, create identical blocks (with different envvars or whatever changes), and the
+`name` should have a suffix that starts with un underscore.
+
+#### `name`
+
+The name determines:
+
+* The _CloudFormation_ resource name
+* The name of the function (i.e. the name of the file in the zip defined by 
+  `'s3://' + code.s3_bucket + '/' + `code.s3_key`)
+  
+The `name` can contain:
+
+* letters
+* numbers
+* hyphens
+* 0 or 1 underscores, used to differentiate the _CFN_ resource name in case of
+  multiple instances of the same function.
+  
+If the name contains an underscore, the part before the underscore is used to determine
+the function name, and the complete string is used, after some _CFN_ related transformation,
+as the _CloudFormation_ resource name. 
+
+#### `handler`
+
+#### `runtime`
+
+#### `role`
+
+#### `code.s3_bucket`
+
+#### `code.s3_prefix`
+
+#### `environment`
+
+##### `environment[n].name`
+
+##### `environment[n].value`
+
+
 ### Creation of IAM related resources
 
 Some IAM resources are implicitely created by other components, i.e. in _CloudFront_ to allow
@@ -289,7 +359,8 @@ loadbalancers:
     idle_timeout_seconds: 120
     accesslogs:
       state: enabled
-      log_expiry_days: 14    
+      log_expiry_days: 14
+      s3_objectcreated_lambda_import: IxordocsDevLambda-AwsLambdaS3LogsToCloudwatchAlbext
 ```
 
 #### `access_logs`
@@ -301,6 +372,9 @@ following resources are created:
 * An lifecycle rule that expires the access logs after `log_expiry_days` days
 * A bucket policy that allows the AWS ALB account in the current region to
   write to that bucket
+* A `s3.ObjectCreated` trigger to a lambda function if
+  `accesslogs.s3_objectcreated_lambda_import` is defined. That *Lambda* function can, for example,
+  be used to ship the S3 logs to *CloudWatch*.
 
 And the loadbalancer will get the attributes required to enable access logs, as specified
 [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html).
