@@ -6,7 +6,7 @@
 {#       Also take explicit bucket naming into account with domain.name and domain.type #}
 {%       if origin.domain is defined %}
 {%         if origin.domain.type == 's3' %}
-{#           No need for bucket access it domain.type is not s3 #}
+{#           No need for bucket access if domain.type is not s3 #}
 {%           set _ = s3_origin_list.append("arn:aws:s3:::" + origin.domain.name + "/*") %}
 {%         endif %}
 {%       else %}
@@ -95,7 +95,7 @@ Resources:
 
 {% for cloudfront in cloudfront_distributions %}
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
-{%     if origin.domain is not defined %}
+{%     if origin.domain is not defined or origin.domain.type == 's3' %}
   S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
 {%       if cloudfront.logging is defined %}
     DependsOn:
@@ -104,7 +104,11 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: PublicRead
+{%       if origin.domain is defined and origin.domain.type == 's3' %}
+      BucketName: "{{ origin.domain.name }}"
+{%       else %}
       BucketName: "{{ origin.origin_name }}"
+{%       endif %}
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
