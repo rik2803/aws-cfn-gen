@@ -24,7 +24,7 @@ Resources:
       FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
-      SubnetId: "{{ vpc_private_subnet_az1 }}"
+      SubnetId: "{{ vpc_privatesubnet_az1 }}"
 
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ2:
     Type: AWS::EFS::MountTarget
@@ -32,7 +32,7 @@ Resources:
       FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
-      SubnetId: "{{ vpc_private_subnet_az2 }}"
+      SubnetId: "{{ vpc_privatesubnet_az2 }}"
 
 {%   if vpc_nr_of_azs == "3" %}
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3:
@@ -41,7 +41,7 @@ Resources:
       FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
-      SubnetId: "{{ vpc_private_subnet_az3 }}"
+      SubnetId: "{{ vpc_privatesubnet_az3 }}"
 {%   endif %}
 
 {% endfor %}

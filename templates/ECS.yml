@@ -200,9 +200,9 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier:
-        - "{{ vpc_private_subnet_az1 }}"
-        - "{{ vpc_private_subnet_az2 }}"
-        - "{{ vpc_private_subnet_az3 }}"
+        - "{{ vpc_privatesubnet_az1 }}"
+        - "{{ vpc_privatesubnet_az2 }}"
+        - "{{ vpc_privatesubnet_az3 }}"
       LaunchConfigurationName: !Ref 'ContainerInstances'
       MinSize: '{{ ecs.cluster.cluster_size.min | default("1") }}'
       MaxSize: '{{ ecs.cluster.cluster_size.max | default( [ ecs.cluster.cluster_size.max, 1 ] | max ) }}'
