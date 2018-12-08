@@ -35,7 +35,6 @@ Resources:
 {%   endfor %}
 {% endfor %}
 
-
 {% for iam_user in iam_users | default([]) %}
   {{ iam_user.cfn_name | default('A_BUG') }}:
     Type: AWS::IAM::User
