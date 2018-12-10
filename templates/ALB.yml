@@ -215,8 +215,6 @@ Resources:
 
   ## Create configuration for redirects
 {% for redirect in item.redirects | default([]) %}
-  ### Redirect feature not yet available in CloudFormation, skipping this step for now
-{%   if "feature" == "feature" %}
   RedirAction{{ redirect.url | replace('.', ' ') | title | replace(' ', '') }}:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
@@ -235,7 +233,7 @@ Resources:
             Port: "{{ redirect.port | default('#{port}') }}"
             Protocol: "{{ redirect.protocol | default('#{protocol}') }}"
             Query: "{{ redirect.query | default('#{query}') }}"
-{%   endif %}
+
 {%   if redirect.skiproute53 is not defined or not redirect.skiproute53 %}
   ### Route53 (does not yet support creation of APEX alias)
   RedirR53{{ redirect.url | replace('.', ' ') | title | replace(' ', '') }}:
