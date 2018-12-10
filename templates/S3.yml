@@ -16,10 +16,20 @@ Resources:
         ServerSideEncryptionConfiguration:
         - ServerSideEncryptionByDefault:
             SSEAlgorithm: AES256
+{%   if bucket.versioning is defined %}
+      VersioningConfiguration:
+        Status: {{ bucket.versioning | lower | title }}
+{%   endif %}
       LifecycleConfiguration:
+{%   if bucket.lifecycle_configuration is not defined %}
         Rules:
-        - NoncurrentVersionExpirationInDays: 60
-          Status: Enabled
+          - NoncurrentVersionExpirationInDays: 60
+            Status: Enabled
+{%   else %}
+{%     for line in bucket.lifecycle_configuration.split('\n') %}
+        {{ line }}
+{%     endfor %}
+{%   endif %}
 {%   if bucket.static_website_hosting is defined and ( bucket.static_website_hosting or bucket.static_website_hosting in [ "yes", "Yes", "true", "True", "on", "On" ] ) %}
       WebsiteConfiguration:
         IndexDocument: {{ bucket.indexdocument | default('index.html') }}
@@ -37,6 +47,8 @@ Resources:
 
 {% if s3_policies is defined %}
 {%   for policy in s3_policies %}
+{# It's not very useful to create a BucketPolicy without a policy document #}
+{%     if policy.policy_document is defined %}
   {{ cfn_project }}{{ policy.cfn_name }}:
     Type: AWS::S3::BucketPolicy
     DependsOn:
@@ -45,5 +57,6 @@ Resources:
       Bucket: !Ref {{ cfn_project }}{{ policy.bucket_cfn_name }}
       PolicyDocument:
         {{ policy.policy_document | to_json }}
+{%     endif %}
 {%   endfor %}
 {% endif %}

@@ -45,8 +45,14 @@
               - "token.rc == 0"
               - "configfilestat.stat.exists"
         - name: Disable all alarms during playbook execution
-          shell: >
+          shell: |
             aws cloudwatch disable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
+        - name: Create S3 bucket to hold CloudFormation templates
+          shell: |
+            if ! aws s3 ls | grep "{{ project.name }}-cfn-templates"
+            then
+              aws s3 mb "s3://{{ project.name }}-cfn-templates"
+            fi
 
       tags: [ 'always' ]
 
@@ -54,12 +60,13 @@
     - name: Post-tasks block
       block:
         - name: Enable all alarms after playbook execution
-          shell: >
+          shell: |
             aws cloudwatch enable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
 
       tags: [ 'always' ]
 
   vars_files:
+    - "vars/bitbucket.yml"
     - "{{ configfile }}"
 
   tasks:
@@ -72,7 +79,36 @@
             project: "{{ project.name }}"
             shortproject: "{{ project.shortname | default(project.name) }}"
       tags: [ 'always' ]
-    ### Collect info from other stacks
+
+    - name: VPC
+      block:
+        - name: Create CFN template from Ansible template for the VPC
+          template:
+            src: "VPC.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpc.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpc.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the VPC CloudFormation stack
+          cloudformation:
+            stack_name: "{{ vpc.stackname }}"
+            state: "present"
+            disable_rollback: false
+          template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      tags: [ 'vpc' ]
+      when: "vpc is defined"
+
+  ### Collect info from other stacks
+  ### Should remain after the VPC creation
     - name: Get facts for the VPC stack
       cloudformation_facts:
         stack_name: "{{ referenced_stacks.VPCStackName }}"
@@ -80,145 +116,327 @@
       tags: [ 'always' ]
       when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
-#    - name: Dump vpcfacts
-#      debug:
-#        var: vpcfacts
-#      tags: [ 'always' ]
+    - name: Dump vpcfacts
+      debug:
+        var: vpcfacts
+      tags: [ 'always' ]
 
     - name: Set more variables
       set_fact:
         iam_stackname: "{{ cfn_project }}IAM"
+        vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
+        vpc_privatesubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
+        vpc_publicsubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
+        vpc_sg_app: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+        vpc_sg_elb: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
+        vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
+        vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
+        vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+        vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
+        vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
+        vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
+        vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
+
       tags: [ 'always' ]
+
+
+    - name: VPCEndPoint
+      block:
+        - name: Create CFN template from Ansible template for the VPCEndPoints
+          template:
+            src: "VPCEndpoint.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the VPC Endpoints CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}VPCEndpoint"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      tags: [ 'vpc_endpoints', 'vpc' ]
 
     - name: ECR
       block:
         - name: Create CFN template from Ansible template for the ECR Repositories
           template:
             src: "ECR.yml"
-            dest: "generated-files/cfn-{{ project }}-ecr.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecr.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecr.yml"
+          register: presign
+          tags: [ 'deploy' ]
         - name: Create or Update the ECR CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}ECR"
             state: "present"
             disable_rollback: false
-            template: "generated-files/cfn-{{ project }}-ecr.yml"
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
 
       when: "ecr is defined"
       tags: [ 'ecr' ]
 
-    - name: EFS
-      block:
-      - name: Create CFN template from Ansible template for the EFS Filesystems
-        template:
-          src: "EFS.yml"
-          dest: "generated-files/cfn-{{ project }}-efs.yml"
-      - name: Create or Update the EFS CloudFormation stack
-        cloudformation:
-          stack_name: "{{ cfn_project }}EFS"
-          state: "present"
-          disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-efs.yml"
-
-      when: "efs is defined"
-      tags: [ 'efs' ]
-
-    - name: CloudFront
-      block:
-      - name: Create CFN template from Ansible template for the CloudFront CDNs
-        template:
-          src: "CloudFront.yml"
-          dest: "generated-files/cfn-{{ project }}-cloudfront.yml"
-      - name: Create or Update the CloudFront CloudFormation stack
-        cloudformation:
-          stack_name: "{{ cfn_project }}CloudFront"
-          state: "present"
-          disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-cloudfront.yml"
-
-      when: "cloudfront_distributions is defined"
-      tags: [ 'cloudfront' ]
-
     - name: IAM
       block:
-      - name: Create CFN template from Ansible template for the IAM resources
-        template:
-          src: "IAM.yml"
-          dest: "generated-files/cfn-{{ project }}-iam.yml"
-      - name: Create or Update the IAM Stack
-        cloudformation:
-          stack_name: "{{ cfn_project }}IAM"
-          state: "present"
-          disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-iam.yml"
+        - name: Create CFN template from Ansible template for the IAM resources
+          template:
+            src: "IAM.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-iam.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-iam.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the IAM Stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}IAM"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
 
       when: awsroles is defined or managed_policies is defined
       tags: [ 'iam' ]
 
+    - name: Lambda
+      block:
+        - name: Create CFN template from Ansible template for the Lambda functions
+          template:
+            src: "Lambda.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-lambda.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-lambda.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the Lambda CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}Lambda"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      when: "lambda_functions is defined"
+      tags: [ 'lambda' ]
+
+    - name: EFS
+      block:
+        - name: Create CFN template from Ansible template for the EFS Filesystems
+          template:
+            src: "EFS.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-efs.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-efs.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the EFS CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}EFS"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      when: "efs is defined"
+      tags: [ 'efs' ]
+
+    - name: DynamoDB
+      block:
+        - name: Create CFN template from Ansible template for DynamoDB tables
+          template:
+            src: "DynamoDB.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-dynamodb.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-dynamodb.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the DynamoDB CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}DynamoDB"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      when: "dynamodb is defined"
+      tags: [ 'dynamodb' ]
+
     - name: Loadbalancers
       block:
-      - name: Create template from Ansible template for the LoadBalancers
-        template:
-          src: "ALB.yml"
-          dest: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
-        with_items: "{{ loadbalancers | default([]) }}"
-      - name: Create or Update the Elastic LoadBalancer CloudFormation stacks
-        cloudformation:
-          stack_name: "{{ cfn_project }}LB{{ item.name }}"
-          state: "present"
-          disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-alb-{{ item.name }}.yml"
-        register: lbstacks
-        with_items: "{{ loadbalancers | default([]) }}"
+        - name: Create template from Ansible template for the LoadBalancers
+          template:
+            src: "ALB.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers | default([]) }}"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp \
+               "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml" \
+               "s3://{{ project }}-cfn-templates/cfn-{{ project }}-alb-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers | default([]) }}"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-alb-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers | default([]) }}"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the Elastic LoadBalancer CloudFormation stacks
+          cloudformation:
+            stack_name: "{{ cfn_project }}LB{{ item.item.name }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ item.stdout }}"
+          register: lbstacks
+          with_items: "{{ presign.results }}"
+          tags: [ 'deploy' ]
 
       tags: [ 'ecs', 'alb' ]
+
+    - name: CloudFront
+      block:
+        - name: Create CFN template from Ansible template for the CloudFront CDNs
+          template:
+            src: "CloudFront.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-cloudfront.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-cloudfront.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the CloudFront CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}CloudFront"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      when: "cloudfront_distributions is defined"
+      tags: [ 'cloudfront' ]
 
     - name: Route 53
       block:
         - name: Create template from Ansible template for the Route53 Hosted Zones
           template:
             src: "Route53.yml"
-            dest: "generated-files/cfn-{{ project }}-route53.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-route53.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-route53.yml"
+          register: presign
+          tags: [ 'deploy' ]
         - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
           cloudformation:
             stack_name: "{{ cfn_project }}Route53"
             state: "present"
             disable_rollback: false
-            template: "generated-files/cfn-{{ project }}-route53.yml"
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
 
       when: route53 is defined
       tags: [ 'createstack', 'route53', 'ecs' ]
 
     - name: ECS Cluster
       block:
-      - name: Create CFN template from Ansible template for the ECS Cluster
-        template:
-          src: ECS.yml
-          dest: "generated-files/cfn-{{ project }}-ecs.yml"
-      - name: Create or Update the ECS CloudFormation stack
-        cloudformation:
-          stack_name: "{{ cfn_project }}ECS"
-          state: "present"
-          disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-ecs.yml"
+        - name: Create CFN template from Ansible template for the ECS Cluster
+          template:
+            src: ECS.yml
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecs.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecs.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the ECS CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}ECS"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
 
       when: ecs is defined
       tags: [ 'ecs' ]
 
     - name: S3 buckets
       block:
-      - name: Create CFN template from Ansible template for project S3 buckets
-        template:
-          src: S3.yml
-          dest: "generated-files/cfn-{{ project }}-s3.yml"
-      - name: Create or Update the S3 CloudFormation stack
-        cloudformation:
-          stack_name: "{{ cfn_project }}S3"
-          state: "present"
-          disable_rollback: false
-          template: "generated-files/cfn-{{ project }}-s3.yml"
+        - name: Create CFN template from Ansible template for project S3 buckets
+          template:
+            src: S3.yml
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-s3.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-s3.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the S3 CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}S3"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
 
       when: s3 is defined
       tags: [ 's3' ]
-
-
-

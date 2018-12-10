@@ -1,3 +1,21 @@
+{# Create a list of origin buckets to be used in the deploy user creation #}
+{% set s3_origin_list = [] %}
+{% for cloudfront in cloudfront_distributions %}
+{%   if cloudfront.origins_and_cachebehaviors is defined %}
+{%     for origin in cloudfront.origins_and_cachebehaviors %}
+{#       Also take explicit bucket naming into account with domain.name and domain.type #}
+{%       if origin.domain is defined %}
+{%         if origin.domain.type == 's3' %}
+{#           No need for bucket access if domain.type is not s3 #}
+{%           set _ = s3_origin_list.append("arn:aws:s3:::" + origin.domain.name + "/*") %}
+{%         endif %}
+{%       else %}
+{%           set _ = s3_origin_list.append("arn:aws:s3:::" + origin.origin_name + "/*") %}
+{%       endif %}
+{%     endfor %}
+{%   endif %}
+{% endfor %}
+
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
@@ -26,6 +44,7 @@ Resources:
       UserName: "deploy-{{ project }}"
       Path: "/"
       Policies:
+{% if s3_origin_list|length > 0 %}
         - PolicyName: AllowAccessToBuckets
           PolicyDocument:
             Version: '2012-10-17'
@@ -36,18 +55,15 @@ Resources:
                   - s3:PutObject
                   - s3:PutObjectACL
                 Resource:
-{% for cloudfront in cloudfront_distributions %}
-{%   if cloudfront.origins_and_cachebehaviors is defined %}
-{%     for origin in cloudfront.origins_and_cachebehaviors %}
-                  - "arn:aws:s3:::{{ origin.origin_name }}/*"
-{%     endfor %}
-{%   endif %}
-{% endfor %}
+{%   for s3 in s3_origin_list %}
+                  - "{{ s3 }}"
+{%   endfor %}
               - Effect: Allow
                 Action:
                   - s3:ListAllMyBuckets
                 Resource:
                   - "arn:aws:s3:::*"
+{% endif %}
         - PolicyName: AllowInvalidationAccessToCloudFrontDistribution
           PolicyDocument:
             Version: '2012-10-17'
@@ -79,15 +95,20 @@ Resources:
 
 {% for cloudfront in cloudfront_distributions %}
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
+{%     if origin.domain is not defined or origin.domain.type == 's3' %}
   S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
-{%   if cloudfront.logging is defined %}
+{%       if cloudfront.logging is defined %}
     DependsOn:
       - S3{{ cfn_project }}{{ cloudfront.cfn_name }}Logs
-{% endif %}
+{%       endif %}
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: PublicRead
+{%       if origin.domain is defined and origin.domain.type == 's3' %}
+      BucketName: "{{ origin.domain.name }}"
+{%       else %}
       BucketName: "{{ origin.origin_name }}"
+{%       endif %}
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -96,11 +117,28 @@ Resources:
         Rules:
           - NoncurrentVersionExpirationInDays: 60
             Status: Enabled
-{%     if cloudfront.logging is defined %}
+{%       if cloudfront.logging is defined %}
       LoggingConfiguration:
         DestinationBucketName: "{{ project }}-{{ cloudfront.name }}-logs"
         LogFilePrefix: s3-{{ cloudfront.logging.prefix | default('') }}
-{%     endif %}
+{%       endif %}
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+{%       if origin.origin_bucket_redirects is defined %}
+        RoutingRules:
+{%         for redirect in origin.origin_bucket_redirects %}
+          - RedirectRule:
+              HostName: "{{ redirect.redirect_rule.hostname }}"
+              HttpRedirectCode: "{{ redirect.redirect_rule.http_redirect_code | default('301') }}"
+              Protocol: "{{ redirect.redirect_rule.protocol | default('https') }}"
+              ReplaceKeyWith: "{{ redirect.redirect_rule.replace_key_with | default('') }}"
+            RoutingRuleCondition:
+{%           if redirect.routing_rule_condition.type == 'http_error_code_returned_equals' %}
+              HttpErrorCodeReturnedEquals: "{{ redirect.routing_rule_condition.value | default('404') }}"
+{%           endif%}
+{%         endfor %}
+{%       endif %}
       Tags:
         - Key: Application
           Value: "{{ application }}"
@@ -108,10 +146,7 @@ Resources:
           Value: "{{ customer | default('NA') }}"
         - Key: Environment
           Value: "{{ env }}"
-      WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: error.html
-
+{%     endif %}
 {%   endfor %}
 {% endfor %}
 
@@ -148,10 +183,10 @@ Resources:
 
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
     DependsOn:
-      - S3{{ cfn_project }}{{ cloudfront.cfn_name }}DefaultCloudfrontOrigin
+      - S3{{ cfn_project }}{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin
 {%   if cloudfront.logging is defined %}
       - S3{{ cfn_project }}{{ cloudfront.cfn_name }}Logs
-{% endif %}
+{%   endif %}
     Type: "AWS::CloudFront::Distribution"
     Properties:
       DistributionConfig:
@@ -163,14 +198,37 @@ Resources:
         Enabled: true
         HttpVersion: http2
         DefaultRootObject: "index.html"
+{%   if cloudfront.custom_error_responses is defined %}
+        CustomErrorResponses:
+{%     for err in cloudfront.custom_error_responses %}
+          - ErrorCachingMinTTL: {{ err.error_caching_min_ttl | default('300') }}
+            ErrorCode: {{ err.error_code | default('404') }}
+            ResponseCode:  {{ err.reponse_code | default('200') }}
+            ResponsePagePath:  {{ err.response_page_path | default('/index.html') }}
+{%     endfor %}
+{%   endif %}
         CacheBehaviors:
-{%   for origin in cloudfront.origins_and_cachebehaviors %}
+{%   for origin in cloudfront.origins_and_cachebehaviors | sort(attribute='priority') %}
           - ForwardedValues:
               QueryString: true
+{%     if origin.forward_cookies is defined %}
+              Cookies:
+                Forward: {{ origin.forward_cookies.forward | default('all') }}
+{%       if origin.forward_cookies.whitelisted_names is defined and origin.forward_cookies.forward == 'whitelist' %}
+                WhitelistedNames:
+{%         for wl in origin.forward_cookies.whitelisted_names %}
+                  - {{ wl }}
+{%         endfor %}
+{%       endif %}
+{%     endif %}
 {%     if origin.forward_headers is defined %}
               Headers:
 {%       for header in origin.forward_headers %}
+{%         if header == 'asterisk' %}
+                - '*'
+{%         else %}
                 - {{ header }}
+{%         endif %}
 {%       endfor %}
 {%     endif %}
 {%     if origin.allowed_http_methods is defined and origin.allowed_http_methods == 'options' %}
@@ -199,8 +257,6 @@ Resources:
         Origins:
           - Id: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin"
             DomainName: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin.s3-website.{{ target_account.region }}.amazonaws.com"
-            #S3OriginConfig:
-            #    OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -208,13 +264,26 @@ Resources:
 
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
           - Id: "{{ origin.origin_name }}-origin"
+{%     if origin.domain is defined %}
+{%       if origin.domain.type == 'import' %}
+            DomainName: !ImportValue "{{ origin.domain.name }}"
+{%       endif %}
+{%       if origin.domain.type == 's3' %}
+            DomainName: "{{ origin.domain.name }}.s3-website.{{ target_account.region }}.amazonaws.com"
+{%       endif %}
+{%       if origin.domain.type == 'custom' %}
+            DomainName: "{{ origin.domain.origin_domain_name }}"
+{%       endif %}
+{%       if origin.domain.origin_path is defined %}
+            OriginPath: "{{ origin.domain.origin_path }}"
+{%       endif %}
+{%     else %}
             DomainName: "{{ origin.origin_name }}.s3-website.{{ target_account.region }}.amazonaws.com"
-            #S3OriginConfig:
-            #  OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${AssetsCloudFrontOriginAccessIdentity}
+{%     endif %}
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
-              OriginProtocolPolicy: http-only
+              OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
 {%   endfor %}
         PriceClass: PriceClass_100
         ViewerCertificate:
@@ -230,13 +299,6 @@ Resources:
           Value: {{ customer | default('NA') }}
 
 {% endfor %}
-
-  AssetsCloudFrontOriginAccessIdentity:
-      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-      Properties:
-          CloudFrontOriginAccessIdentityConfig:
-              Comment: Access Identity for the Ixortalk assets
-
 
 Outputs:
   AccessKeyDeployUser:

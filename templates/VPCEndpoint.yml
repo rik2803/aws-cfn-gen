@@ -1,0 +1,13 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create VPC Endpoints for project {{ project }}
+Resources:
+
+  VPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: "{{ vpc_id }}"
+      RouteTableIds:
+        - "{{ vpc_privatesubnet_routetable }}"
+        - "{{ vpc_publicsubnet_routetable }}"
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"

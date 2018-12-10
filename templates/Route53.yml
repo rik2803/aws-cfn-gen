@@ -12,7 +12,7 @@ Resources:
       Name: {{ hosted_zone.name }}
       VPCs:
         -
-          VPCId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC }}"
+          VPCId: "{{ vpc_id }}"
           VPCRegion: !Ref 'AWS::Region'
       HostedZoneConfig:
         Comment: "Private hosted zone {{ hosted_zone.name }}"

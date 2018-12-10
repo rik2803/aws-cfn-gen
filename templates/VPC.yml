@@ -1,0 +1,573 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create a VPC.
+
+  Will create a /16 VPC, of which the network part should be entered in the CIDR at creation.
+
+  It will create:
+    - A public subnet 0.0/24 (i.e. for bastion)
+    - A IGW
+    - A Nat FW
+    - 2 or 3 Private subnets for applications
+    - 2 or 3 Private subnets for RDS (optionally)
+    - 1 Public subnet for ELB
+    - 2 routing tables (private and public)
+    - SG, including setting allowed (max 2) IPs for connection to bastion
+
+Conditions:
+  3AZs: !Equals [ "{{ vpc.nr_of_azs }}", "3" ]
+  RDSSubnets: !Equals [ "{{ vpc.create_rds_subnets }}", "True" ]
+  NFSForSGAPP: !Equals [ "{{ vpc.nfs_for_sg_app }}", "True" ]
+  RDSSubnetsAnd3AZs: !And
+    - !Equals [ "{{ vpc.nr_of_azs }}", "3" ]
+    - !Equals [ "{{ vpc.create_rds_subnets }}", "True" ]
+  SafeSSH: !And
+    - !Not [!Equals ["{{ vpc.safe_ssh_01 }}", "0.0.0.0/0"]]
+    - !Not [!Equals ["{{ vpc.safe_ssh_02 }}", "0.0.0.0/0"]]
+
+Resources:
+  SGDMZ:
+    Type: AWS::EC2::SecurityGroup
+    Condition: SafeSSH
+    Properties:
+      GroupDescription: !Join [ "", [ "DMZ Security Group for ", "{{ vpc.name }}" ] ]
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "{{ vpc.safe_ssh_01 }}"
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "{{ vpc.safe_ssh_02 }}"
+      Tags:
+        - Key: "Name"
+          Value: "{{ vpc.name }}"
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+  SGRDS:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [ "", [ "RDS Security Group for ", "{{ vpc.name }}", " allows access from the private subnet" ] ]
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: "3306"
+          ToPort: "3306"
+          SourceSecurityGroupId: !Ref SGAPP
+        - IpProtocol: "tcp"
+          FromPort: "5432"
+          ToPort: "5432"
+          SourceSecurityGroupId: !Ref SGAPP
+        - IpProtocol: "tcp"
+          FromPort: "1433"
+          ToPort: "1433"
+          SourceSecurityGroupId: !Ref SGAPP
+        - IpProtocol: "tcp"
+          FromPort: "3306"
+          ToPort: "3306"
+          SourceSecurityGroupId: !Ref SGDMZ
+        - IpProtocol: "tcp"
+          FromPort: "5432"
+          ToPort: "5432"
+          SourceSecurityGroupId: !Ref SGDMZ
+        - IpProtocol: "tcp"
+          FromPort: "1433"
+          ToPort: "1433"
+          SourceSecurityGroupId: !Ref SGDMZ
+      Tags:
+        - Key: "Name"
+          Value: "{{ vpc.name }}"
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+  SGELB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [ "", [ "ELB Security Group for ", "{{ vpc.name }}", " allows access from the internet on HTTP(S)" ] ]
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          ToPort: "80"
+          FromPort: "80"
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          ToPort: "443"
+          FromPort: "443"
+          CidrIp: "0.0.0.0/0"
+
+      Tags:
+        - Key: "Name"
+          Value: "{{ vpc.name }}"
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+  SGAPP:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [ "", [ "APP Security Group for ", "{{ vpc.name }}", " allows access from SGELB on all ports and from SGDMZ on port 22" ] ]
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65525"
+          SourceSecurityGroupId: !Ref SGELB
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          SourceSecurityGroupId: !Ref SGDMZ
+      Tags:
+        - Key: "Name"
+          Value: "{{ vpc.name }}"
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  SGAPPIngressNFS:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: NFSForSGAPP
+    Properties:
+      GroupId: !Ref SGAPP
+      Description: "Allow NFS4 access from SGAPP"
+      IpProtocol: "tcp"
+      FromPort: "2049"
+      ToPort: "2049"
+      SourceSecurityGroupId: !Ref SGAPP
+      
+  SGAPPIngressNFSSGDMZ:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: NFSForSGAPP
+    Properties:
+      GroupId: !Ref SGAPP
+      Description: "Allow NFS4 access from SGDMZ"
+      IpProtocol: "tcp"
+      FromPort: "2049"
+      ToPort: "2049"
+      SourceSecurityGroupId: !Ref SGDMZ
+      
+  SGDMZIngressNFS:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: NFSForSGAPP
+    Properties:
+      GroupId: !Ref SGDMZ
+      IpProtocol: "tcp"
+      FromPort: "2049"
+      ToPort: "2049"
+      SourceSecurityGroupId: !Ref SGAPP
+      
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".0.0/16" ] ]
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: "default"
+      Tags:
+        - Key: "Name"
+          Value: "{{ vpc.name }}"
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "IGW for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  IGWAttachToVPC:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref IGW
+      VpcId: !Ref VPC
+
+  EipNatGw:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: "vpc"
+
+  NatGw:
+    DependsOn:
+      - IGWAttachToVPC
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+          - EipNatGw
+          - AllocationId
+      SubnetId: !Ref SubnetPublic
+
+  SubnetPublic:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ "0", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".0.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Public subnet for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  SubnetPrivateAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ "0", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".10.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Private subnet 01 for ", "{{ vpc.name }}" ] ]
+  SubnetPrivateAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ "1", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".11.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Private subnet 02 for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+  SubnetPrivateAZ3:
+    Type: AWS::EC2::Subnet
+    Condition: 3AZs
+    Properties:
+      AvailabilityZone: !Select [ "2", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".12.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Private subnet 03 for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  SubnetPublicLBAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ "0", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".20.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Public ELB subnet 01 for ", "{{ vpc.name }}" ] ]
+  SubnetPublicLBAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ "1", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".21.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ "Public ELB subnet 02 for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+  SubnetPublicLBAZ3:
+    Type: AWS::EC2::Subnet
+    Condition: 3AZs
+    Properties:
+      AvailabilityZone: !Select [ "2", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".22.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Public ELB subnet 03 for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  SubnetPrivateRDSAZ1:
+    Type: AWS::EC2::Subnet
+    Condition: RDSSubnets
+    Properties:
+      AvailabilityZone: !Select [ "0", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".30.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Private RDS subnet 01 for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+  SubnetPrivateRDSAZ2:
+    Type: AWS::EC2::Subnet
+    Condition: RDSSubnets
+    Properties:
+      AvailabilityZone: !Select [ "1", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".31.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Private RDS subnet 02 for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+  SubnetPrivateRDSAZ3:
+    Type: AWS::EC2::Subnet
+    Condition: RDSSubnetsAnd3AZs
+    Properties:
+      AvailabilityZone: !Select [ "2", !GetAZs ]
+      CidrBlock: !Join [ "", [ "{{ vpc.cidr }}", ".32.0/24" ] ]
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Private RDS subnet 03 for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  RouteTablePublicSubnet:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Route table for public subnet for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  RouteTablePrivateSubnet:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: "Name"
+          Value: !Join [ " ", [ "Route table for private subnet for ", "{{ vpc.name }}" ] ]
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+  RouteDefaultPublic:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - RouteTablePublicSubnet
+      - VPC
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref IGW
+      RouteTableId: !Ref RouteTablePublicSubnet
+
+  RouteDefaultPrivate:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - RouteTablePrivateSubnet
+      - VPC
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGw
+      RouteTableId: !Ref RouteTablePrivateSubnet
+
+  AssociateRouteForPublicSubnetToPublicSubnet:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnet
+      SubnetId: !Ref SubnetPublic
+
+  AssociateRouteForPrivateSubnetToPrivateSubnet01:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet
+      SubnetId: !Ref SubnetPrivateAZ1
+  AssociateRouteForPrivateSubnetToPrivateSubnet02:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet
+      SubnetId: !Ref SubnetPrivateAZ2
+  AssociateRouteForPrivateSubnetToPrivateSubnet03:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Condition: 3AZs
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet
+      SubnetId: !Ref SubnetPrivateAZ3
+
+  AssociateRouteForPrivateSubnetToPrivateRDSAZ1:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Condition: RDSSubnets
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet
+      SubnetId: !Ref SubnetPrivateRDSAZ1
+  AssociateRouteForPrivateSubnetToPrivateRDSAZ2:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Condition: RDSSubnets
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet
+      SubnetId: !Ref SubnetPrivateRDSAZ2
+  AssociateRouteForPrivateSubnetToPrivateRDSAZ3:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Condition: RDSSubnetsAnd3AZs
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet
+      SubnetId: !Ref SubnetPrivateRDSAZ3
+
+  AssociateRouteForPublicELBSubnetToPublicELBSubnet01:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnet
+      SubnetId: !Ref SubnetPublicLBAZ1
+  AssociateRouteForPublicELBSubnetToPublicELBSubnet02:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnet
+      SubnetId: !Ref SubnetPublicLBAZ2
+  AssociateRouteForPublicELBSubnetToPublicELBSubnet03:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Condition: 3AZs
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnet
+      SubnetId: !Ref SubnetPublicLBAZ3
+
+Outputs:
+  Application:
+    Value: "{{ application }}"
+    Description: Application
+    Export:
+      Name: !Sub "${AWS::StackName}-Application"
+  Environment:
+    Value: "{{ env }}"
+    Description: Environment
+    Export:
+      Name: !Sub "${AWS::StackName}-Environment"
+  AZs:
+    Value: "{{ vpc.nr_of_azs }}"
+    Description: Nr of AZs in VPC config
+    Export:
+      Name: !Sub "${AWS::StackName}-AZs"
+  VPC:
+    Value: !Ref VPC
+    Description: "My VPC"
+    Export:
+      Name: !Sub "${AWS::StackName}-VPC"
+  RDSSubnetAZ1:
+    Value: !Ref SubnetPrivateRDSAZ1
+    Description: "RDS Subnet in AZ1"
+    Condition: RDSSubnets
+    Export:
+      Name: !Sub "${AWS::StackName}-RDSSubnetAZ1"
+  RDSSubnetAZ2:
+    Value: !Ref SubnetPrivateRDSAZ2
+    Description: "RDS Subnet in AZ2"
+    Condition: RDSSubnets
+    Export:
+      Name: !Sub "${AWS::StackName}-RDSSubnetAZ2"
+  RDSSubnetAZ3:
+    Value: !Ref SubnetPrivateRDSAZ3
+    Description: "RDS Subnet in AZ3"
+    Condition: RDSSubnetsAnd3AZs
+    Export:
+      Name: !Sub "${AWS::StackName}-RDSSubnetAZ3"
+  PrivateSubnetAZ1:
+    Value: !Ref SubnetPrivateAZ1
+    Description: "Private Subnet in AZ1"
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetAZ1"
+  PrivateSubnetAZ2:
+    Value: !Ref SubnetPrivateAZ2
+    Description: "Private Subnet in AZ2"
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetAZ2"
+  PrivateSubnetAZ3:
+    Value: !Ref SubnetPrivateAZ3
+    Description: "Private Subnet in AZ3"
+    Condition: 3AZs
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetAZ3"
+  ELBSubnetAZ1:
+    Value: !Ref SubnetPublicLBAZ1
+    Description: "Elastic LoadBalancer Subnet in AZ1"
+    Export:
+      Name: !Sub "${AWS::StackName}-ELBSubnetAZ1"
+  ELBSubnetAZ2:
+    Value: !Ref SubnetPublicLBAZ2
+    Description: "Elastic LoadBalancer Subnet in AZ2"
+    Export:
+      Name: !Sub "${AWS::StackName}-ELBSubnetAZ2"
+  ELBSubnetAZ3:
+    Value: !Ref SubnetPublicLBAZ3
+    Description: "Elastic LoadBalancer Subnet in AZ3"
+    Condition: 3AZs
+    Export:
+      Name: !Sub "${AWS::StackName}-ELBSubnetAZ3"
+  SubnetPublic:
+    Value: !Ref SubnetPublic
+    Description: "Public subnet"
+    Export:
+      Name: !Sub "${AWS::StackName}-SubnetPublic"
+  SGRDS:
+    Value: !GetAtt [SGRDS, GroupId]
+    Description: "RDS Security Group"
+    Condition: RDSSubnets
+    Export:
+      Name: !Sub "${AWS::StackName}-SGRDS"
+  SGDMZ:
+    Value: !GetAtt [SGDMZ, GroupId]
+    Description: "DMZ Security Group"
+    Export:
+      Name: !Sub "${AWS::StackName}-SGDMZ"
+  SGAPP:
+    Value: !GetAtt [SGAPP, GroupId]
+    Description: "Application Security Group"
+    Export:
+      Name: !Sub "${AWS::StackName}-SGAPP"
+  SGELB:
+    Value: !GetAtt [SGELB, GroupId]
+    Description: "DMZ Security Group"
+    Export:
+      Name: !Sub "${AWS::StackName}-SGELB"
+  RouteTablePublicSubnet:
+    Value: !Ref RouteTablePublicSubnet
+    Description: "Public subnet Route Table Id"
+    Export:
+      Name: !Sub "${AWS::StackName}-RouteTablePublicSubnet"
+  RouteTablePrivateSubnet:
+    Value: !Ref RouteTablePrivateSubnet
+    Description: "Private subnet Route Table Id"
+    Export:
+      Name: !Sub "${AWS::StackName}-RouteTablePrivateSubnet"

@@ -23,25 +23,25 @@ Resources:
     Properties:
       FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
-      SubnetId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
+        - "{{ vpc_sg_app }}"
+      SubnetId: "{{ vpc_privatesubnet_az1 }}"
 
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ2:
     Type: AWS::EFS::MountTarget
     Properties:
       FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
-      SubnetId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
+        - "{{ vpc_sg_app }}"
+      SubnetId: "{{ vpc_privatesubnet_az2 }}"
 
-{%   if vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs == "3" %}
+{%   if vpc_nr_of_azs == "3" %}
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3:
     Type: AWS::EFS::MountTarget
     Properties:
       FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
-      SubnetId: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+        - "{{ vpc_sg_app }}"
+      SubnetId: "{{ vpc_privatesubnet_az3 }}"
 {%   endif %}
 
 {% endfor %}

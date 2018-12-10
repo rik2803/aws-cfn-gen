@@ -27,10 +27,13 @@ Resources:
         {{ awsrole.assumerole_policy_document | to_json }}
       ManagedPolicyArns:
 {%   for policyarn in awsrole.policy_arns %}
+{%     if 'arn:aws:iam' in policyarn %}
+        - {{ policyarn }}
+{%     else %}
         - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policyarn }}'
+{%     endif %}
 {%   endfor %}
 {% endfor %}
-
 
 {% for iam_user in iam_users | default([]) %}
   {{ iam_user.cfn_name | default('A_BUG') }}:
@@ -44,7 +47,11 @@ Resources:
 {%   if iam_user.managed_policies is defined %}
       ManagedPolicyArns:
 {%     for policy in iam_user.managed_policies %}
+{%       if 'arn:aws:iam' in policy %}
+        - {{ policy }}
+{%       else %}
         - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policy }}'
+{%       endif %}
 {%     endfor %}
 {%   endif %}
 

@@ -1,19 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: |
-  Create an ECS stack {{ project }}
+  Create an ECS stack for {{ project }}
 
 ### For latest ECS optomized AMIs: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
 Mappings:
   AWSRegionToAMI:
     eu-central-1:
-      AMIID: ami-c123232a
+      AMIID: ami-0bb804e8cd910a664
     eu-west-1:
-      AMIID: ami-74e7fe9e
+      AMIID: ami-05b65c0f6a75c1c64
     eu-west-2:
-      AMIID: ami-e8a04a8f
+      AMIID: ami-0209769f0c963e791
     eu-west-3:
-      AMIID: ami-2187375c
+      AMIID: ami-06b685336aa497c15
 
 Resources:
 
@@ -134,26 +134,58 @@ Resources:
     Properties:
       ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
       SecurityGroups:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+        - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
+{% if ecs.cluster.ebs_size is defined %}
+      BlockDeviceMappings:
+      - DeviceName: "/dev/xvdcz"
+        Ebs:
+          VolumeSize: '{{ ecs.cluster.ebs_size }}'
+{% endif %}
       KeyName: "{{ ecs.cluster.keypair }}"
+{% if ecs.cluster.spot_price is defined %}
+      SpotPrice: "{{ ecs.cluster.spot_price }}"
+{% endif %}
       UserData:
         Fn::Base64:
           Fn::Sub:
           - |
+            Content-Type: multipart/mixed; boundary="===============8943416319660996992=="
+            MIME-Version: 1.0
+
+{% if ecs.cluster.dm_basesize is defined %}
+            --===============8943416319660996992==
+            Content-Type: text/cloud-boothook; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="docker_options.cloudinit"
+
+            #cloud-boothook
+              cloud-init-per once docker_options echo 'OPTIONS="$OPTIONS --storage-opt dm.basesize=20G"' >> /etc/sysconfig/docker
+
+{% endif %}
+            --===============8943416319660996992==
+            Content-Type: text/x-shellscript; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="ecs_config.cloudinit"
+
             #!/bin/bash -xe
+
 {% if ecs.efs is defined %}
             yum install -y nfs-utils
-{% for fs in ecs.efs | default([]) %}
+{%   for fs in ecs.efs | default([]) %}
             mkdir -p {{ fs.mountpoint }}
             echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ {{ fs.mountpoint }} nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
             mount -a
-{% endfor %}
+{%   endfor %}
 {% endif %}
             echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
             yum install -y aws-cfn-bootstrap
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+
+            --===============8943416319660996992==--
           -
             dummy:
               "dummy"
@@ -168,11 +200,11 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier:
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
-        - "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+        - "{{ vpc_privatesubnet_az1 }}"
+        - "{{ vpc_privatesubnet_az2 }}"
+        - "{{ vpc_privatesubnet_az3 }}"
       LaunchConfigurationName: !Ref 'ContainerInstances'
-      MinSize: '{{ ecs.cluster.cluster_size.min | default('1') }}'
+      MinSize: '{{ ecs.cluster.cluster_size.min | default("1") }}'
       MaxSize: '{{ ecs.cluster.cluster_size.max | default( [ ecs.cluster.cluster_size.max, 1 ] | max ) }}'
       DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | default( [ ecs.cluster.cluster_size.min, 1 ] | max ) }}'
       Tags:
@@ -215,6 +247,17 @@ Resources:
         - MetricValue: "1"
           MetricNamespace: "{{ cfn_project }}/ServiceStart"
           MetricName: "{{ app.cfn_name }}"
+
+{%     if app.logs_subscription_filter is defined %}
+  CWSubscrFilter{{ cfn_project }}{{ app.cfn_name }}:
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+{%       if app.logs_subscription_filter.type == 'lambda' %}
+      DestinationArn: !ImportValue "{{ cfn_project }}Lambda-{{ app.logs_subscription_filter.lambda_cfn_export_name }}"
+{%     endif %}
+      FilterPattern: '{{ app.logs_subscription_filter.filter_pattern | default('') }}'
+      LogGroupName: !Ref CloudWatch{{ cfn_project }}{{ app.cfn_name }}
+{%     endif %}
 
 {%     if app.disable_alarm is not defined or app.disable_alarm %}
   ### AWS::CloudWatch::Alarm for MetricFilterAppStart
@@ -269,6 +312,15 @@ Resources:
               awslogs-stream-prefix: "{{ project }}-{{ app.name }}"
           PortMappings:
             - ContainerPort: {{ app.ecs.containerport }}
+{%     if app.ecs.extra_portmappings is defined %}
+{%       for portmapping in app.ecs.extra_portmappings %}
+            - ContainerPort: {{ portmapping.container_port }}
+{%         if portmapping.host_port is defined %}
+              HostPort: {{ portmapping.host_port }}
+{%         endif %}
+              Protocol: {{ portmapping.protocol | default('tcp') }}
+{%       endfor %}
+{%     endif %}
           Environment:
             - Name: Application
               Value: "{{ project }}"
@@ -290,7 +342,7 @@ Resources:
       Targets:
       - Arn: !GetAtt ECSCluster.Arn
         Id: Target{{ cfn_project }}{{ app.cfn_name }}
-        RoleArn: "{{ app.ecs.task_role_arn }}"
+        RoleArn: "{{ app.ecs.target_role_arn | default('arn:aws:iam::' + target_account.account_id + ':role/ecsEventsRole') }}"
         EcsParameters:
           TaskCount: 1
           TaskDefinitionArn: !Ref Task{{ cfn_project }}{{ app.cfn_name }}
@@ -320,11 +372,11 @@ Resources:
         - ContainerName: "{{ project }}-{{ app.name }}"
           ContainerPort: "{{ app.ecs.containerport }}"
 {%         for result in lbstacks.results %}
-{%           if result.item.name == app.lb.name %}
+{%           if result.item.item.name == app.lb.name %}
 {%             if app.lb.targetgroup is defined %}
           TargetGroupArn: "{{ result.stack_outputs[app.lb.targetgroup] }}"
 {%             else %}
-          TargetGroupArn: "{{ result.stack_outputs['TGApp' + cfn_project + result.item.name + app.cfn_name] }}"
+          TargetGroupArn: "{{ result.stack_outputs['TGApp' + cfn_project + result.item.item.name + app.cfn_name] }}"
 {%             endif %}
 {%           endif %}
 {%         endfor %}
@@ -333,10 +385,10 @@ Resources:
   ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
 {%       if route53 is defined %}
 {%         for result in lbstacks.results %}
-{%           if app.domains is defined and result.item.name == app.lb.name %}
+{%           if app.domains is defined and result.item.item.name == app.lb.name %}
 {%             for domain in app.domains %}
 {%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
-  ### {{ result.item.name }} - {{ app.lb.name }} - {{ domain.cfn_name }} - {{ domain.name }}
+  ### {{ result.item.item.name }} - {{ app.lb.name }} - {{ domain.cfn_name }} - {{ domain.name }}
   Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
     Type: AWS::Route53::RecordSet
     Properties:
