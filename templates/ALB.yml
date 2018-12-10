@@ -91,7 +91,7 @@ Resources:
   ## Create configuration for redirects
 {% for redirect in item.redirects | default([]) %}
   ### Redirect feature not yet available in CloudFormation, skipping this step for now
-{%   if "feature" == "available" %}
+{%   if "feature" == "feature" %}
   RedirAction{{ redirect.url | replace('.', ' ') | title | replace(' ', '') }}:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
@@ -102,8 +102,7 @@ Resources:
           Values:
             - "{{ redirect.url }}"
       Actions:
-        - TargetGroupArn: !Ref TGDefaultHTTPS
-          Type: redirect
+        - Type: redirect
           RedirectConfig:
             StatusCode: "{{ redirect.status_code | default('HTTP_301') }}"
             Host: "{{ redirect.to | default('#{host}') }}"
