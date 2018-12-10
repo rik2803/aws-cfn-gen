@@ -338,14 +338,18 @@ to change and will consequently spawn new ECS instances.
 
 It creates a typical loadbalancer, with these components:
 
-* An application loadbalancer (`AWS::ElasticLoadBalancingV2::LoadBalancer`). This can be an
-  internet-facing loadbalancer (`scheme: internet-facing`), or an internal loadbalancer (`scheme: internal`).
-  The _Security Groups_ and subnets used for the loadbalancer are extracted from the
+* An ALB or *Application LoadBalancer* (`AWS::ElasticLoadBalancingV2::LoadBalancer`).
+  This can be an internet-facing loadbalancer (`scheme: internet-facing`), or an internal
+  loadbalancer (`scheme: internal`).
+* The _Security Groups_ and subnets used for the loadbalancer are extracted from the
   VPC stack mentioned before. That stack uses AWSs reference architecture and matches most setups.
-* A HTTP listener on both internet-facing andinternal loadbalancers.
-* A HTTPS listener on the ointernet-facing loadbalancer. This requires a certificate for TLS
+* A HTTP listener on both internet-facing and internal loadbalancers.
+* A HTTPS listener on the internet-facing loadbalancer. This requires a certificate for TLS
   termination.
 * A default target group for HTTP and HTTPS
+* Additional rules and target groups are created for the services defined in
+  `applicationconfig`
+* (optional) Define redirects, see below in `redirects`
 
 ```yaml
 loadbalancers:
@@ -383,6 +387,51 @@ And the loadbalancer will get the attributes required to enable access logs, as 
 
 Default is `60`, sets the LB `LoadBalancerAttribute` named `idle_timeout.timeout_seconds` to this
 value.
+
+#### `redirects`
+
+```yaml
+loadbalancers:
+  - name: ALBExtRedirectTest
+    ...
+    redirects:
+      - host_header: "acme.com"
+        path-pattern: "/"
+        priority: 200
+        status_code: HTTP_302
+        path: /go_here
+        skiproute53: true
+```
+
+`redirects` is a list of dicts that define URLs to redirect.
+
+##### `redirects[n].host_header` (required)
+
+A hostname that will trigger the redirect.
+
+##### `redirects[n].path_pattern` (optional)
+
+A `path-pattern` strings that will trigger the redirect.
+
+##### `redirects[n].priority` (required)
+
+Determines the order of the redirect rules.
+
+##### `redirects[n].status_code` (optional, default is `HTTP_301`)
+
+On of these strings:
+
+* `HTTP_301` for permanent redirect
+* `HTTP_302` for temporary redirect
+
+##### `redirects[n].to` (optional, default is original host)
+
+##### `redirects[n].path`  (optional, default is original path)
+
+##### `redirects[n].skiproute53`
+
+Skip the creation of a *Route 53* record.
+
 
 ### `route53`
 
