@@ -105,9 +105,11 @@ Resources:
 
   LB{{ item.name }}:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
     DependsOn:
       - "S3ALBAccessLogs{{ item.name }}"
       - "S3ALBAccessLogsBucketPolicy{{ item.name }}"
+  {% endif %}
     Properties:
       Name: "lb-{{ project }}-{{ item.name }}"
       Scheme: "{{ item.scheme }}"
