@@ -101,7 +101,7 @@
             stack_name: "{{ vpc.stackname }}"
             state: "present"
             disable_rollback: false
-          template_url: "{{ presign.stdout }}"
+            template_url: "{{ presign.stdout }}"
           tags: [ 'deploy' ]
 
       tags: [ 'vpc' ]
