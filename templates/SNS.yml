@@ -1,0 +1,52 @@
+---
+### TODO: SNS Subscriptions and subscription filters
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create one or more SNS Topics
+
+Resources:
+{% for topic in sns %}
+{%   set sns_cfn_name = topic.display_name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+  SNS{{ sns_cfn_name }}:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: "{{ topic.display_name }}"
+{%   if topic.topic_name is defined %}
+      TopicName: "{{ topic.topic_name }}"
+{%   endif %}
+
+{%   for subscription in topic.subscriptions %}
+{%     set subscr_cfn_name = subscription.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+  SNSSubscr{{ subscr_cfn_name }}:
+    DependsOn:
+      - SNS{{ sns_cfn_name }}
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !ImportValue "{{ subscription.endpoint_export }}"
+      Protocol: lambda
+      TopicArn: !Ref SNS{{ sns_cfn_name }}
+
+{%     if subscription.protocol == 'lambda' %}
+  LambdaInvokePermission{{ subscr_cfn_name }}:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SNS{{ sns_cfn_name }}
+      FunctionName: !ImportValue "{{ subscription.endpoint_export }}"
+{%     endif %}
+{%   endfor %}
+
+{% endfor %}
+
+Outputs:
+{% for topic in sns %}
+{%   set sns_cfn_name = topic.display_name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+  SNS{{ sns_cfn_name }}Output:
+    Value: !Ref SNS{{ sns_cfn_name }}
+    Description: "SNS topic {{ sns_cfn_name }} resource logical name"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ sns_cfn_name }}"
+
+{% endfor %}
