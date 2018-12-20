@@ -193,6 +193,33 @@
       when: "ecr is defined"
       tags: [ 'ecr' ]
 
+    - name: ECSMgmt
+      block:
+        - name: Create CFN template from Ansible template for ECSMgmt
+          template:
+            src: "ECSMgmt.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecsmgmt.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecsmgmt.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecsmgmt.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecsmgmt.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the ECSMgmt CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}ECSMgmt"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      when: "ecsmgmt is defined"
+      tags: [ 'ecsmgmt' ]
+
     - name: IAM
       block:
         - name: Create CFN template from Ansible template for the IAM resources
@@ -296,6 +323,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              stack_deletion_order: 0
           tags: [ 'deploy' ]
 
       when: "dynamodb is defined"
@@ -327,11 +356,40 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ item.stdout }}"
+            tags:
+              stack_deletion_order: 2
           register: lbstacks
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
 
       tags: [ 'ecs', 'alb' ]
+
+    - name: SNS
+      block:
+      - name: Create CFN template from Ansible template for the SNS Topics
+        template:
+          src: "SNS.yml"
+          dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sns.yml"
+      - name: Put SNS CFN template on s3
+        shell: |
+          aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sns.yml" \
+                    "s3://{{ project }}-cfn-templates/cfn-{{ project }}-sns.yml"
+        tags: [ 'deploy' ]
+      - name: Get presigned URL for the SNS template on S3
+        shell: |
+          aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-sns.yml"
+        register: presign
+        tags: [ 'deploy' ]
+      - name: Create or Update the SNS CloudFormation stack
+        cloudformation:
+          stack_name: "{{ cfn_project }}SNS"
+          state: "present"
+          disable_rollback: false
+          template_url: "{{ presign.stdout }}"
+        tags: [ 'deploy' ]
+
+      when: "sns is defined"
+      tags: [ 'sns' ]
 
     - name: CloudFront
       block:
@@ -409,6 +467,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              stack_deletion_order: 1
           tags: [ 'deploy' ]
 
       when: ecs is defined
