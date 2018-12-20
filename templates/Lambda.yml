@@ -5,11 +5,13 @@ Description: |
 
 Resources:
 
-### Create the Lambda functinos
+
+### Create the Lambda functinos and execution roles
 {% for lambda in lambda_functions | default([]) %}
 {#   Create some variables #}
 {%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
 {%   set lambda_fn_name = (lambda.name.split('_'))[0] %}
+
 
   {{ lambda_cfn_name }}:
     Type: AWS::Lambda::Function
@@ -35,6 +37,17 @@ Resources:
         S3Bucket: "{{ lambda.code.s3_bucket }}"
         S3Key: "{{ lambda.code.s3_key }}"
       Runtime: {{ lambda.runtime | default('python2.7') }}
+{%   if lambda.vpc is defined and lambda.vpc %}
+      VpcConfig:
+        SubnetIds:
+          - "{{ vpc_privatesubnet_az1 }}"
+          - "{{ vpc_privatesubnet_az2 }}"
+{%     if vpc_nr_of_azs == 3 %}
+          - "{{ vpc_privatesubnet_az3 }}"
+{%     endif %}
+        SecurityGroupIds:
+          - "{{ vpc_sg_app }}"
+{%   endif %}
       Tags:
         - Key: Application
           Value: "{{ application }}"
