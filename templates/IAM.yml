@@ -3,7 +3,8 @@ Description: Create IAM Resource for project {{ cfn_project }}
 
 Resources:
 
-{% for policy in managed_policies | default([]) %}
+{% if managed_policies is defined %}
+{%   for policy in managed_policies | default([]) %}
   {{ policy.name }}Policy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -12,67 +13,76 @@ Resources:
       PolicyDocument:
         {{ policy.policy_document | to_json }}
 
-{% endfor %}
-
-{% for awsrole in awsroles | default([]) %}
-  {{ awsrole.name }}Role:
-    DependsOn:
-{%   for policy in managed_policies %}
-      - {{ policy.name }}Policy
 {%   endfor %}
+{% endif %}
+
+{% if awsroles is defined %}
+{%   for awsrole in awsroles | default([]) %}
+  {{ awsrole.name }}Role:
+{%     if managed_policies is defined %}
+    DependsOn:
+{%       for policy in managed_policies %}
+      - {{ policy.name }}Policy
+{%       endfor %}
+{%     endif %}
     Type: AWS::IAM::Role
     Properties:
       RoleName: {{ awsrole.name }}
       AssumeRolePolicyDocument:
         {{ awsrole.assumerole_policy_document | to_json }}
       ManagedPolicyArns:
-{%   for policyarn in awsrole.policy_arns %}
-{%     if 'arn:aws:iam' in policyarn %}
+{%     for policyarn in awsrole.policy_arns %}
+{%       if 'arn:aws:iam' in policyarn %}
         - {{ policyarn }}
-{%     else %}
+{%       else %}
         - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policyarn }}'
-{%     endif %}
+{%       endif %}
+{%     endfor %}
 {%   endfor %}
-{% endfor %}
+{% endif %}
 
-{% for iam_user in iam_users | default([]) %}
+{% if iam_users is defined %}
+{%   for iam_user in iam_users | default([]) %}
   {{ iam_user.cfn_name | default('A_BUG') }}:
     Type: AWS::IAM::User
     DependsOn:
-{%   for policy in managed_policies %}
+{%     for policy in managed_policies %}
       - {{ policy.name }}Policy
-{%   endfor %}
+{%     endfor %}
     Properties:
       UserName: {{ iam_user.name }}
-{%   if iam_user.managed_policies is defined %}
+{%     if iam_user.managed_policies is defined %}
       ManagedPolicyArns:
-{%     for policy in iam_user.managed_policies %}
-{%       if 'arn:aws:iam' in policy %}
+{%       for policy in iam_user.managed_policies %}
+{%         if 'arn:aws:iam' in policy %}
         - {{ policy }}
-{%       else %}
+{%         else %}
         - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/{{ policy }}'
-{%       endif %}
-{%     endfor %}
-{%   endif %}
+{%         endif %}
+{%       endfor %}
+{%     endif %}
 
-{%   if iam_user.create_accesskeys is defined and iam_user.create_accesskeys %}
+{%     if iam_user.create_accesskeys is defined and iam_user.create_accesskeys %}
   Key{{ iam_user.cfn_name | default('A_BUG') }}:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName:
         !Ref {{ iam_user.cfn_name | default('A_BUG') }}
-{%   endif %}
-{% endfor %}
+{%     endif %}
+{%   endfor %}
+{% endif %}
 
 Outputs:
   Dummy:
     Value: dummy
-{% for iam_user in iam_users | default([]) %}
-{%   if iam_user.create_accesskeys is defined and iam_user.create_accesskeys %}
+{% if iam_users is defined %}
+{%   for iam_user in iam_users | default([]) %}
+{%     if iam_user.create_accesskeys is defined and iam_user.create_accesskeys %}
   AccessKey{{ iam_user.cfn_name | default('A_BUG') }}:
     Value:
       !Ref Key{{ iam_user.cfn_name }}
   SecretKey{{ iam_user.cfn_name | default('A_BUG') }}:
     Value: !GetAtt Key{{ iam_user.cfn_name | default('A_BUG') }}.SecretAccessKey
-{%   endif %}
-{% endfor %}
+{%     endif %}
+{%   endfor %}
+{% endif %}
