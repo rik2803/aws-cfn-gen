@@ -215,7 +215,8 @@ Resources:
 
   ## Create configuration for redirects
 {% for redirect in item.redirects | default([]) %}
-  RedirAction{{ redirect.host_header | replace('.', ' ') | title | replace(' ', '') }}:
+{%   set redir_resource_basename = redirect.host_header | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '') %}
+  RedirAction{{ redir_resource_basename }}:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
       ListenerArn: !Ref Listener{{ item.name }}
@@ -241,7 +242,7 @@ Resources:
 
 {%   if redirect.skiproute53 is not defined or not redirect.skiproute53 %}
   ### Route53 (does not yet support creation of APEX alias)
-  RedirR53{{ redirect.host_header | replace('.', ' ') | title | replace(' ', '') }}:
+  RedirR53{{ redir_resource_basename }}:
     Type: Custom::CNAME
     Properties:
       ServiceToken: {{ redirect.sns_topic_arn_for_r53 }}
@@ -324,12 +325,12 @@ Outputs:
     Value: !Ref "TGDefaultHTTP"
     Description: "Default Target Group for HTTP."
     Export:
-      Name: !Sub "${AWS::StackName}-tg-{{ shortproject }}-{{ item.name | lower }}-def-80"
+      Name: !Sub "${AWS::StackName}-TGDefaultHTTP"
   TGDefaultHTTPS:
     Value: !Ref "TGDefaultHTTPS"
     Description: "Default Target Group for HTTPS."
     Export:
-      Name: !Sub "${AWS::StackName}-tg-{{ shortproject }}-{{ item.name | lower }}-def-443"
+      Name: !Sub "${AWS::StackName}-TGDefaultHTTPS"
 {% for app in applicationconfig | default([]) %}
 {%   if app.domains is defined and app.lb.name == item.name %}
   TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
@@ -337,5 +338,6 @@ Outputs:
     Description: "Target Group for application {{ app.name }} in project {{ project }}."
     Export:
       Name: !Sub "${AWS::StackName}-{{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}"
+
 {%   endif %}
 {% endfor %}
