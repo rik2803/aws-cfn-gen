@@ -249,6 +249,12 @@
 
     - name: Lambda
       block:
+        - name: Get unique version_id to name the Lambda version resource
+          shell: openssl rand -hex 12
+          register: openssl
+        - name: Save version_id
+          set_fact:
+            version_id: "{{ openssl.stdout }}"
         - name: Create CFN template from Ansible template for the Lambda functions
           template:
             src: "Lambda.yml"
@@ -273,6 +279,40 @@
 
       when: "lambda_functions is defined"
       tags: [ 'lambda' ]
+
+    - name: LambdaCloudfront
+      block:
+        - name: Get unique version_id to name the Lambda version resource
+          shell: openssl rand -hex 12
+          register: openssl
+        - name: Save version_id
+          set_fact:
+            version_id: "{{ openssl.stdout }}"
+        - name: Create CFN template from Ansible template for the Lambda functions in us-east-1
+          template:
+            src: "LambdaCloudfront.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambdacloudfront.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambdacloudfront.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-lambdacloudfront.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-lambdacloudfront.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the Lambda CloudFormation stack
+          cloudformation:
+            region: us-east-1
+            stack_name: "{{ cfn_project }}LambdaCloudfront"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+          tags: [ 'deploy' ]
+
+      when: "lambda_functions_cloudfront is defined"
+      tags: [ 'lambdacloudfront' ]
 
     - name: EFS
       block:
@@ -357,8 +397,7 @@
             disable_rollback: false
             template_url: "{{ item.stdout }}"
             tags:
-              stack_deletion_order: 2
-          register: lbstacks
+              stack_deletion_order: 30
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
 
@@ -440,6 +479,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              stack_deletion_order: 20
           tags: [ 'deploy' ]
 
       when: route53 is defined
@@ -468,7 +509,7 @@
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
-              stack_deletion_order: 1
+              stack_deletion_order: 10
           tags: [ 'deploy' ]
 
       when: ecs is defined
