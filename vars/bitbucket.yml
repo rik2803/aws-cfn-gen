@@ -1,4 +1,4 @@
-pipelone_build_env_ips_url: "https://confluence.atlassian.com/bitbucket/what-are-the-bitbucket-cloud-ip-addresses-i-should-use-to-configure-my-corporate-firewall-343343385.html"
+pipeline_build_env_ips_url: "https://confluence.atlassian.com/bitbucket/what-are-the-bitbucket-cloud-ip-addresses-i-should-use-to-configure-my-corporate-firewall-343343385.html"
 pipeline_build_env_ips:
   - "34.199.54.113/32"
   - "34.232.25.90/32"
