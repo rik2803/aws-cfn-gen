@@ -109,7 +109,7 @@ Resources:
     DependsOn:
       - "S3ALBAccessLogs{{ item.name }}"
       - "S3ALBAccessLogsBucketPolicy{{ item.name }}"
-  {% endif %}
+{% endif %}
     Properties:
       Name: "lb-{{ project }}-{{ item.name }}"
       Scheme: "{{ item.scheme }}"
