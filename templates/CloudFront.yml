@@ -231,6 +231,15 @@ Resources:
 {%         endif %}
 {%       endfor %}
 {%     endif %}
+{%     if origin.lambda_function_associations is defined %}
+            LambdaFunctionAssociations:
+{%       for lfa in origin.lambda_function_associations %}
+              - EventType: "{{ lfa.event_type }}"
+                LambdaFunctionARN: !Sub
+                  - ${LambdaArn}:${LambdaVersion}
+                  - { LambdaArn: "{{ lfa.lambda_function_arn }}", LambdaVersion: "{{ lfa.lambda_function_version }}" }
+{%       endfor %}
+{%     endif %}
 {%     if origin.allowed_http_methods is defined and origin.allowed_http_methods == 'options' %}
             AllowedMethods: ["GET", "HEAD", "OPTIONS"]
 {%     endif %}
