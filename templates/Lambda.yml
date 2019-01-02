@@ -12,6 +12,14 @@ Resources:
 {%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
 {%   set lambda_fn_name = (lambda.name.split('_'))[0] %}
 
+## TODO ##  LambdaExecutionRole{{ lambda_cfn_name }}:
+## Automatically create Execution Roles for the Lambda function granting
+## access to the resources the function will be addressing
+#                       execution_role_permissions:
+#                         - type: sns
+#                           export: LarsAccSNS-LarsEvents
+#                           actions:
+#                             - sns:publish
 
   {{ lambda_cfn_name }}:
     Type: AWS::Lambda::Function
@@ -56,6 +64,12 @@ Resources:
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
 
+  {{ lambda_cfn_name }}Version{{ version_id }}:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref {{ lambda_cfn_name }}
+
+
 {%   for liv in lambda.invoke_permissions | default([]) %}
 {%     if liv.type == 'predefined' and liv.name == 'logs' %}
   {{ lambda_cfn_name }}CWLogsInvokePermission:
@@ -97,4 +111,12 @@ Outputs:
     Description: "Lambda function {{ lambda_cfn_name }} Arn"
     Export:
       Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}Arn"
-{% endfor %}
+
+  {{ lambda_cfn_name }}VersionOutput:
+    Value: !GetAtt {{ lambda_cfn_name }}Version{{ version_id }}.Version
+    Description: "Lambda Version {{ lambda_cfn_name }}Version{{ version_id }} Version"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}VersionVersion"
+
+
+  {% endfor %}
