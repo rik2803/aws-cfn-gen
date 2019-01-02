@@ -7,13 +7,13 @@ Description: |
 Mappings:
   AWSRegionToAMI:
     eu-central-1:
-      AMIID: ami-0bb804e8cd910a664
+      AMIID: ami-0f552e0a86f08b660
     eu-west-1:
-      AMIID: ami-05b65c0f6a75c1c64
+      AMIID: ami-0627e141ce928067c
     eu-west-2:
-      AMIID: ami-0209769f0c963e791
+      AMIID: ami-01bee3897bba49d78
     eu-west-3:
-      AMIID: ami-06b685336aa497c15
+      AMIID: ami-0f4738fbeb53e6c3a
 
 Resources:
 
@@ -374,13 +374,13 @@ Resources:
 {%         if app.lb.targetgroup is defined %}
 {%           set import_string = cfn_project + 'LB' + app.lb.name + '-' + app.lb.targetgroup %}
 {%         else %}
-{%           set import_string = cfn_project + 'LB' + app.lb.name + '-tg' + ('-' + shortproject + '-' + (app.lb.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) %}
+{%           set import_string = cfn_project + 'LB' + app.lb.name +  '-' + ('tg-' + shortproject + '-' + (app.lb.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) %}
 {%         endif %}
           TargetGroupArn: !ImportValue "{{ import_string }}"
 {%       endif %}
 
   ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
-{%       if route53 is defined and route53.private_hosted_zones is defined %}
+{%       if route53 is defined and route53.private_hosted_zones is defined and app.domains is defined %}
 {%         for domain in app.domains %}
 {%           if domain.skiproute53 is not defined or not domain.skiproute53 %}
   Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
