@@ -109,62 +109,65 @@
 
   ### Collect info from other stacks
   ### Should remain after the VPC creation
-    - name: Get facts for the VPC stack
-      cloudformation_facts:
-        stack_name: "{{ referenced_stacks.VPCStackName }}"
-      register: vpcfacts
-      tags: [ 'always' ]
-      when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
-
-    - name: Dump vpcfacts
-      debug:
-        var: vpcfacts
-      tags: [ 'always' ]
-
-    - name: Set more variables
-      set_fact:
-        iam_stackname: "{{ cfn_project }}IAM"
-        vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
-        vpc_privatesubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
-        vpc_publicsubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
-        vpc_sg_app: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
-        vpc_sg_elb: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
-        vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
-        vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
-        vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
-        vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
-        vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
-        vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
-        vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
-
-      tags: [ 'always' ]
-
-
-    - name: VPCEndPoint
+    - name: Block for VPC
       block:
-        - name: Create CFN template from Ansible template for the VPCEndPoints
-          template:
-            src: "VPCEndpoint.yml"
-            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
-        - name: Put CFN template on s3
-          shell: |
-            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml" \
-                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
-          tags: [ 'deploy' ]
-        - name: Get presigned URL for the template on S3
-          shell: |
-            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
-          register: presign
-          tags: [ 'deploy' ]
-        - name: Create or Update the VPC Endpoints CloudFormation stack
-          cloudformation:
-            stack_name: "{{ cfn_project }}VPCEndpoint"
-            state: "present"
-            disable_rollback: false
-            template_url: "{{ presign.stdout }}"
-          tags: [ 'deploy' ]
+      - name: Get facts for the VPC stack
+        cloudformation_facts:
+          stack_name: "{{ referenced_stacks.VPCStackName }}"
+        register: vpcfacts
+        tags: [ 'always' ]
 
-      tags: [ 'vpc_endpoints', 'vpc' ]
+      - name: Dump vpcfacts
+        debug:
+          var: vpcfacts
+        tags: [ 'always' ]
+
+      - name: Set more variables
+        set_fact:
+          iam_stackname: "{{ cfn_project }}IAM"
+          vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
+          vpc_privatesubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
+          vpc_publicsubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
+          vpc_sg_app: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+          vpc_sg_elb: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
+          vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
+          vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
+          vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+          vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
+          vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
+          vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
+          vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
+
+        tags: [ 'always' ]
+
+
+      - name: VPCEndPoint
+        block:
+          - name: Create CFN template from Ansible template for the VPCEndPoints
+            template:
+              src: "VPCEndpoint.yml"
+              dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
+          - name: Put CFN template on s3
+            shell: |
+              aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml" \
+                        "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+            tags: [ 'deploy' ]
+          - name: Get presigned URL for the template on S3
+            shell: |
+              aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+            register: presign
+            tags: [ 'deploy' ]
+          - name: Create or Update the VPC Endpoints CloudFormation stack
+            cloudformation:
+              stack_name: "{{ cfn_project }}VPCEndpoint"
+              state: "present"
+              disable_rollback: false
+              template_url: "{{ presign.stdout }}"
+            tags: [ 'deploy' ]
+
+        tags: [ 'vpc_endpoints', 'vpc' ]
+
+      when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
     - name: ECR
       block:
@@ -219,6 +222,38 @@
 
       when: "ecsmgmt is defined"
       tags: [ 'ecsmgmt' ]
+
+
+    - name: Route53Delegation
+      block:
+        - name: Create template from Ansible template for Route53 Delegation
+          template:
+            src: "Route53Delegation.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53delegation-{{ item.hostedzone.id }}.yml"
+          with_items: "{{ route53_delegation | default([]) }}"
+        - name: Put CFN template for Route53 Delegation on s3
+          shell: |
+            aws s3 cp \
+               "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53delegation-{{ item.hostedzone.id }}.yml" \
+               "s3://{{ project }}-cfn-templates/cfn-{{ project }}-route53delegation-{{ item.hostedzone.id }}.yml"
+          with_items: "{{ route53_delegation | default([]) }}"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the Route53 Delegation template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-route53delegation-{{ item.hostedzone.id }}.yml"
+          with_items: "{{ route53_delegation | default([]) }}"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the Route53 Delegation CloudFormation stacks
+          cloudformation:
+            stack_name: "R53Delegation-{{ item.item.hostedzone.id }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ item.stdout }}"
+          with_items: "{{ presign.results }}"
+          tags: [ 'deploy' ]
+
+      tags: [ 'route53delegation' ]
 
     - name: IAM
       block:
@@ -483,7 +518,7 @@
               stack_deletion_order: 20
           tags: [ 'deploy' ]
 
-      when: route53 is defined
+      when: route53 is defined and private_hosted_zones is defined
       tags: [ 'createstack', 'route53', 'ecs' ]
 
     - name: ECS Cluster
