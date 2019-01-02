@@ -1,0 +1,140 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create one or more EFS filesystems
+
+
+Resources:
+  ECSClusterMgmt:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: "ecs-{{ project }}-mgmt"
+
+
+  AwsLogsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: awslogs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents', 'logs:DescribeLogStreams' ]
+                Resource: '*'
+
+  DeleteAndCreateTaggedStacksTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  TaskDeleteTaggedCloudformationStacks:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchDeleteAndCreateTaggedCloudformationStacks
+    Properties:
+      Family: "task-delete-tagged-cfn-stacks"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 512
+      Cpu: 256
+      ContainerDefinitions:
+        - Name: "delete-tagged-cfn-stacks"
+          Essential: "true"
+          Image: "tryxcom/aws-delete-tagged-cfn-stacks:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchDeleteAndCreateTaggedCloudformationStacks"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "delete-tagged-cfn-stacks"
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt DeleteAndCreateTaggedStacksTaskRole.Arn
+
+  TaskCreateTaggedCloudformationStacks:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchDeleteAndCreateTaggedCloudformationStacks
+    Properties:
+      Family: "task-create-deleted-tagged-cfn-stacks"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 512
+      Cpu: 256
+      ContainerDefinitions:
+        - Name: "create-deleted-tagged-cfn-stacks"
+          Essential: "true"
+          Image: "tryxcom/aws-create-deleted-tagged-cfn-stacks:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchDeleteAndCreateTaggedCloudformationStacks"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "create-deleted-tagged-cfn-stacks"
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt DeleteAndCreateTaggedStacksTaskRole.Arn
+
+  CloudWatchDeleteAndCreateTaggedCloudformationStacks:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "cw-{{ project }}-delete-tagged-cfn-stacks"
+      RetentionInDays: 14
+
+  DeleteAndCreateTaggedCloudformationStacksUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: create-and-delete-tagged-cfn-stacks
+      Policies:
+#        - PolicyDocument: !Sub '{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": "ecs:RunTask", "Condition": { "ArnEquals": { "ecs:cluster": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:ecs/ecs-{{ project }}-mgmt" } }, "Resource": [ "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-delete-tagged-cfn-stacks", "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-create-deleted-tagged-cfn-stacks" ] } ] }'
+        - PolicyDocument: !Sub |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "ecs:RunTask",
+                "Resource": [
+                  "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-delete-tagged-cfn-stacks",
+                  "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-create-deleted-tagged-cfn-stacks"
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": [
+                  "${AwsLogsExecutionRole.Arn}",
+                  "${DeleteAndCreateTaggedStacksTaskRole.Arn}"
+                ]
+              }
+              ]
+            }
+          PolicyName: "ECSRunTask"
+
+  KeyDeleteAndCreateTaggedCloudformationStacksUser:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref DeleteAndCreateTaggedCloudformationStacksUser
+
+
+Outputs:
+  AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
+    Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
+  SecretKeyDeleteAndCreateTaggedCloudformationStacksUser:
+    Value: !GetAtt KeyDeleteAndCreateTaggedCloudformationStacksUser.SecretAccessKey
