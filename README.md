@@ -167,15 +167,105 @@ target_account:
   region: "eu-central-1"
 ```
 
+### Create a _best practices_ VPC
+
+Example configuration:
+
+```
+vpc:
+  stackname: "MyVPCCFNStackName"
+  name: "MyVPC"
+  safe_ssh_01: "1.2.3.4/32"
+  safe_ssh_02: "1.2.3.5/32"
+  create_rds_subnets: true
+  nfs_for_sg_app: true
+  environment: "dev"
+  cidr: 10.121
+  nr_of_azs: 3
+  application: "myapp"
+```
+
+Running the environment setup with this config will create these resources following
+the AWS VPC Reference Architecture:
+
+* A public subnet `xxx.yyy.0.0/24` (i.e. for bastion)
+* A IGW
+* A NAT GW (only one, while not redundant, this saves on the bill)
+* 3 (or 2) Private subnets for applications
+  * `xxx.yyy.10.0/24`
+  * `xxx.yyy.11.0/24`
+  * `xxx.yyy.12.0/24`
+* 3 (or 2) Public subnets for ELB
+  * `xxx.yyy.20.0/24`
+  * `xxx.yyy.21.0/24`
+  * `xxx.yyy.22.0/24`
+* 3 (or 2) Public subnets for RDS (optional)
+  * `xxx.yyy.30.0/24`
+  * `xxx.yyy.31.0/24`
+  * `xxx.yyy.32.0/24`
+* 2 routing tables (private and public)
+* The necessary security groups to allow:
+  * `ssh` traffic to the public subnet from `safe_ssh_01` and
+    `safe_ssh_01`
+  * *HTTP* and *HTTPS* traffic from everywhere to the load balancer subnets
+  * *HTTP* and *HTTPS* traffic from the load balancer subnets to the
+    application subnets
+  * Database traffic (*MySQL*, *PostgreSQL* and *SQL Server*) from the
+    application subnets to the RDS suibnets
+  * (**optional**) NFS traffic from the application subnets
+
+#### `vpc.stackname`
+
+The name used to create the _CloudFormation_ stack. This name will also be used
+when referncing to the VPC stack in the `referenced_stacks` list.
+
+#### `vpc.name`
+
+The name of the VPC.
+
+#### `vpc.cidr`
+
+The first 2 bytes of the network CIDR for the VPC. Will be extended with
+`.0.0/16` to form a cpmplete CIDR.
+
+#### `vpc.safe_ssh_01` and `vpc.safe_ssh_01`
+
+Used to create a _Security Group_ for the public subnets that allow `ssh` traffic
+from a limited (range of) IP addresses.
+
+#### `vpc.create_rds_subnets`
+
+Should subnets and a subnet group be created for RDS?
+
+#### `vpc.nfs_for_sg_app`
+
+Should the applicaton subnets be allowed to use NFS (i.e. for `EFS`)
+
+#### `vpc.environment`
+
+The application environment (dev, acc, prd, ....). Used to tag resources.
+
+#### `vpc.application`
+
+The name of the application (dev, acc, prd, ....). Used to tag resources.
+
+#### `vpc.nr_of_azs`
+
+The number of AZs to create subnets in. Default is 2, is set to `3`, 3 subnets
+will be created for LB, private and RDS subnets.
+
+
 ### Create _Lambda_ functions
 
 Let's start with an example:
 
 ```yaml
+lambda_functions:
   - name: aws-lambda-s3-logs-to-cloudwatch
     handler: handler
     runtime: nodejs8.10
     role: S3ToCloudwatchLogsRole
+    vpc: true | false
     code:
       s3_bucket: "{{ lambda_function_bucket_name }}"
       s3_key: aws-lambda-s3-logs-to-cloudwatch-06b0c5cda86555d95f5939bedeca17830c81ff98.zip
@@ -230,11 +320,44 @@ as the _CloudFormation_ resource name.
 
 #### `code.s3_prefix`
 
+#### `vpc`
+
+The function will be in the (private) application subnets defined by `vpc_privatesubnet_az*` and
+the associated _Security Group_ will be `vpc_sg_app`.
+
 #### `environment`
 
 ##### `environment[n].name`
 
 ##### `environment[n].value`
+
+#### `invoke_permissions`
+
+Determine the principals that are allowed `lambda:InvokeFunction` for the
+Lambda function.
+
+#### `execution_role_permissions`
+
+Used to create a role that grants the required permissions to the Lambda.
+
+```yaml
+lambda_functions:
+  - name: aws-lambda-myFunction
+    ...
+    execution_role_permissions:
+      - type: sns
+        
+```
+
+### Create _Lambda_ functions in `us-east-1`
+
+Usage is identical to `lambda_functions`, but use `lambda_functions_cloudfront` instead.
+
+To make this possible, some other changes have to be done to the account configuration, this
+is taken care off by [https://github.com/rik2803/aws-account-config]():
+
+* Create Lambda bucket in all regions you use
+* Deply the lambda functions to those different buckets
 
 
 ### Creation of IAM related resources
@@ -300,6 +423,12 @@ iam_users:
       - S3DeployArtifactsAccess
     create_accesskeys: true
 ```
+
+##### `managed_policies`
+
+Before `0.1.5`, managed policies for `iam_users` were interpreted as a policy name and
+extended to `arn:aws:iam::123456789012:policy/<name>`. From version `0.1.5`, the full
+`arn` can also be specified.
 
 ### `ecs`: _Elastic Container Services_
 
@@ -587,7 +716,20 @@ for naming _CloudFormation_ resource logical names.
 
 #### `applicationconfig[n].target`
 
-Where the service will be running, `ecs` is currently the only target. For future extensions.
+Where and how the service will be running. Currently supports `ecs`
+and `ecs_scheduled_task`.
+
+* `ecs`: The container will run as a service, be always available and is monitored
+* `ecs_scheduled_task`: The task will be started much like a `cron` job is
+
+#### `applicationconfig[n].execution_schedule`
+
+Only used for `ecs_scheduled_task`.
+
+Default value: `cron(0 3 ** ? *)`
+
+See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html)
+for more information on the syntax.
 
 #### `applicationconfig[n].environment`
 
@@ -721,7 +863,7 @@ cloudfront_distributions:
     cfn_name: Apps
     cnames:
       - "apps.acme.com"
-    certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/1d2e5c3-2f5e-a8e8dw8-f2c5-5d42170bbe0"
+    certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxxxx"
     logging:
       prefix: apps
     origins_and_cachebehaviors:
@@ -730,7 +872,33 @@ cloudfront_distributions:
           - Origin
         path_pattern: "/*"
         allowed_http_methods: options
+        lambda_function_associations:
+          - event_type: viewer-request
+          - lambda_function_arn_export: Cfnname-
         priority: 999
+```
+
+```
+cloudfront_distributions:
+  - name: redirect-test
+    cfn_name: RedirectTest
+    cnames:
+      - "redirect.acme.com"
+    certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx"
+    origins_and_cachebehaviors:
+      - origin_name: "redirect-test"
+        forward_headers:
+          - Origin
+        priority: 100
+        origin_bucket_redirects:
+          - routing_rule_condition:
+              type: http_error_code_returned_equals
+              value: 404
+            redirect_rule:
+              hostname: www.acme.com
+              http_redirect_code: 301
+              protocol: https
+              replace_key_with: "index.html"
 ```
 
 #### Working with custom origins
@@ -835,6 +1003,38 @@ cloudfront_distributions:
         response_page_path: /index.html
 ```
 
+#### `origin_bucket_redirects`
+
+Add redirect statements to the origin bucket.
+
+Also see the [AWS documentation for routing rules](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-websiteconfiguration-routingrules-redirectrule.html) and the
+[AWS documentation for routing rule conditions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-websiteconfiguration-routingrules-routingrulecondition.html)
+for full details on the redirection.
+
+
+```
+cloudfront_distributions:
+  - name: redirect-test
+    ...
+    origins_and_cachebehaviors:
+      - origin_name: "redirect-test"
+        ...
+        origin_bucket_redirects:
+          - routing_rule_condition:
+              type: http_error_code_returned_equals
+              value: 404
+            redirect_rule:
+              hostname: www.acme.com
+              http_redirect_code: 301
+              protocol: https
+              replace_key_with: "index.html"
+```
+
+##### `routing_rule_condition`
+
+##### `redirect_rule`
+
+
 ### `dynamodb`
 
 An example:
@@ -879,4 +1079,130 @@ Allowed values:
 
 See the [AWS documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-billingmode) for more details.
 
+### `sns`
+
+```
+sns:
+  - display_name: mytopic
+    topic_name: mytopic
+    subscriptions:
+      - name: subscr01
+        endpoint_export: mysubscriptionexport
+        subscription_protocol: lambda
+```
+
+This creates:
+
+* an SNS topic
+* subscriptions for the topic (**optional**)
+* permissions to invoke a lambda function if the subscription protocol
+  is `lambda`
+
+#### `display_name`
+
+#### `topic_name`
+
+#### `subscriptions`
+
+##### `subscriptoins[n].name`
+
+##### `subscriptoins[n].endpoint_export`
+
+The name of a _CloudFormation_ export that contains the ARN to the resource
+that subscribes to the topic.
+
+##### `subscriptoins[n].protocol`
+
+### The `ecsmgmt` FARGATE ECS cluster
+
+When the property `ecsmgmt` is set, these resources will be created:
+
+* a ECS FARGATE cluster. This cluster is not backed by EC2 instances and
+  does not add to your AWS bill unless a FARGATE service is run
+* an execution role
+* a task role
+* 2 task definitions
+  * `tryxcom/aws-delete-tagged-cfn-stacks:latest`
+  * `tryxcom/aws-create-deleted-tagged-cfn-stacks:latest`
+
+See these github repositories for more information on what these
+images do:
+
+* [https://github.com/rik2803/aws-create-deleted-tagged-cfn-stacks]()
+* [https://github.com/rik2803/aws-delete-tagged-cfn-stacks]()
+
+### Route53 Delegation
+
+**Important**: This setup should be done only on the account where the
+               _hosted zones_ are defined.
+
+#### How it works
+
+```
++------------------------------------------------------+    +----------------------------+
+|         Route 53                      Tooling Account|    |        Application Account |
+| +--------------------+                               |    |                            |
+| |                    |                               |    |+--------------------------+|
+| |                    |                               |    ||  CloudFormation Template ||
+| |                    |    Lambda f()     SNS Queue   |    ||                          ||
+| |                    |   +----------+    +---------+ |    || +----------------------+ ||
+| | +----------------+ |   |          |    |    |    | |    || |                      | ||
+| | | R53 Record Set <-+---+          <----+    |    <-+----+--+Custom::CNAME Resource| ||
+| | +----------------+ |   |          |    |    |    | |    || |                      | ||
+| |                    |   +----------+    +---------+ |    || +----------------------+ ||
+| +--------------------+                               |    |+--------------------------+|
++------------------------------------------------------+    +----------------------------+
+```
+
+
+#### Setup the account that _hosts_ the Hosted Zone
+
+The Hosted Zone itself should already already be created in the target account
+(usually the _tooling_ account for the organization)
+
+This allows the AWS accounts which have been granted access to this functionality to
+remotely add records to a hosted zone by using a custom _CloudFormation_ resource.
+
+#### The configuration file
+
+This config file creates the above resources.
+
+An example:
+
+```
+route53_delegation:
+  hostedzone:
+    - domain: "acme.com"
+    - id: "XXXXXXXXXXX"
+    - account-id: "123456789012"
+  allowed_accounts:
+    - name: account description
+      account_id: 234567890123
+    - name: account description
+      account_id: 345678901234
+    - name: account description
+      account_id: 456789012345
+    - name: account description
+      account_id: 567890123456
+```
+
+* `hostedzone.domain`: The domain name of the hosted zone
+* `hostedzone.id`: The Route53 ID of the hosted zone
+* `hostedzone.account-id`: The AWS account-id that _owns_ the hosted zone
+* `allowed_accounts`: The list of AWS account IDs that are allowed to remotely
+  manage _Route 53_ record sets for the Hosted Zone using the CLI or CloudFormation
+
+This will create the following resources on the account that hosts the _Hosted Zone_:
+
+* An S3 bucket that holds the lambda function
+* A Lambda function from a file on the S3 bucket
+* The SNS topic that will trigger the Lambda function. This SNS topic is also required
+  when using the custom CloudFormation resource to manage the Route53 Record Sets.
+* An SNS Topic Policy
+* A service policy for Lambda to allow the Route53 actions
+* A role for CLI access
+
 ## Links
+
+* [https://github.com/rik2803/aws-create-deleted-tagged-cfn-stacks]()
+* [https://github.com/rik2803/aws-delete-tagged-cfn-stacks]()

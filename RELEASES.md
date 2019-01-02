@@ -1,5 +1,200 @@
 # Release notes
 
+## `0.1.5` (20180102)
+
+### Features
+
+#### `Route53Delegation`
+
+This functionality was moved from `aws-route53` to `aws-cfn-gen`.
+
+See the README file for more details.
+
+#### The `ecsmgmt` ECS cluster
+
+When the property `ecsmgmt` is set, these resources will be created:
+
+* a ECS FARGATE cluster. This cluster is not backed by EC2 instances and
+  does not add to your AWS bill unless a FARGATE service is run
+* an execution role
+* a task role
+* 2 task definitions
+  * `tryxcom/aws-delete-tagged-cfn-stacks:latest`
+  * `tryxcom/aws-create-deleted-tagged-cfn-stacks:latest`
+
+See these github repositories for more information on what these
+images do:
+
+* https://github.com/rik2803/aws-create-deleted-tagged-cfn-stacks
+* https://github.com/rik2803/aws-delete-tagged-cfn-stacks
+
+#### `loadbalancers`: Define a S3 trigger on the access log bucket
+
+When `access_logs` is defined and `state` is `enabled`,
+following resources are created:
+
+* A S3 bucket named `{{application }}-{{ env }}-accesslogs-{{ lbname }}`
+* An lifecycle rule that expires the access logs after `log_expiry_days` days
+* A bucket policy that allows the AWS ALB account in the current region to
+  write to that bucket
+* A `s3.ObjectCreated` trigger to a lambda function if
+  `accesslogs.s3_objectcreated_lambda_import` is defined. That *Lambda* function can, for example,
+  be used to ship the S3 logs to *CloudWatch*.
+
+#### `loadbalancers`: redirect rule
+
+This functionality was finally available in _CloudFormation_ and now
+allows the create a redirection rule in the loadbalancer configuration.
+
+#### `sns`: Introduction of the `SNS` definition
+
+```
+sns:
+  - display_name: mytopic
+    topic_name: mytopic
+    subscriptions:
+      - name: subscr01
+        endpoint_export: mysubscriptionexport
+        subscription_protocol: lambda
+```
+
+See the README file for more details.
+
+
+#### `vpc`: Introduction of the `VPC` definition
+
+```
+vpc:
+  stackname: "MyVPCCFNStackName"
+  name: "MyVPC"
+  safe_ssh_01: "1.2.3.4/32"
+  safe_ssh_02: "1.2.3.5/32"
+  create_rds_subnets: true
+  nfs_for_sg_app: true
+  environment: "dev"
+  cidr: 10.121
+  nr_of_azs: 3
+  application: "myapp"
+```
+
+See README.md for more details.
+
+#### `S3` and versioning
+
+Enable (`Enabled`) or disable (`Suspended`) bucket versioning.
+
+```yaml
+s3:
+  - name: mybucket
+    ...
+    versioning: Enabled
+```
+
+#### `cloudfront_distribution` and origin `S3` website bucket redirects
+
+```
+cloudfront_distributions:
+  - name: redirect-test
+    cfn_name: RedirectTest
+    cnames:
+      - "redirect.acme.com"
+    certificate_arn: "arn:aws:acm:us-east-1:{{ target_account.account_id }}:certificate/xxxxxxxx"
+    origins_and_cachebehaviors:
+      - origin_name: "redirect-test"
+        forward_headers:
+          - Origin
+        priority: 100
+        origin_bucket_redirects:
+          - routing_rule_condition:
+              type: http_error_code_returned_equals
+              value: 404
+            redirect_rule:
+              hostname: www.acme.com
+              http_redirect_code: 301
+              protocol: https
+              replace_key_with: "index.html"
+```
+
+#### `cloudfront_distribution` and `origin_path`
+
+Add the `origin_path` property to the origin configuration.
+
+This is path that CloudFront uses to request content from an S3 bucket or custom origin. The combination of the DomainName and OriginPath properties must resolve to a valid path. The value must start with a slash mark (/) and cannot end with a slash mark.
+
+See
+[here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-origin.html#cfn-cloudfront-distribution-origin-originpath)
+for more information.
+
+#### `cloudfront_distribution` and `LambdaCloudfront` and associated functions
+
+Allow Lambda functions to be associated with a cloudfront distribution. This requires
+Lambda functions to be deployed to `us-east-1`.
+
+#### `DynamoDB` backup
+
+```yaml
+dynamodb:
+  - table_name: mytable
+    backup: true
+    ...
+```
+
+#### `DynamoDB` billing mode
+
+```
+dynamodb:
+  - table_name: mytable
+    ...
+    billing_mode: PROVISIONED | PAY_PER_REQUEST
+    provisioned_throughput:
+      read_capacity_units: 5
+      write_capacity_units: 5
+
+```
+
+#### 'lambda': Add `vpc` property to configure Lambda inside a VPC
+
+```
+lambda_functions:
+  - name: aws-lambda-s3-logs-to-cloudwatch
+    vpc: true
+```
+
+The function will be in the (private) application subnets defined by `vpc_privatesubnet_az*` and
+the associated _Security Group_ will be `vpc_sg_app`.
+
+### Improvements
+
+#### `lambda`: Allow the creation of multiple Lambda functions from the same code
+
+Sometimes, the same function needs to be used more than once, for example if there are different
+triggers or a different set onf environment variables that influence the execution and the result
+of the function.
+
+To achieve this, create identical blocks (with different envvars or whatever changes), and the
+`name` should have a suffix that starts with un underscore.
+
+If the name contains an underscore, the part before the underscore is used to determine
+the function name, and the complete string is used, after some _CFN_ related transformation,
+as the _CloudFormation_ resource name.
+
+#### Specify managed policies for `IAM` users with full _arn_ or with policy name only
+
+Before `0.1.5`, managed policies for `iam_users` were interpreted as a policy name and
+extended to `arn:aws:iam::123456789012:policy/<name>`. From version `0.1.5`, the full
+`arn` can also be specified.
+
+#### `ECS`: Use `ecsEventsRole` as default role for scheduled tasks
+
+Use `role/ecsEventsRole` if `task_role_arn` is not specified for a `ecs_scheduled_task`.
+
+### Bugfixes
+
+#### `s3` bucket policies
+
+Do not create a bucket policy if no policy doment is defined in the project configuration.
+
+
 ## `0.1.4` (20181017)
 
 **Downtime Warning**: Using this version for the first time will cause the ECS
