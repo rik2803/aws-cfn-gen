@@ -380,7 +380,7 @@ Resources:
 {%       endif %}
 
   ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
-{%       if route53 is defined %}
+{%       if route53 is defined and route53.private_hosted_zones is defined %}
 {%         for domain in app.domains %}
 {%           if domain.skiproute53 is not defined or not domain.skiproute53 %}
   Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
@@ -403,9 +403,10 @@ Resources:
 {%             if app.lb.type is defined and app.lb.type == 'public' and public_hosted_zone.cfn_name == domain.cfn_name %}
 {%               if domain.listener_rule_host_header != domain.name %}
 {%                 if domain.skiproute53 is not defined or not domain.skiproute53 %}
-  ### Do not create RecordSet if it is same as domainname
-  ### AWS::Route53::RecordSet for {{ app.name }} in public hosted zones
-  Route53PublicRecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
+{# Do not create RecordSet if it is same as domainname #}
+### AWS::Route53::RecordSet for {{ app.name }} in public hosted zones
+{% set cfn_name = domain.listener_rule_host_header | replace('_', ' ') | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '')  %}
+  Route53PublicRecordSet{{ cfn_name }}:
     Type: Custom::CNAME
     Properties:
       ServiceToken: {{ public_hosted_zone.sns_arn }}
