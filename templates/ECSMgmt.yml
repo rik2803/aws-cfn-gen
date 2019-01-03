@@ -51,8 +51,8 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       NetworkMode: awsvpc
-      Memory: 512
-      Cpu: 256
+      Memory: 1024
+      Cpu: 512
       ContainerDefinitions:
         - Name: "delete-tagged-cfn-stacks"
           Essential: "true"
@@ -75,8 +75,8 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       NetworkMode: awsvpc
-      Memory: 512
-      Cpu: 256
+      Memory: 1024
+      Cpu: 512
       ContainerDefinitions:
         - Name: "create-deleted-tagged-cfn-stacks"
           Essential: "true"

@@ -64,10 +64,11 @@ Resources:
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
 
-  {{ lambda_cfn_name }}Version{{ version_id }}:
-    Type: AWS::Lambda::Version
-    Properties:
-      FunctionName: !Ref {{ lambda_cfn_name }}
+# TODO: Version creation fails when function is unchanged
+#  {{ lambda_cfn_name }}Version{{ version_id }}:
+#    Type: AWS::Lambda::Version
+#    Properties:
+#      FunctionName: !Ref {{ lambda_cfn_name }}
 
 
 {%   for liv in lambda.invoke_permissions | default([]) %}
@@ -112,11 +113,12 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}Arn"
 
-  {{ lambda_cfn_name }}VersionOutput:
-    Value: !GetAtt {{ lambda_cfn_name }}Version{{ version_id }}.Version
-    Description: "Lambda Version {{ lambda_cfn_name }}Version{{ version_id }} Version"
-    Export:
-      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}VersionVersion"
+# TODO: Version creation fails when function is unchanged
+#  {{ lambda_cfn_name }}VersionOutput:
+#    Value: !GetAtt {{ lambda_cfn_name }}Version{{ version_id }}.Version
+#    Description: "Lambda Version {{ lambda_cfn_name }}Version{{ version_id }} Version"
+#    Export:
+#      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}VersionVersion"
 
 
-  {% endfor %}
+{% endfor %}
