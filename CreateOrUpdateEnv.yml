@@ -246,7 +246,7 @@
           tags: [ 'deploy' ]
         - name: Create or Update the Route53 Delegation CloudFormation stacks
           cloudformation:
-            stack_name: "R53Delegation-{{ item.item.hostedzone.id }}"
+            stack_name: "route53-delegation-tooling-{{ item.item.hostedzone.domain | replace('.', '-') }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ item.stdout }}"
