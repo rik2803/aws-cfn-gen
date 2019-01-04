@@ -675,6 +675,10 @@ element in the `applicationconfig` list contains the application description.
       desiredcount: 2
       healthcheckgraceperiodseconds: 3600
       task_role_arn: "arn:aws:iam::123456789012:role/ECSTaskRole"
+      ulimits:
+        - name: nofile
+          hard_limit: 102400
+          soft_limit: 102400
     lb:
       name: ALBExt
       ### Can be public or private, determines if DNS entries are created in the public
@@ -774,6 +778,46 @@ For a list of vCPUs per instance type, look [here](http://aws.amazon.com/ec2/ins
 ##### `application[n].ecs.desiredcount`
 
 The number of instances to start and maintain for that service.
+
+##### `application[n].ecs.ulimits`
+
+```
+  - name: "servicename"
+    cfn_name: ServiceName
+    target: "ecs"
+    ...
+    ecs:
+      image: "123456789012.dkr.ecr.eu-central-1.amazonaws.com/example/service:latest"
+      ...
+      ulimits:
+        - name: nofile
+          hard_limit: 102400
+          soft_limit: 102400
+
+```
+
+`ulimits` is a list of _dicts_ with this structure:
+
+* `name`: The name of the `ulimit` property to change. Must be one of:
+  * `core`
+  * `cpu`
+  * `data`
+  * `fsize`
+  * `locks`
+  * `memlock`
+  * `msgqueue`
+  * `nice`
+  * `nofile`
+  * `nproc`
+  * `rss`
+  * `rtprio`
+  * `rttime`
+  * `sigpending`
+  * `stack`
+* `hard_limit`
+* `soft_limit`
+
+See also [here](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_Ulimit.html).
 
 ##### `application[n].ecs.deploymentconfiguration`
 

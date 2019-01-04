@@ -321,6 +321,14 @@ Resources:
               Protocol: {{ portmapping.protocol | default('tcp') }}
 {%       endfor %}
 {%     endif %}
+{%     if app.ecs.ulimits is defined %}
+          Ulimits:
+{%       for ulimit in app.ecs.ulimits %}
+            - Name: {{ ulimit.name }}
+              SoftLimit: {{ ulimit.soft_limit }}
+              HardLimit: {{ ulimit.hard_limit }}
+{%       endfor %}
+{%     endif %}
           Environment:
             - Name: Application
               Value: "{{ project }}"
