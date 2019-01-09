@@ -557,9 +557,13 @@ On of these strings:
 
 ##### `redirects[n].path`  (optional, default is original path)
 
-##### `redirects[n].skiproute53`
+##### `redirects[n].skiproute53` and `redirects[n].skiproute53public` and `redirects[n].skiproute53private`
 
-Skip the creation of a *Route 53* record.
+Skip the creation of a *Route 53* record if `true`.
+
+* `redirects[n].skiproute53`: Skip in both public and provate hosted zone
+* `redirects[n].skiproute53public`: Skip in public hosted zone
+* `redirects[n].skiproute53private`: skip in private hosted zone
 
 
 ### `route53`

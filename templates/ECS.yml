@@ -387,10 +387,13 @@ Resources:
           TargetGroupArn: !ImportValue "{{ import_string }}"
 {%       endif %}
 
-  ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
-{%       if route53 is defined and route53.private_hosted_zones is defined and app.domains is defined %}
+{%       if app.domains is defined and route53 is defined %}
 {%         for domain in app.domains %}
-{%           if domain.skiproute53 is not defined or not domain.skiproute53 %}
+{%           for private_hosted_zone in route53.private_hosted_zones | default([]) %}
+{%             if private_hosted_zone.cfn_name == domain.cfn_name %}
+{%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
+{%                 if domain.skiproute53private is not defined or not domain.skiproute53private %}
+### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
   Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -401,7 +404,10 @@ Resources:
       TTL: '300'
       ResourceRecords:
         - !ImportValue "{{ cfn_project }}LB{{ app.lb.name}}-{{ app.lb.name }}DNS"
-{%           endif %}
+{%                 endif %}
+{%               endif %}
+{%             endif %}
+{%           endfor %}
 {%         endfor %}
 {%       endif %}
 
@@ -411,6 +417,7 @@ Resources:
 {%             if app.lb.type is defined and app.lb.type == 'public' and public_hosted_zone.cfn_name == domain.cfn_name %}
 {%               if domain.listener_rule_host_header != domain.name %}
 {%                 if domain.skiproute53 is not defined or not domain.skiproute53 %}
+{%                   if domain.skiproute53public is not defined or not domain.skiproute53public %}
 {# Do not create RecordSet if it is same as domainname #}
 ### AWS::Route53::RecordSet for {{ app.name }} in public hosted zones
 {% set cfn_name = domain.listener_rule_host_header | replace('_', ' ') | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '')  %}
@@ -421,6 +428,7 @@ Resources:
       Source: {{ domain.listener_rule_host_header }}.
       Target: !ImportValue "{{ cfn_project }}LB{{ app.lb.name }}-{{ app.lb.name }}DNS"
       RecordType: CNAME
+{%                   endif %}
 {%                 endif %}
 {%               endif %}
 {%             endif %}
