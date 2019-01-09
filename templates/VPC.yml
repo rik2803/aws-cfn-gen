@@ -390,6 +390,7 @@ Resources:
     DependsOn:
       - RouteTablePublicSubnet
       - VPC
+      - IGWAttachToVPC
     Properties:
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref IGW

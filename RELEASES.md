@@ -4,6 +4,12 @@
 
 ### Features
 
+#### `route53`
+
+* Add test on domain match when creating Route53 RecordSets in private hosted zones
+* Introduce `skiproute53public` and `skiproute53private`
+
+
 #### `Route53Delegation`
 
 This functionality was moved from `aws-route53` to `aws-cfn-gen`.
