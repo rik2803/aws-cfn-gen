@@ -166,8 +166,10 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-      - Type: forward
-        TargetGroupArn: !Ref 'TGDefaultHTTP'
+      - Type: redirect
+        RedirectConfig:
+          StatusCode: 'HTTP_301'
+          Protocol: 'HTTPS'
       LoadBalancerArn: !Ref 'LB{{ item.name }}'
       Port: '80'
       Protocol: HTTP
