@@ -525,7 +525,7 @@ loadbalancers:
     ...
     redirects:
       - host_header: "acme.com"
-        path-pattern: "/"
+        path_pattern: "/"
         priority: 200
         status_code: HTTP_302
         path: /go_here
@@ -540,7 +540,7 @@ A hostname that will trigger the redirect.
 
 ##### `redirects[n].path_pattern` (optional)
 
-A `path-pattern` strings that will trigger the redirect.
+A `path_pattern` strings that will trigger the redirect.
 
 ##### `redirects[n].priority` (required)
 
