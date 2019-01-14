@@ -1,5 +1,19 @@
 # Release notes
 
+## `0.1.6` (20180115)
+
+### Features
+
+#### `route53`
+
+Do not create _RecordSet_ when domain is same as _Route53_
+hosted zone name. This would otherwise fail, because it
+should be a APEX RecordSet.
+
+#### `alb`
+
+Add redirect rule as default action for HTTP listener for external loadbalancers.
+
 ## `0.1.5` (20180102)
 
 ### Features
