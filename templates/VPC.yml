@@ -17,11 +17,17 @@ Description: |
 
 Conditions:
   3AZs: !Equals [ "{{ vpc.nr_of_azs }}", "3" ]
-  RDSSubnets: !Equals [ "{{ vpc.create_rds_subnets }}", "True" ]
-  NFSForSGAPP: !Equals [ "{{ vpc.nfs_for_sg_app }}", "True" ]
+  RDSSubnets: !Or
+    - !Equals [ "{{ vpc.create_rds_subnets }}", "True" ]
+    - !Equals [ "{{ vpc.create_rds_subnets }}", "true" ]
+  NFSForSGAPP: !Or
+    - !Equals [ "{{ vpc.nfs_for_sg_app }}", "True" ]
+    - !Equals [ "{{ vpc.nfs_for_sg_app }}", "true" ]
   RDSSubnetsAnd3AZs: !And
     - !Equals [ "{{ vpc.nr_of_azs }}", "3" ]
-    - !Equals [ "{{ vpc.create_rds_subnets }}", "True" ]
+    - !Or
+        - !Equals [ "{{ vpc.create_rds_subnets }}", "True" ]
+        - !Equals [ "{{ vpc.create_rds_subnets }}", "true" ]
   SafeSSH: !And
     - !Not [!Equals ["{{ vpc.safe_ssh_01 }}", "0.0.0.0/0"]]
     - !Not [!Equals ["{{ vpc.safe_ssh_02 }}", "0.0.0.0/0"]]
