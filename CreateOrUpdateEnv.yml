@@ -70,6 +70,11 @@
     - "{{ configfile }}"
 
   tasks:
+    - name: Get aws-cfn-gen tag using git describe --tags
+      shell: |
+        git describe --tags
+      register: git_tag
+      tags: [ 'always' ]
     - name: Facts block
       block:
         - name: Convert project name to alpha numeric camel case
@@ -78,6 +83,7 @@
         - set_fact:
             project: "{{ project.name }}"
             shortproject: "{{ project.shortname | default(project.name) }}"
+            gittag: "{{ git_tag.stdout | default('NA') }}"
       tags: [ 'always' ]
 
     - name: VPC
@@ -102,6 +108,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       tags: [ 'vpc' ]
@@ -163,6 +171,8 @@
               state: "present"
               disable_rollback: false
               template_url: "{{ presign.stdout }}"
+              tags:
+                aws_cfn_gen_tag: "{{ gittag }}"
             tags: [ 'deploy' ]
 
         tags: [ 'vpc_endpoints', 'vpc' ]
@@ -191,6 +201,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: "ecr is defined"
@@ -218,6 +230,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: "ecsmgmt is defined"
@@ -250,6 +264,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ item.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
 
@@ -277,6 +293,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: awsroles is defined or managed_policies is defined
@@ -310,6 +328,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: "lambda_functions is defined"
@@ -344,6 +364,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: "lambda_functions_cloudfront is defined"
@@ -371,6 +393,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: "efs is defined"
@@ -400,6 +424,7 @@
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order: 0
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: "dynamodb is defined"
@@ -433,6 +458,7 @@
             template_url: "{{ item.stdout }}"
             tags:
               stack_deletion_order: 30
+              aws_cfn_gen_tag: "{{ gittag }}"
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
 
@@ -460,6 +486,8 @@
           state: "present"
           disable_rollback: false
           template_url: "{{ presign.stdout }}"
+          tags:
+            aws_cfn_gen_tag: "{{ gittag }}"
         tags: [ 'deploy' ]
 
       when: "sns is defined"
@@ -487,6 +515,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: "cloudfront_distributions is defined"
@@ -516,6 +546,7 @@
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order: 20
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: route53 is defined and route53.private_hosted_zones is defined
@@ -545,6 +576,7 @@
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order: 10
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: ecs is defined
@@ -572,6 +604,8 @@
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
       when: s3 is defined
