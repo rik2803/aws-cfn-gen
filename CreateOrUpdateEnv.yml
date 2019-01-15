@@ -432,7 +432,7 @@
             disable_rollback: false
             template_url: "{{ item.stdout }}"
             tags:
-              stack_deletion_order: 30
+              stack_deletion_order: "{{ stack_deletion_order.alb | default('30') }}"
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
 
@@ -515,7 +515,7 @@
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
-              stack_deletion_order: 20
+              stack_deletion_order: "{{ stack_deletion_order.route53 | default('20') }}"
           tags: [ 'deploy' ]
 
       when: route53 is defined and route53.private_hosted_zones is defined
@@ -544,7 +544,7 @@
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
-              stack_deletion_order: 10
+              stack_deletion_order: "{{ stack_deletion_order.ecs | default('10') }}"
           tags: [ 'deploy' ]
 
       when: ecs is defined
