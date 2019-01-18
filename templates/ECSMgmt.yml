@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create one or more EFS filesystems
+  Create ECS Cluster for managements tasks (Fargate)
 
 
 Resources:
