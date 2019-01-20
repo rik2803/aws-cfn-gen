@@ -255,6 +255,59 @@ The number of AZs to create subnets in. Default is 2, is set to `3`, 3 subnets
 will be created for LB, private and RDS subnets.
 
 
+### The _Bastion_ host
+
+An example:
+
+```yaml
+bastion:
+  instance_type: t2.micro
+  route53_sns_topic: arn:aws:sns:eu-central-1:123456789012:RequestRoute53CNAMEZ123456789012
+  hostname: "bastion-myaccount"
+  domain: "acme.com"
+  keypair_name: "id_rsa_myaccount"
+  pubkeys:
+    - owner: user01
+      key: ssh-rsa ........
+    - owner: user02
+      key: ssh-rsa ........
+```
+
+When this configuration is present in the configuration file, and the `aws-cfn-gen` stack is run, these resources will be created:
+
+* An EC2 instance
+* A Route53 RecordSet (optional)
+
+#### `bastion.instance_type` (Optional, default is `t2.micro`)
+
+#### `bastion.route53_sns_topic` (Optional)
+
+When set, a _Custom_ resource will be created that triggers the creation of a _Route53 RecordSet_
+on the AWS account where the domain is managed. The current account needs to have permission to
+post events to the SNS topic.
+
+If this property is not defined, not _Route53 RecordSet_ will be created.
+
+#### `bastion.hostname` (Optional)
+
+Only required if `bastion.route53_sns_topic` is set.
+
+#### `bastion.domain` (Optional)
+
+Only required if `bastion.route53_sns_topic` is set.
+
+#### `keypair_name`
+
+The name of an existing SSH key pair.
+
+#### `bastion.pubkeys` (Optional)
+
+A list of dictionaries with these kays:
+
+* `user`: The name of the owner of the SSH public key
+* `key`: The SSH public key string
+
+
 ### Create _Lambda_ functions
 
 Let's start with an example:

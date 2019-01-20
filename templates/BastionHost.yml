@@ -1,0 +1,74 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create a Bastion host
+
+
+Resources:
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: false
+      ImageId: ami-43eec3a8 # Amazon Linux 2 ami for eu-central-1
+      InstanceType: {{ bastion.instance_type | default('t2.micro') }}
+      KeyName: "{{ bastion.keypair_name }}"
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          SubnetId: {{ vpc_publicsubnet }}
+          GroupSet:
+            - {{ vpc_sg_dmz }}
+      UserData:
+        Fn::Base64: |
+          Content-Type: multipart/mixed; boundary="===============8943416319660996992=="
+          MIME-Version: 1.0
+
+          --===============8943416319660996992==
+          Content-Type: text/x-shellscript; charset="us-ascii"
+          MIME-Version: 1.0
+          Content-Transfer-Encoding: 7bit
+          Content-Disposition: attachment; filename="install_sw.cloudinit"
+
+          #!/bin/bash -xe
+
+          yum install -y tcpdump mariadb telnet python-pip
+          yum update -y
+
+{% if bastion.pubkeys is defined %}
+          --===============8943416319660996992==
+          Content-Type: text/cloud-config; charset="us-ascii"
+          MIME-Version: 1.0
+          Content-Transfer-Encoding: 7bit
+          Content-Disposition: attachment; filename="ec2_user_pubkeys.cloudinit"
+
+          #cloud-config
+          runcmd:
+{%   for key in bastion.pubkeys %}
+            - echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
+            - echo '{{ key.key }}' >> /tmp/authorized_keys
+{%   endfor %}
+{% endif %}
+      Tags:
+        - Key: "Name"
+          Value: "Bastion host"
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+{% if bastion.route53_sns_topic is defined %}
+  RecordSetForBastionHost:
+    Type: Custom::IPv4
+    Properties:
+      ServiceToken: "{{ bastion.route53_sns_topic }}"
+      Source: "{{ bastion.hostname }}.{{ bastion.domain }}"
+      Target: !GetAtt BastionHost.PublicIp
+      RecordType: A
+{% endif %}
+
+Outputs:
+  Application:
+    Value: !Ref BastionHost
+    Description: The Bastion Host
+    Export:
+      Name: !Sub "${AWS::StackName}-BastionHost"
