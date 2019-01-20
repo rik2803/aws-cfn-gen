@@ -205,6 +205,8 @@
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
+              stack_deletion_order: 10
+
           tags: [ 'deploy' ]
 
       when: "bastion is defined"
