@@ -34,7 +34,7 @@ Resources:
           yum install -y tcpdump mariadb telnet python-pip
           yum update -y
 
-{% if bastion.pubkeys is defined %}
+{% if bastion.pubkeys is defined or bastion.hostkeys is defined %}
           --===============8943416319660996992==
           Content-Type: text/cloud-config; charset="us-ascii"
           MIME-Version: 1.0
@@ -45,8 +45,11 @@ Resources:
           runcmd:
 {%   for key in bastion.pubkeys %}
             - echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
-            - echo '{{ key.key }}' >> /tmp/authorized_keys
 {%   endfor %}
+{%   for key in bastion.hostkeys %}
+            - printf -- "{{ key.key }}" > {{ key.location }}
+{%   endfor %}
+
 {% endif %}
       Tags:
         - Key: "Name"

@@ -267,10 +267,14 @@ bastion:
   domain: "acme.com"
   keypair_name: "id_rsa_myaccount"
   pubkeys:
-    - owner: user01
-      key: ssh-rsa ........
-    - owner: user02
-      key: ssh-rsa ........
+    - owner: "user01"
+      key: "ssh-rsa ........""
+    - owner: "user02"
+      key: "ssh-rsa ........""
+  hostkeys:
+    - type: "ecdsa-sha2-nistp256"
+      location: "/etc/ssh/ssh_host_ecdsa_key"
+      key: "-----BEGIN EC PRIVATE KEY-----\\nMHcCAQEEIA\\nANOTHERLINE\\n...."
 ```
 
 When this configuration is present in the configuration file, and the `aws-cfn-gen` stack is run, these resources will be created:
@@ -302,11 +306,23 @@ The name of an existing SSH key pair.
 
 #### `bastion.pubkeys` (Optional)
 
-A list of dictionaries with these kays:
+A list of dictionaries with these keys:
 
 * `user`: The name of the owner of the SSH public key
 * `key`: The SSH public key string
 
+#### `bastion.hostkeys` (Optional)
+
+To avoid having to accept the host's host key after every re-creation
+of the bastion host, you can save the host keys and have them re-created
+when the instance is re-instantiated.
+
+The value for `bastion.hostkeys` is a list of dictionaries with these keys:
+
+* `type`: The type of the host key (i.e. `ecdsa-sha2-nistp256`)
+* `location`: The full path of the file for the private key
+* `key`: The SSH private key string, on one line, add newlines
+  with `\\n`
 
 ### Create _Lambda_ functions
 
