@@ -70,6 +70,29 @@
     - "{{ configfile }}"
 
   tasks:
+    - name: Set all stack_deletion_order variables
+      set_fact:
+        stack_deletion_order_bastionhost: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).bastionhost | default('10') }}{% endif %}"
+        stack_deletion_order_route53: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).route53 | default('20') }}{% endif %}"
+        stack_deletion_order_ecs: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).ecs | default('10') }}{% endif %}"
+        stack_deletion_order_alb: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb | default('30') }}{% endif %}"
+        stack_deletion_order_dynamodb: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb | default('0') }}{% endif %}"
+      tags: [ 'always' ]
+
+    - name: Dump Stack Deletion facts
+      block:
+        - debug:
+            var: stack_deletion_order_bastionhost
+        - debug:
+            var: stack_deletion_order_route53
+        - debug:
+            var: stack_deletion_order_ecs
+        - debug:
+            var: stack_deletion_order_alb
+        - debug:
+            var: stack_deletion_order_dynamodb
+      tags: [ 'always' ]
+
     - name: Get aws-cfn-gen tag using git describe --tags
       shell: |
         git describe --tags
@@ -205,8 +228,7 @@
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
-              stack_deletion_order: 10
-
+              stack_deletion_order: "{{ stack_deletion_order_bastionhost }}"
           tags: [ 'deploy' ]
 
       when: "bastion is defined"
@@ -456,7 +478,7 @@
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
-              stack_deletion_order: 0
+              stack_deletion_order:  "{{ stack_deletion_order_dynamodb }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
@@ -490,7 +512,7 @@
             disable_rollback: false
             template_url: "{{ item.stdout }}"
             tags:
-              stack_deletion_order: "{{ (stack_deletion_order | default({})).alb | default('30') }}"
+              stack_deletion_order: "{{ stack_deletion_order_alb }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
@@ -578,7 +600,7 @@
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
-              stack_deletion_order: "{{ (stack_deletion_order | default({})).route53 | default('20') }}"
+              stack_deletion_order:  "{{ stack_deletion_order_route53 }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
@@ -608,7 +630,7 @@
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
-              stack_deletion_order: "{{ (stack_deletion_order | default({})).ecs | default('10') }}"
+              stack_deletion_order:  "{{ stack_deletion_order_ecs }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
 
