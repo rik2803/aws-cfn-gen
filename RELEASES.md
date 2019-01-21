@@ -1,5 +1,15 @@
 # Release notes
 
+## `0.1.7` (20180121)
+
+### Features
+
+#### `bastionhost`: Create Bastion Host
+
+#### `stack_deletion_order`: Secure `prd` environments
+
+Set `stack_deletion_oder` to `0` if `env == 'prd'`
+
 ## `0.1.6` (20180115)
 
 ### Features
