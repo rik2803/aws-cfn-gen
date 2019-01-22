@@ -24,6 +24,9 @@ Resources:
   {{ lambda_cfn_name }}:
     Type: AWS::Lambda::Function
     Properties:
+{%   if lambda.function_name is defined %}
+      FunctionName: {{ lambda.function_name }}
+{%   endif %}
 {%   if 'java' in lambda.runtime %}
       Handler: "{{ lambda_fn_name }}.{{ lambda.class_name | default('Handler') }}::{{ lambda.handler }}"
 {%   else %}
