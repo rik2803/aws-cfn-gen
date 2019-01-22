@@ -16,7 +16,7 @@ Resources:
       TopicName: "{{ topic.topic_name }}"
 {%   endif %}
 
-{%   for subscription in topic.subscriptions %}
+{%   for subscription in topic.subscriptions | default([]) %}
 {%     set subscr_cfn_name = subscription.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
   SNSSubscr{{ subscr_cfn_name }}:
     DependsOn:
