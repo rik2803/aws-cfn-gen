@@ -426,6 +426,35 @@
       when: "lambda_functions_cloudfront is defined"
       tags: [ 'lambdacloudfront' ]
 
+    - name: CloudWatch
+      block:
+        - name: Create CFN template from Ansible template for CloudWatch resources
+          template:
+            src: "CW.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cw.yml"
+        - name: Put CloudWatch CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cw.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-cw.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the CloudWatch template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-cw.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the CloudWatch CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}CW"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+
+      when: "cw is defined"
+      tags: [ 'cw' ]
+
     - name: EFS
       block:
         - name: Create CFN template from Ansible template for the EFS Filesystems

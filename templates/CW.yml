@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create CloudWatch related resources
+
+Resources:
+
+  ### IAM Managed Policy and Role for the Lambda function that creates
+  ### log group subscription and sets log stream retention
+  CWLogGroupSubscriptionsPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: CWLogGroupSubscriptions
+      Description: "Managed policy CWLogGroupSubscriptions for LarsTst"
+      PolicyDocument:
+        Fn::Sub: >-
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Sid": "AllowCWLogGroupSubscriptions",
+                "Effect": "Allow",
+                "Action": [
+                  "logs:DescribeLogGroups",
+                  "logs:putSubscriptionFilter",
+                  "logs:PutRetentionPolicy"
+                ],
+                "Resource": ["arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"]
+              }
+            ]
+          }
+
+  LambdaCWLogsSubscriptionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaCWLogsSubscriptionRole
+      AssumeRolePolicyDocument: >-
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Sid": "",
+              "Effect": "Allow",
+              "Principal": { "Service": "lambda.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Ref CWLogGroupSubscriptionsPolicy
+
+  ### Lambda function to ship CW Logs to whatever destination
+  AwsLambdaCWLogsSubscription:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: "cw-logs-new-stream-to-lambda.lambda_handler"
+      Role: !GetAtt LambdaCWLogsSubscriptionRole.Arn
+      Environment:
+        Variables:
+{% if cw.logshipper_lambda_function_arn_import is defined %}
+          LAMBDA_FUNCTION_ARN: !ImportValue "{{ cw.logshipper_lambda_function_arn_import }}"
+{% elif cw.logshipper_lambda_function_arn is defined %}
+          LAMBDA_FUNCTION_ARN: "{{ cw.logshipper_lambda_function_arn }}"
+{% endif %}
+          RETENTION_IN_DAYS: "{{ cw.log_group_settings.retention_in_days | default('14') }}"
+          FILTER_PATTERN: "{{ cw.log_group_settings.filter_pattern | default('-DEBUG') }}"
+      Code:
+        S3Bucket: "{{ lambda_function_bucket_name }}"
+        S3Key: "{{ cw.auto_config_log_group_lambda_s3_key }}"
+      Runtime: python3.7
+      Tags:
+        - Key: Application
+          Value: "{{ application | default('NA') }}"
+        - Key: Environment
+          Value: "{{ env  | default('NA') }}"
+        - Key: Customer
+          Value: "{{ customer | default('NA') }}"
+
+  AwsLambdaCWLogsSubscriptionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AwsLambdaCWLogsSubscription.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CWEventRuleCWCreateLogGroup.Arn
+
+
+  ### CW Event Rule to send CW CreateLogGroup events to a Lambda function
+  CWEventRuleCWCreateLogGroup:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Emit event whenever a CreateLogGroup API call is made"
+      EventPattern: '{ "source": [ "aws.logs" ], "detail-type": [ "AWS API Call via CloudTrail" ], "detail": { "eventSource": [ "logs.amazonaws.com" ], "eventName": [ "CreateLogGroup" ] } }'
+      Name: CWCreateLogGroup
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt AwsLambdaCWLogsSubscription.Arn
+          Id: AwsLambdaCWLogsSubscription
+
+  ### CW Event Rules
+{% for event_rule in cw.event_rules | default([]) %}
+  CWEventRule{{ event_rule.name }}:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "{{ event_rule.description | default('') }}"
+      EventPattern: >-
+        { "source": [ "{{ event_rule.source }}" ],
+           "detail-type": [ "{{ event_rule.detail_type }}" ],
+           "detail":
+             { "eventSource": [ "{{ event_rule.event_source }}" ],
+               "eventName": {{ event_rule.event_name | to_json }}
+             }
+        }
+      Name: "{{ event_rule.name }}"
+      State: "ENABLED"
+{%   if event_rule.targets is defined %}
+      Targets:
+{%     for target in event_rule.targets %}
+{%       if target.type == 'import' %}
+          - Arn: !ImportValue {{ target.value }}
+            Id: "{{ target.value }}"
+{%       endif %}
+{%     endfor %}
+{%   endif %}
+{% endfor %}

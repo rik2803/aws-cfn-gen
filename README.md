@@ -324,6 +324,30 @@ The value for `bastion.hostkeys` is a list of dictionaries with these keys:
 * `key`: The SSH private key string, on one line, add newlines
   with `\\n`
 
+### Create _CloudWatch_ related resources
+
+**TODO** 
+
+```yaml
+cw:
+  auto_config_log_group_lambda_s3_key: "cw-logs-new-stream-to-lambda-9...ed50.zip"
+  log_group_settings:
+    retention_in_days: 14
+    filter_pattern: "-DEBUG"
+  logshipper_lambda_function_arn_import: "MyLogshipperLambdaImport"
+  event_rules:
+    - name: "Demo"
+      source: "aws.logs"
+      detail_type: "AWS API Call via CloudTrail"
+      event_source: "logs.amazonaws.com"
+      event_name:
+        - "CreateLogGroup"
+      description: "Emit event whenever a CreateLogGroup API call is made"
+      targets:
+        - type: "import"
+          value: "MyLambdaImport"
+          ```
+          
 ### Create _Lambda_ functions
 
 Let's start with an example:
@@ -738,7 +762,7 @@ element in the `applicationconfig` list contains the application description.
     cfn_name: ServiceName
     target: "ecs"
     environment:
-      - name: JAVA_OPTS
+      - name: JAVA_TOOL_OPTIONS
         value: "-Xmx2048m"
     ecs:
       image: "123456789012.dkr.ecr.eu-central-1.amazonaws.com/example/service:latest"
@@ -814,7 +838,7 @@ A list of key-value pairs to add to the environment variables of the running con
 
 ```javascript
     environment:
-      - name: JAVA_OPTS
+      - name: JAVA_TOOL_OPTIONS
         value: "-Xmx2048m"
 ```
 
