@@ -587,6 +587,12 @@ loadbalancers:
       state: enabled
       log_expiry_days: 14
       s3_objectcreated_lambda_import: IxordocsDevLambda-AwsLambdaS3LogsToCloudwatchAlbext
+      cw_logs:
+        log_group_name: lb_loggroup_name
+      cw_logs_subscription_filter:
+        type: lambda
+        lambda_cfn_export_name: ExportName
+        filter_pattern: "-DEBUG"  
 ```
 
 #### `access_logs`
@@ -604,6 +610,23 @@ following resources are created:
 
 And the loadbalancer will get the attributes required to enable access logs, as specified
 [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html).
+
+#### `access_logs.cw_logs`
+
+* `access_logs.cw_logs.log_group_name`: the log group name to be created and where
+  `s3_objectcreated_lambda_import` will send the logs to
+
+#### `access_logs.cw_logs_subscription_filter`
+
+The CW logs subscription filter to assign to the log group. It can be a Lambda function that sends
+the log to a service such as DataDogHQ.
+
+* `access_logs.cw_logs_subscription_filter.type`: Currently only `lambda`
+* `access_logs.cw_logs_subscription_filter.lambda_cfn_export_name`: Used if `type == `lambda`,
+  it's an export from another CloudFormation stack that returns the ARN of the Lambda function
+  to be used
+* `access_logs.cw_logs_subscription_filter.filter_pattern`: The (optional) filter to apply to the
+  subscription filter. Can be a positive or a negative filter.
 
 #### `idle_timeout_seconds`
 
