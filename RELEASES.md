@@ -1,5 +1,48 @@
 # Release notes
 
+[toc]
+
+## Release Remarks
+* `M.m.p`
+* `m` release: Carefully read the release notes, changes might cause
+  interruptions in the service.
+* `p` release: Bugfixes, introduction of new features that can normally
+  be used without any interruption or rebuild of resources.
+
+## `0.1.8` (20180201)
+
+### Features
+
+#### `lambda`: Specify fixed name for the Lambda function
+
+Possibility to assign fixed name to Lambda function, if the property
+`lambda[n].function_name` is present. Changing this name will cause the
+resource to be re-created (and the old resource to be removed). This is
+at risk of the user.
+
+#### `cw`: CloudWatch configuration
+
+This new _module_ creates roles, poliicies and Lambda's in the _CloudWatch_
+biotope. This first version provides all elements to automatically onboard
+newly create CW log groups in the chosen log subscription setup, for example
+to integrate with a log forwarder (DataDogHQ, ...)
+
+Checkout the `README.md` for moe information.
+
+### Fixes
+
+#### `sns`: `subscriptions` property is optional, set default value if absent
+
+#### `alb`
+
+Separate CW log group creation from CW log group subscription for loadbalancer access
+logs. Before this change, all configuration was done in `cw_logs_subscription_filter`,
+this has been changed to:
+
+* `cw_logs` for the log group creation
+* `cw_logs_subscription_filter` for the subscription related configuration.
+
+
 ## `0.1.7` (20180121)
 
 ### Features

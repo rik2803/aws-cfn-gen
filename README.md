@@ -389,7 +389,8 @@ The name determines:
 
 * The _CloudFormation_ resource name
 * The name of the function (i.e. the name of the file in the zip defined by 
-  `'s3://' + code.s3_bucket + '/' + `code.s3_key`)
+  `'s3://' + code.s3_bucket + '/' + 'code.s3_key'`), unless `function_name`
+  is defined.
   
 The `name` can contain:
 
@@ -402,6 +403,11 @@ The `name` can contain:
 If the name contains an underscore, the part before the underscore is used to determine
 the function name, and the complete string is used, after some _CFN_ related transformation,
 as the _CloudFormation_ resource name. 
+
+#### `function_name`
+
+Assign fixed name to Lambda function, if the property is present. Changing this
+name will cause the resource to be re-created (and the old resource to be removed). This is at risk of the user.
 
 #### `handler`
 
