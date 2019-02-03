@@ -397,7 +397,7 @@ Resources:
 {#                     Skip RecordSet creation in public hosted zone if host in the listener rule == the domainname #}
 {#                     The Lambda that is triggered by the Custom Resource does not yet support the creation of APEX records #}
 ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
-  Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}:
+  Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}{{ domain.cfn_name_suffix | default('') }}:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: !ImportValue "{{ cfn_project }}Route53-Route53PrivateHostedZone{{ domain.cfn_name }}"

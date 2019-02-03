@@ -268,9 +268,9 @@ bastion:
   keypair_name: "id_rsa_myaccount"
   pubkeys:
     - owner: "user01"
-      key: "ssh-rsa ........""
+      key: "ssh-rsa ........"
     - owner: "user02"
-      key: "ssh-rsa ........""
+      key: "ssh-rsa ........"
   hostkeys:
     - type: "ecdsa-sha2-nistp256"
       location: "/etc/ssh/ssh_host_ecdsa_key"
@@ -786,7 +786,7 @@ If `lifecycle_configuration` is not specified, the default lifecycle rule is:
 `applicationconfig` is a list of applications to run in the ECS cluster. Each
 element in the `applicationconfig` list contains the application description.
 
-```javascript
+```yaml
   - name: "servicename"
     cfn_name: ServiceName
     target: "ecs"
@@ -865,7 +865,7 @@ for more information on the syntax.
 
 A list of key-value pairs to add to the environment variables of the running container
 
-```javascript
+```yaml
     environment:
       - name: JAVA_TOOL_OPTIONS
         value: "-Xmx2048m"
@@ -972,7 +972,7 @@ nearest integer value.
 #### `application[n].lb`
 
 **Important**: Changing the LB requires the `AWS::ECS::Service` resource to be
-recreated. Since the framework assigns a nam to the `AWS::ECS::Service` resource,
+recreated. Since the framework assigns a name to the `AWS::ECS::Service` resource,
 this means that the template will fail unless (or):
 
 * the `application[n]` with the changed loadbalancer is first deleted (remove it
@@ -1006,6 +1006,72 @@ The HTTP code that reflects a healthy services. For example:
 
 
 ##### `application[n].lb.targetgroup`
+
+#### `application[n].domains`
+
+A list of domains, used to:
+
+* Create LoadBalancer target group rules (`ALB.,yml`)
+* Create private and public Route53 record sets for the service endpoints
+
+An example:
+
+```yaml
+application_config:
+  - name: myapp
+    ...
+    domains:
+     - name: acme.com
+        cfn_name: AcmeCom
+        cfn_name_suffix: ep1
+        listener_rule_host_header: ep1.acme.com
+        priority: 1
+     - name: acme.com
+        cfn_name: AcmeCom
+        cfn_name_suffix: ep2
+        listener_rule_host_header: ep2.acme.com
+        priority: 2
+```
+
+##### `application[n].domains[m].name`
+
+The name of the parent domain in which the service lives.
+
+##### `application[n].domains[m].cfn_name`
+
+This name shoud comply with AWS CloudFormation resource naming convention. The
+`cfn_name` of the Route53 hosted zone that corresponds with the domain the service lves in, should match this `cfn_name`.
+
+##### `application[n].domains[m].cfn_name_suffix`
+
+The optional `cfn_name_suffix` in `applicationconfig[n].domains[n]` can be used
+if 2 service endpoints within the same parent domain should be directed to this
+service's tartget group.
+
+The value of the property will be appended to the _CloudFormation_ resource name
+for the Route53 recordset.
+
+The property is optional to guarantee backward compatibility with existing
+environments.
+
+##### `application[n].domains[m].listener_rule_host_header`
+
+When an incoming request's host header matches the value of this property (and
+the optional `listener_rule_path_pattern`), it will be directed to the 
+_Target Group_ for the service.
+
+##### `application[n].domains[m].listener_rule_path_pattern`
+
+Optional path pattern.
+
+##### `application[n].domains[m].priority`
+
+The order of the rule in the _Target Group_ for the service. The lower the order,
+the earlier the rule will be checked for incoming traffic.
+
+Assign higher `priority` to more general rules to avoid specific rules never to
+be reached.
+
 
 ### `ecr`: _Elastic Container Registry_
 

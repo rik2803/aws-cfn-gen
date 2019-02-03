@@ -13,6 +13,37 @@
 
 ### Features
 
+#### `ecs`: Allow multiple endpoints in `domain` within the same parent domain
+
+The optional `cfn_name_suffix` in `applicationconfig[n].domains[n]` can be used
+if 2 service endpoints within the same parent domain should be directed to this
+service's tartget group.
+
+The value of the property will be appended to the _CloudFormation_ resource name
+for the Route53 recordset.
+
+The property is optional to guarantee backward compatibility with existing
+environments.
+
+For example:
+
+```yaml
+application_config:
+  - name: myapp
+    ...
+    domains:
+     - name: acme.com
+        cfn_name: AcmeCom
+        cfn_name_suffix: ep1
+        listener_rule_host_header: ep1.acme.com
+        priority: 1
+     - name: acme.com
+        cfn_name: AcmeCom
+        cfn_name_suffix: ep2
+        listener_rule_host_header: ep2.acme.com
+        priority: 2
+```
+
 #### `lambda`: Specify fixed name for the Lambda function
 
 Possibility to assign fixed name to Lambda function, if the property
