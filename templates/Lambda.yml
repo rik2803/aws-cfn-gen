@@ -83,9 +83,7 @@ Resources:
       FunctionName: !Ref {{ lambda_cfn_name }}
       Principal: !Sub "logs.${AWS::Region}.amazonaws.com"
       SourceAccount: !Ref AWS::AccountId
-{%     endif %}
-
-{%     if liv.type == 'predefined' and liv.name == 's3' %}
+{%     elif liv.type == 'predefined' and liv.name == 's3' %}
   {{ lambda_cfn_name }}CWLogsInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -94,6 +92,14 @@ Resources:
       Principal: "s3.amazonaws.com"
       SourceAccount: !Ref AWS::AccountId
       SourceArn: "{{ liv.bucket_arn }}"
+{%     elif liv.type == 'predefined' and liv.name == 'events' %}
+  {{ lambda_cfn_name }}CWLogsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref {{ lambda_cfn_name }}
+      Principal: "events.amazonaws.com"
+      SourceAccount: !Ref AWS::AccountId
 {%     endif %}
 
 {%   endfor %}
