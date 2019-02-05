@@ -100,14 +100,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Description: "{{ event_rule.description | default('') }}"
-      EventPattern: >-
-        { "source": [ "{{ event_rule.source }}" ],
-           "detail-type": [ "{{ event_rule.detail_type }}" ],
-           "detail":
-             { "eventSource": [ "{{ event_rule.event_source }}" ],
-               "eventName": {{ event_rule.event_name | to_json }}
-             }
-        }
+      EventPattern: '{ "source": [ "{{ event_rule.source }}" ], "detail-type": [ "{{ event_rule.detail_type }}" ]{% if event_rule.event_source is defined and event_rule.event_name is defined %}, "detail": {"eventSource": [ "{{ event_rule.event_source }}" ], "eventName": {{ event_rule.event_name | to_json }} }{%   endif %} }'
       Name: "{{ event_rule.name }}"
       State: "ENABLED"
 {%   if event_rule.targets is defined %}
@@ -120,3 +113,6 @@ Resources:
 {%     endfor %}
 {%   endif %}
 {% endfor %}
+
+### TODO: Add a property to identify the target service (i.e. Lambda, ...)
+### TODO: Also create the AWS::Lambda::Permission of the target is a Lambda function
