@@ -10,13 +10,13 @@ This repository consists of:
 * A number of _Ansible_ templates that generate AWS CloudFormation templates with an external configuration
   file as driver
 
-In combination with the configuration file, the _Ansible_  playbook creates a set of
-AWS CloudFormation templates, and deploys these templates to you AWS account.
+Combined with the configuration file, the _Ansible_  playbook creates a set of
+AWS CloudFormation templates, and deploys these templates to your AWS account.
 
 Example execution command:
 
 ```
-ansible-playbook CreateOrUpdateEnv.yml --extra-vars 
+ansible-playbook CreateOrUpdateEnv.yml --extra-vars configfile=/path/to/your/environment/config/file
 ```
 
 ## Dependencies and Prerequisites
@@ -24,9 +24,6 @@ ansible-playbook CreateOrUpdateEnv.yml --extra-vars
 * A _Docker_ engine when using the `dockerwrapper` to build and deploy the templates
 * A local _Ansible_ and _AWS CLI_ client installation when **not** using the
   `dockerwrapper`
-* The templates use resources created by the `VPC.yml` template in
-  [this repository](https://github.com/rik2803/aws-cfn-templates). This should disappear
-  in the future, but until then, we've got to deal with it.
 
 ## Running the playbook in a controlled way
 
@@ -1437,6 +1434,41 @@ This will create the following resources on the account that hosts the _Hosted Z
 * An SNS Topic Policy
 * A service policy for Lambda to allow the Route53 actions
 * A role for CLI access
+
+## Common or not so common actions
+
+### Not so common: Remove a service
+
+#### Description
+
+Because of the potential dependency between the ALB's _TargetGroup_ and the service,
+removing a service is not as straightforward as it should be.
+
+* _TargetGroup_ for a service is created during the _ALB_ setup
+* The _TargetGroup_ is referred to by the service's _Service_ definition
+  during the _ECS_ setup
+* _ECS_ is always run **after** _ALB_
+* Removing a service from the config file causes the _ALB_ template to try to
+  delete the _TargetGroup_, but that action fails because it is still used in the
+  _Service_ definition.
+  
+Ideally, the _TargetGroup_ should be created in the _ECS_ template, but that is a breaking
+change, requiring a fresh roll-out of the environments.
+
+#### Procedure to follow for services behind a ALB TargetGroup
+
+* Edit the configuration file and remove the service from the configuration file
+* Generate the _CloudFormation_ templates, but without applying them. This can be done in 2 ways:
+  * When using `dockerwrapper`, export these environment variables before starting the
+    `dockerwrapper` script:
+    * `ANSIBLE_SKIPTAGS=deploy`
+    * `ANSIBLE_TAGS=ecs,alb,route53`
+  * When using the `ansible-playbook` command, add `--tags=alb,ecs,route53 --skip-tags=deploy`
+    to the commandline
+* Now, got to the AWS console and update the `ECS` stack with the template you created in the
+  previous step. This will remove the service and the dependency with the _TargetGroup_
+* Next, update the loadbalancer template(s), this step will remove (among others)
+  the _TargetGroup_
 
 ## Links
 
