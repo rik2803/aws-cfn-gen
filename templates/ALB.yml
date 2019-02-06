@@ -261,7 +261,7 @@ Resources:
 {% for app in applicationconfig | default([]) %}
 {%   if app.domains is defined and app.lb.name == item.name %}
 {%     for dom in app.domains %}
-  ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}{{ dom.listener_rule_path_pattern | default("All") | replace('*', 'Star') | replace('/', ' ') | title | replace(' ', '') }}:
+  ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}{{ dom.cfn_name_suffix | default('') }}{{ dom.listener_rule_path_pattern | default("All") | replace('*', 'Star') | replace('/', ' ') | title | replace(' ', '') }}:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
     Properties:
       Actions:
