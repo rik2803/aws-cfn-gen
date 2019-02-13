@@ -323,7 +323,9 @@ The value for `bastion.hostkeys` is a list of dictionaries with these keys:
 
 ### Create _CloudWatch_ related resources
 
-**TODO** 
+Create a scheduled _CloudWatch_ event or a _CloudWatch_ rule and attach a target
+by importing a value (`ARN`) from the exports of another CloudFormation stack.
+
 
 ```yaml
 cw:
@@ -340,6 +342,13 @@ cw:
       event_name:
         - "CreateLogGroup"
       description: "Emit event whenever a CreateLogGroup API call is made"
+      targets:
+        - type: "import"
+          value: "MyLambdaImport"
+  scheduled_rules:
+    - name: "ScheduledEventDaily6AM"
+      description: "Triggers daily at 6 AM"
+      schedule_expression: "cron(0 6 * * ? *)"
       targets:
         - type: "import"
           value: "MyLambdaImport"

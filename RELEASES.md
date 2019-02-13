@@ -9,6 +9,25 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.1.9` (20180213)
+
+### Features
+
+#### `cw`: Define _CloudWatch_ scheduled events
+
+An example:
+
+```yaml
+cw:
+  scheduled_rules:
+    - name: MyDaily6AMSchedule
+      description: "Trigger daily at 6 AM"
+      schedule_expression: "cron(0 6 * * ? *)"
+      targets:
+        - type: import
+          value: MyCloudformationTemplate-MyLambdaFunction
+```
+
 ## `0.1.8` (20180201)
 
 ### Features
