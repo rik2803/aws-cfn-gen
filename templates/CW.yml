@@ -114,5 +114,25 @@ Resources:
 {%   endif %}
 {% endfor %}
 
+  ### CW Scheduled Rules
+{% for event_schedule in cw.scheduled_rules | default([]) %}
+  CWEventSchedule{{ event_schedule.name }}:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "{{ event_schedule.description | default('') }}"
+      ScheduleExpression: "{{ event_schedule.schedule_expression }}"
+      Name: "{{ event_schedule.name }}"
+      State: "ENABLED"
+{%   if event_schedule.targets is defined %}
+      Targets:
+{%     for target in event_schedule.targets %}
+{%       if target.type == 'import' %}
+        - Arn: !ImportValue {{ target.value }}
+          Id: "{{ target.value }}"
+{%       endif %}
+{%     endfor %}
+{%   endif %}
+{% endfor %}
+
 ### TODO: Add a property to identify the target service (i.e. Lambda, ...)
-### TODO: Also create the AWS::Lambda::Permission of the target is a Lambda function
+### TODO: Also create the AWS::Lambda::Permission if the target is a Lambda function
