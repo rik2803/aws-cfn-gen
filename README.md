@@ -792,6 +792,32 @@ If `lifecycle_configuration` is not specified, the default lifecycle rule is:
 `applicationconfig` is a list of applications to run in the ECS cluster. Each
 element in the `applicationconfig` list contains the application description.
 
+For each service, a lot of resources are created:
+
+* ECS Task Description
+* ECS Service
+* R53 Record Sets
+* The application propeties are also used by the ALB stack to create:
+  * ALB Listener rules
+  * ALB Target Group
+  * Target Health checks
+* ... 
+* _CloudWatch_ log group
+  * Metric filter to create a custom CW metric to monitor service restarts. The _Metric Filter_ looks
+    for the string determined by the property `applicationconfig[n].monitoring.start_filter_string`
+    (default value is `Started Application in`)
+  * Alarm on that metric filter, target is SNS Queue created when the AWS account was setup
+    (also see `awc-account-config`)
+  * The flow for the `ServiceStartAlert` is:
+    * The ECS task is started
+    * The logs are sent to the CW log group for that service
+    * The Metric Filter scans for the `start_filter_string` and ...
+    * ... creates a custom CloudWatch metric
+    * The CloudWatch alarm is triggered
+    * Sends en event to the SNS queue (created by the AWS account configuration (`aws-account-config`))
+    * All subscribers to the SNS topic will receive the event (i.s Slack, Chat)
+
+
 ```yaml
   - name: "servicename"
     cfn_name: ServiceName
