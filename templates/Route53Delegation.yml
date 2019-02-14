@@ -8,13 +8,14 @@ Resources:
     Properties:
       Handler: "CreateOrUpdateRoute53RecordSet.lambda_handler"
       Role: !GetAtt CreateRoute53CNAMERole.Arn
-      Runtime: python2.7
+      Runtime: "{{ item.lambda_runtime | default('python2.7') }}"
+      Timeout: "{{ item.lambda_timeout | default('10') }}"
       Environment:
         Variables:
           HOSTEDZONE_ID: "{{ item.hostedzone.id }}"
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
-        S3Key: "aws-lambda-create-or-update-route53-recordset-0e51245bd9b8e759c81f1dc2f1b34788c7117f2f.zip"
+        S3Key: "{{ item.lambda_s3_key | default('lambdaaws-lambda-create-or-update-route53-recordset-0e51245bd9b8e759c81f1dc2f1b34788c7117f2f.zip') }}"
 
   CreateRoute53CNAMERole:
     Type: AWS::IAM::Role
@@ -22,27 +23,42 @@ Resources:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-          Action:
-          - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+            Action:
+            - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns: 
-      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-      - PolicyName: Route53ChangeResourceRecordSets
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-          - Effect: Allow
-            Action:
-            - route53:ChangeResourceRecordSets
-            - route53:ListResourceRecordSets
-            Resource: arn:aws:route53:::hostedzone/*
+        - PolicyName: Route53ChangeResourceRecordSets
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+            - Effect: Allow
+              Action:
+              - route53:ChangeResourceRecordSets
+              - route53:ListResourceRecordSets
+              Resource: "arn:aws:route53:::hostedzone/*"
+        - PolicyName: DynamoDBReadWriteR53CustomResourceInentoryTable
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:ListTables
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/{{ route53_delegation_dynamodb_tablename }}"
 
-            
   RequestRoute53CNAME: 
     Type: AWS::SNS::Topic
     Properties:
