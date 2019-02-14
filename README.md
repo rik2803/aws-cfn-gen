@@ -1093,6 +1093,15 @@ ecr:
 
 ### `cloudfront_distributions`
 
+Create _CloudFront_ distributions, including:
+
+* the S3 bucket (default origin) when:
+  * `origin.domain` is not defined *or*
+  * `origin.domain.type` is `s3`
+* _Route53 Record Sets_ for all the distribution's `cname`s if `route53.public_hosted_zoned`
+  is defined and it contains an element where the public hosted zone name equals the
+  name of the DNS domain of the distribution's `cname`.
+
 **NOTE** - The certificate must be created in the `us-east-1` region.
 
 * `name`

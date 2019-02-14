@@ -13,6 +13,13 @@
 
 ### Features
 
+#### `cloudfront`: Creation of _Route53_ record sets for cnames
+
+Create _Route53 Record Sets_ for all the distribution's `cname`s if
+`route53.public_hosted_zoned` is defined and it contains an element
+where the public hosted zone name equals the name of the DNS domain
+of the distribution's `cname`.
+ 
 #### `cw`: Define _CloudWatch_ scheduled events
 
 An example:
