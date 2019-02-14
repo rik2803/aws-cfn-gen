@@ -94,6 +94,29 @@ Resources:
         !Ref DeployUser
 
 {% for cloudfront in cloudfront_distributions %}
+{%   for cname in cloudfront.cnames %}
+{%     set r53_cfn_suffix = cname | replace('.', ' ') | replace('-', ' ') | replace('_', ' ') | title | replace(' ', '') %}
+{%     set cname_domain = (cname.split('.'))[-2:] | join('.') %}
+{%     if route53 is defined and route53.public_hosted_zones is defined %}
+{%       for public_hosted_zone in route53.public_hosted_zones %}
+{%         if public_hosted_zone.name == cname_domain %}
+  R53{{ r53_cfn_suffix }}:
+    Type: Custom::CNAME
+    DependsOn:
+      - CloudFrontDistribution{{ cloudfront.cfn_name }}
+    Properties:
+      ServiceToken: {{ public_hosted_zone.sns_arn }}
+      Source: {{ cname }}.
+      Target: !GetAtt CloudFrontDistribution{{ cloudfront.cfn_name }}.DomainName
+      RecordType: "A"
+      Alias: "Yes"
+{#    AliasHostedZoneId is always the same for CloudFront distribution domains #}
+      AliasHostedZoneId: "Z2FDTNDATAQYW2"
+{%         endif %}
+{%       endfor %}
+{%     endif %}
+{%   endfor %}
+
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
 {%     if origin.domain is not defined or origin.domain.type == 's3' %}
   S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
