@@ -825,6 +825,9 @@ For each service, a lot of resources are created:
     environment:
       - name: JAVA_TOOL_OPTIONS
         value: "-Xmx2048m"
+    monitoring:
+      start_filter_string: "string to match in service logs"
+      alarm_actions_enabled: "true"
     ecs:
       image: "123456789012.dkr.ecr.eu-central-1.amazonaws.com/example/service:latest"
       containerport: 8080
@@ -902,6 +905,28 @@ A list of key-value pairs to add to the environment variables of the running con
       - name: JAVA_TOOL_OPTIONS
         value: "-Xmx2048m"
 ```
+
+#### `application[n].monitoring`
+
+```yaml
+applicationconfig:
+  - name: MyApplication
+    monitoring:
+      start_filter_string: "string to match in service logs"
+      alarm_actions_enabled: "true"
+```
+
+##### `application[n].monitoring.start_filter_string`
+
+* Default: `Started Application in`
+* Allowed values: Any valid string
+
+##### `application[n].monitoring.alarm_actions_enabled`
+
+Determines whether or not an alarm will trigger its actions.
+
+* Default: `"false"`
+* Allowed values: `"false"` `"true"`
 
 #### `application[n].ecs`
 
@@ -1481,7 +1506,11 @@ This will create the following resources on the account that hosts the _Hosted Z
 
 ## Common or not so common actions
 
-### Not so common: Remove a service
+### Disable _ServiceStartAlert_
+
+
+
+### Remove a service
 
 #### Description
 

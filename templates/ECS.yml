@@ -264,6 +264,7 @@ Resources:
   AlarmAppStart{{ cfn_project }}{{ app.cfn_name }}:
     Type: AWS::CloudWatch::Alarm
     Properties:
+      ActionsEnabled: "{{ (app.monitoring | default({})).alarm_actions_enabled | default('false') }}"
       AlarmDescription: "Start Alarm for {{ cfn_project }}{{ app.cfn_name }}"
       AlarmActions:
         - !ImportValue "{{ organization.cfn_name | title }}MonitoringSubaccount-MonitoringSNSTopic"
