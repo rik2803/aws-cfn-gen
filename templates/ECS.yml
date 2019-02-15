@@ -116,6 +116,7 @@ Resources:
     Type: "AWS::Events::Rule"
     Properties:
       Description: "EventRule"
+      State: "{{ ecs.task_change_state_rule | default('DISABLED') }}"
       EventPattern:
         source:
           - aws.ecs

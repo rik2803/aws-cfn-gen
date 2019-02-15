@@ -541,6 +541,7 @@ Create an (empty) ECS cluster.
 
 ```yaml
 ecs:
+  task_change_state_rule: "ENABLED|DISABLED"
   cluster:
     keypair: "id_rsa_ixor.ixordocs-prd"
     instance_type: "t2.xlarge"
@@ -552,14 +553,25 @@ ecs:
     dnm_basesize: 20G
 ```
 
-#### `ecs.ebs_size`
+#### `ecs.task_change_state_rule`
+
+`ENABLE` or `DISABLE` the _CloudWatch_ event rule that sends events to the monitoring
+SNS topic (and possibly notifications on Slack, Vhat, ...).
+
+Valid values:
+
+* `ENABLED`
+* `DISABLED` (default)
+
+
+#### `ecs.cluster.ebs_size`
 
 Override the default 20GB ECS Cluster instance EBS size. Unit is `GB`.
 
 **Downtime Warning**: Changing this setting will cause the launch configuration
 to change and will consequently spawn new ECS instances.
 
-#### `ecs.dm_basesize`
+#### `ecs.cluster.dm_basesize`
 
 Override the default 10GB of thin provisioned container storage. Unit is required (i.e. `20G`)
 
