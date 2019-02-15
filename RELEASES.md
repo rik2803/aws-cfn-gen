@@ -13,6 +13,14 @@
 
 ### Features
 
+#### `ecs.task_change_state_rule`
+
+Use `ecs.task_change_state_rule` to enable or disable ECS Service State
+Change alerts. Allowed values are `ENABLED` and `DISABLED` (default).
+
+Use `applicationconfig[n].monitoring.alarm_actions_enabled` to control
+alarm action execution. Allowed values are `true` and `false` (default).
+
 #### `cloudfront`: Creation of _Route53_ record sets for cnames
 
 Create _Route53 Record Sets_ for all the distribution's `cname`s if
