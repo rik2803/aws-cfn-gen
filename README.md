@@ -610,7 +610,7 @@ loadbalancers:
     accesslogs:
       state: enabled
       log_expiry_days: 14
-      s3_objectcreated_lambda_import: IxordocsDevLambda-AwsLambdaS3LogsToCloudwatchAlbext
+      s3_objectcreated_lambda_import: StackName-LambdaTriggeredOnS3ObjectCreation
       cw_logs:
         log_group_name: lb_loggroup_name
       cw_logs_subscription_filter:
@@ -1178,6 +1178,7 @@ cloudfront_distributions:
     cnames:
       - "apps.acme.com"
     certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxxxx"
+    minimum_protocol_version: "SSLv3" | "TLSv1" | "TLSv1_2016" | "TLSv1.1_2016" | "TLSv1.2_2018"
     logging:
       prefix: apps
     origins_and_cachebehaviors:
@@ -1488,7 +1489,7 @@ route53_delegation:
   hostedzone:
     - domain: "acme.com"
     - id: "XXXXXXXXXXX"
-    - account-id: "123456789012"
+    - account_id: "123456789012"
   allowed_accounts:
     - name: account description
       account_id: 234567890123
@@ -1502,7 +1503,7 @@ route53_delegation:
 
 * `hostedzone.domain`: The domain name of the hosted zone
 * `hostedzone.id`: The Route53 ID of the hosted zone
-* `hostedzone.account-id`: The AWS account-id that _owns_ the hosted zone
+* `hostedzone.account_id`: The AWS account-id that _owns_ the hosted zone
 * `allowed_accounts`: The list of AWS account IDs that are allowed to remotely
   manage _Route 53_ record sets for the Hosted Zone using the CLI or CloudFormation
 
