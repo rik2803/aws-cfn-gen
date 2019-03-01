@@ -321,6 +321,7 @@ Resources:
         ViewerCertificate:
           AcmCertificateArn: "{{ cloudfront.certificate_arn }}"
           SslSupportMethod: sni-only
+          MinimumProtocolVersion: "{{ cloudfront.minimum_protocol_version | default('TLSv1') }}"
 
       Tags:
         - Key: Application
