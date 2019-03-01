@@ -10,7 +10,6 @@ Resources:
     Properties:
       ClusterName: "ecs-{{ project }}-mgmt"
 
-
   AwsLogsExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -41,6 +40,20 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess
+
+  CWCreateDashboardTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess
+        - !Sub "arn:aws:iam::${AWS::AccountId}:policy/ReadOnlyAccessLocal"
 
   TaskDeleteTaggedCloudformationStacks:
     Type: AWS::ECS::TaskDefinition
@@ -90,10 +103,43 @@ Resources:
       ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
       TaskRoleArn: !GetAtt DeleteAndCreateTaggedStacksTaskRole.Arn
 
+  TaskCWCreateDashboard:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchCWCreateDashboard
+    Properties:
+      Family: "task-cw-create-dashboard"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 1024
+      Cpu: 512
+      ContainerDefinitions:
+        - Name: "cw-create-dashboard"
+          Essential: "true"
+          Image: "tryxcom/aws-cw-create-dashboard:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchCWCreateDashboard"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "cw-create-dashboard"
+          Environment:
+            - Name: "ALARM_ACTION_ARN"
+              Value: !ImportValue "{{ organization.cfn_name }}MonitoringSubaccount-MonitoringSNSTopic"
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt CWCreateDashboardTaskRole.Arn
+
   CloudWatchDeleteAndCreateTaggedCloudformationStacks:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: "cw-{{ project }}-delete-tagged-cfn-stacks"
+      RetentionInDays: 14
+
+  CloudWatchCWCreateDashboard:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "cw-{{ project }}-cw-create-dashboard"
       RetentionInDays: 14
 
   DeleteAndCreateTaggedCloudformationStacksUser:
@@ -131,7 +177,6 @@ Resources:
     Properties:
       UserName:
         !Ref DeleteAndCreateTaggedCloudformationStacksUser
-
 
 Outputs:
   AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
