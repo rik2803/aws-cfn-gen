@@ -240,7 +240,7 @@ Resources:
           RedirectConfig:
             StatusCode: "{{ redirect.status_code | default('HTTP_301') }}"
             Host: "{{ redirect.to | default('#{host}') }}"
-            Path: "{{ redirect.path | default('#{path}') }}"
+            Path: "{{ redirect.path | default('/#{path}') }}"
             Port: "{{ redirect.port | default('#{port}') }}"
             Protocol: "{{ redirect.protocol | default('#{protocol}') }}"
             Query: "{{ redirect.query | default('#{query}') }}"
