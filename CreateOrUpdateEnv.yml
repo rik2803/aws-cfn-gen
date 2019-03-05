@@ -77,6 +77,8 @@
         stack_deletion_order_ecs: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).ecs | default(10) }}{% endif %}"
         stack_deletion_order_alb: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb | default(30) }}{% endif %}"
         stack_deletion_order_dynamodb: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb | default(0) }}{% endif %}"
+        stack_deletion_order_vpc: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).vpc | default(0) }}{% endif %}"
+        stack_deletion_order_vpcendpoints: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).vpcendpoints | default(0) }}{% endif %}"
       tags: [ 'always' ]
 
     - name: Dump Stack Deletion facts
@@ -91,6 +93,8 @@
             var: stack_deletion_order_alb
         - debug:
             var: stack_deletion_order_dynamodb
+        - debug:
+            var: stack_deletion_order_vpc
       tags: [ 'always' ]
 
     - name: Get aws-cfn-gen tag using git describe --tags
@@ -133,6 +137,8 @@
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
+              stack_deletion_order:  "{{ stack_deletion_order_vpc }}"
+
           tags: [ 'deploy' ]
 
       tags: [ 'vpc' ]
@@ -164,15 +170,20 @@
           vpc_sg_dmz: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGDMZ }}"
           vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
           vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
-          vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
           vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
           vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
-          vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
           vpc_publicsubnet: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SubnetPublic }}"
           vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
 
         tags: [ 'always' ]
 
+      - name: Set more variables
+        set_fact:
+          vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+          vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
+
+        tags: [ 'always' ]
+        when: "vpc_nr_of_azs is defined and vpc_nr_of_azs == '3'"
 
       - name: VPCEndPoint
         block:
@@ -198,6 +209,7 @@
               template_url: "{{ presign.stdout }}"
               tags:
                 aws_cfn_gen_tag: "{{ gittag }}"
+                stack_deletion_order:  "{{ stack_deletion_order_vpcendpoints }}"
             tags: [ 'deploy' ]
 
         tags: [ 'vpc_endpoints', 'vpc' ]
