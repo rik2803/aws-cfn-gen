@@ -7,13 +7,13 @@ Description: |
 Mappings:
   AWSRegionToAMI:
     eu-central-1:
-      AMIID: ami-0eaa3baf6969912ba
+      AMIID: ami-042ae7188819e7e9b
     eu-west-1:
-      AMIID: ami-0627e141ce928067c
+      AMIID: ami-00921cd1ce43d567a
     eu-west-2:
-      AMIID: ami-01bee3897bba49d78
+      AMIID: ami-0e1065cc4f7231034
     eu-west-3:
-      AMIID: ami-0f4738fbeb53e6c3a
+      AMIID: ami-020cc3695affa4b6b
 
 Resources:
 
@@ -176,8 +176,8 @@ Resources:
 
             ### Install SSM agent
             cd /tmp
-            sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-            sudo start amazon-ssm-agent
+            yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm || true
+            start amazon-ssm-agent || true
             cd -
 
 {% if ecs.efs is defined %}
