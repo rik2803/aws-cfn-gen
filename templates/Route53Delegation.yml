@@ -15,7 +15,7 @@ Resources:
           HOSTEDZONE_ID: "{{ item.hostedzone.id }}"
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
-        S3Key: "{{ item.lambda_s3_key | default('lambdaaws-lambda-create-or-update-route53-recordset-0e51245bd9b8e759c81f1dc2f1b34788c7117f2f.zip') }}"
+        S3Key: "{{ item.lambda_s3_key | default('aws-lambda-create-or-update-route53-recordset-0e51245bd9b8e759c81f1dc2f1b34788c7117f2f.zip') }}"
 
   CreateRoute53CNAMERole:
     Type: AWS::IAM::Role

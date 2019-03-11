@@ -9,7 +9,26 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
-## `0.1.9` (20180213)
+## `0.2.0` (20190308)
+
+This is a minor release, updating to this release might cause service
+interruptions because of:
+
+* a change in the ECS _Launchconfiguration_ (install SSM Agent on ECS instances)
+
+### Features
+
+#### ECS
+
+* Update AMI to latest version
+* Add installation of SSM Agent to the ECS LaunchConfiguration. This is required
+  to allow for the automatic installation of the Amazon CloudWatch Agent on ECS
+  AMI based instances
+  
+### Bugfixes
+
+
+## `0.1.9` (20190213)
 
 ### Features
 
