@@ -419,6 +419,10 @@ name will cause the resource to be re-created (and the old resource to be remove
 
 #### `runtime`
 
+#### `timeout` (default `3`)
+
+#### `memory_size` (default `128`)
+
 #### `role`
 
 #### `code.s3_bucket`
@@ -1520,8 +1524,6 @@ This will create the following resources on the account that hosts the _Hosted Z
 ## Common or not so common actions
 
 ### Disable _ServiceStartAlert_
-
-
 
 ### Remove a service
 

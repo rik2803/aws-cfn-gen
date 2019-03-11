@@ -5,10 +5,33 @@ Description: |
 
 
 Resources:
+
+  BastionEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+        - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+
+  BastionEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref 'BastionEC2Role']
+
   BastionHost:
     Type: AWS::EC2::Instance
     Properties:
       DisableApiTermination: false
+      IamInstanceProfile: !Ref 'BastionEC2InstanceProfile'
       ImageId: ami-43eec3a8 # Amazon Linux 2 ami for eu-central-1
       InstanceType: {{ bastion.instance_type | default('t2.micro') }}
       KeyName: "{{ bastion.keypair_name }}"

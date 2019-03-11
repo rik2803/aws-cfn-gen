@@ -81,7 +81,6 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt CWEventRuleCWCreateLogGroup.Arn
 
-
   ### CW Event Rule to send CW CreateLogGroup events to a Lambda function
   CWEventRuleCWCreateLogGroup:
     Type: AWS::Events::Rule
@@ -93,6 +92,130 @@ Resources:
       Targets:
         - Arn: !GetAtt AwsLambdaCWLogsSubscription.Arn
           Id: AwsLambdaCWLogsSubscription
+
+
+{% if cw.ec2_install_cwagent_lambda_s3_key is defined %}
+
+  SSMParameterCWAgent:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "AmazonCloudWatch-linux"
+      Type: "String"
+      Value: |
+        {
+        	"metrics": {
+        		"append_dimensions": {
+        			"AutoScalingGroupName": "${aws:AutoScalingGroupName}",
+        			"ImageId": "${aws:ImageId}",
+        			"InstanceId": "${aws:InstanceId}",
+        			"InstanceType": "${aws:InstanceType}"
+        		},
+        		"metrics_collected": {
+        			"cpu": {
+        				"measurement": [
+        					"cpu_usage_idle",
+        					"cpu_usage_iowait",
+        					"cpu_usage_user",
+        					"cpu_usage_system"
+        				],
+        				"metrics_collection_interval": 60,
+        				"totalcpu": false
+        			},
+        			"disk": {
+        				"measurement": [
+        					"used_percent",
+        					"inodes_free"
+        				],
+        				"metrics_collection_interval": 60,
+        				"resources": [
+        					"*"
+        				]
+        			},
+        			"diskio": {
+        				"measurement": [
+        					"io_time"
+        				],
+        				"metrics_collection_interval": 60,
+        				"resources": [
+        					"*"
+        				]
+        			},
+        			"mem": {
+        				"measurement": [
+        					"mem_used_percent"
+        				],
+        				"metrics_collection_interval": 60
+        			},
+        			"swap": {
+        				"measurement": [
+        					"swap_used_percent"
+        				],
+        				"metrics_collection_interval": 60
+        			}
+        		}
+        	}
+        }
+      Description: "SSM Parameter for CWAgent installation configuration."
+
+  LambdaEC2InstallCWAgentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaEC2InstallCWAgentRole
+      AssumeRolePolicyDocument: >-
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Sid": "",
+              "Effect": "Allow",
+              "Principal": { "Service": "lambda.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+
+
+  ### Lambda function to ship CW Logs to whatever destination
+  AwsLambdaEC2InstallCWAgent:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: "ec2-install-cwagent.lambda_handler"
+      Role: !GetAtt LambdaEC2InstallCWAgentRole.Arn
+      Code:
+        S3Bucket: "{{ lambda_function_bucket_name }}"
+        S3Key: "{{ cw.ec2_install_cwagent_lambda_s3_key }}"
+      Runtime: python3.7
+      Timeout: 90
+      Tags:
+        - Key: Application
+          Value: "{{ application | default('NA') }}"
+        - Key: Environment
+          Value: "{{ env  | default('NA') }}"
+        - Key: Customer
+          Value: "{{ customer | default('NA') }}"
+
+  ### CW Event Rule to install and configure CWAgent on EC2 instances that transition to running state
+  CWEventRuleSSMInstallCWAgent:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Emit event whenever an EC2 transitions to the running state"
+      EventPattern: '{"source": ["aws.ec2"], "detail-type": ["EC2 Instance State-change Notification"], "detail": {"state": ["running"]}}'
+      Name: SSMInstallCWAgent
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt AwsLambdaEC2InstallCWAgent.Arn
+          Id: AwsLambdaEC2InstallCWAgent
+
+  AwsLambdaEC2InstallCWAgentPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AwsLambdaEC2InstallCWAgent.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CWEventRuleSSMInstallCWAgent.Arn
+{% endif %}
 
   ### CW Event Rules
 {% for event_rule in cw.event_rules | default([]) %}
