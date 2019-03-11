@@ -14,11 +14,13 @@ Resources:
       BucketName: "{{ application }}-{{ env }}-{{ bucket.name }}"
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-        - ServerSideEncryptionByDefault:
-            SSEAlgorithm: AES256
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+        VersioningConfiguration:
 {%   if bucket.versioning is defined %}
-      VersioningConfiguration:
         Status: {{ bucket.versioning | lower | title }}
+{%   else %}
+        Status: Enabled
 {%   endif %}
       LifecycleConfiguration:
 {%   if bucket.lifecycle_configuration is not defined %}
