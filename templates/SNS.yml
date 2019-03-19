@@ -26,6 +26,9 @@ Resources:
       Endpoint: !ImportValue "{{ subscription.endpoint_export }}"
       Protocol: lambda
       TopicArn: !Ref SNS{{ sns_cfn_name }}
+{%     if subscription.filter_policy is defined %}
+      FilterPolicy: '{{ subscription.filter_policy }}'
+{%     endif %}
 
 {%     if subscription.protocol == 'lambda' %}
   LambdaInvokePermission{{ subscr_cfn_name }}:
