@@ -18,13 +18,19 @@ Resources:
 
 {%   for subscription in topic.subscriptions | default([]) %}
 {%     set subscr_cfn_name = subscription.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%     if subscription.endpoint_export is defined %}
+{%       set subscr_endpoint = subscription.endpoint_export %}
+{%     elif subscription.endpoint_arn is defined %}
+{%       set subscr_endpoint = subscription.endpoint_arn %}
+{%     endif %}
+
   SNSSubscr{{ subscr_cfn_name }}:
     DependsOn:
       - SNS{{ sns_cfn_name }}
     Type: AWS::SNS::Subscription
     Properties:
-      Endpoint: !ImportValue "{{ subscription.endpoint_export }}"
-      Protocol: lambda
+      Endpoint: "{{ subscr_endpoint }}"
+      Protocol: {{ subscription.protocol | default('lambda') }}
       TopicArn: !Ref SNS{{ sns_cfn_name }}
 {%     if subscription.filter_policy is defined %}
       FilterPolicy: '{{ subscription.filter_policy }}'
@@ -37,7 +43,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
       SourceArn: !Ref SNS{{ sns_cfn_name }}
-      FunctionName: !ImportValue "{{ subscription.endpoint_export }}"
+      FunctionName: "{{ subscr_endpoint }}"
 {%     endif %}
 {%   endfor %}
 
