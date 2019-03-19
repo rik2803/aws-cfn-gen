@@ -301,14 +301,14 @@ Only required if `bastion.route53_sns_topic` is set.
 
 The name of an existing SSH key pair.
 
-#### `bastion.pubkeys` (Optional)
+#### `bastion.pubkeys` (Optional, but required when `bastion.hostkey` is present)
 
 A list of dictionaries with these keys:
 
 * `user`: The name of the owner of the SSH public key
 * `key`: The SSH public key string
 
-#### `bastion.hostkeys` (Optional)
+#### `bastion.hostkeys` (Optional, but required when `bastion.pubkeys` is present)
 
 To avoid having to accept the host's host key after every re-creation
 of the bastion host, you can save the host keys and have them re-created

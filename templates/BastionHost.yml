@@ -32,7 +32,7 @@ Resources:
     Properties:
       DisableApiTermination: false
       IamInstanceProfile: !Ref 'BastionEC2InstanceProfile'
-      ImageId: ami-43eec3a8 # Amazon Linux 2 ami for eu-central-1
+      ImageId: ami-09def150731bdbcc2 # Amazon Linux 2 ami for eu-central-1
       InstanceType: {{ bastion.instance_type | default('t2.micro') }}
       KeyName: "{{ bastion.keypair_name }}"
       NetworkInterfaces: 
