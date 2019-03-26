@@ -1430,6 +1430,10 @@ This creates:
 The name of a _CloudFormation_ export that contains the ARN to the resource
 that subscribes to the topic.
 
+##### `subscriptoins[n].endpoint_arn`
+
+The ARN to the resource that subscribes to the topic.
+
 ##### `subscriptoins[n].protocol`
 
 ### The `ecsmgmt` FARGATE ECS cluster
