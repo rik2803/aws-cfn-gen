@@ -1423,18 +1423,18 @@ This creates:
 
 #### `subscriptions`
 
-##### `subscriptoins[n].name`
+##### `subscriptions[n].name`
 
-##### `subscriptoins[n].endpoint_export`
+##### `subscriptions[n].endpoint_export`
 
 The name of a _CloudFormation_ export that contains the ARN to the resource
 that subscribes to the topic.
 
-##### `subscriptoins[n].endpoint_arn`
+##### `subscriptions[n].endpoint_arn`
 
 The ARN to the resource that subscribes to the topic.
 
-##### `subscriptoins[n].protocol`
+##### `subscriptions[n].protocol`
 
 ### The `ecsmgmt` FARGATE ECS cluster
 
