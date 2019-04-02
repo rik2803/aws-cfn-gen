@@ -41,6 +41,19 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess
 
+  AwsAssTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
   CWCreateDashboardTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -103,6 +116,54 @@ Resources:
       ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
       TaskRoleArn: !GetAtt DeleteAndCreateTaggedStacksTaskRole.Arn
 
+  TaskAwsAssStop:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchAwsAss
+    Properties:
+      Family: "task-aws-ass-stop"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 1024
+      Cpu: 512
+      ContainerDefinitions:
+        - Name: "aws-ass-stop"
+          Essential: "true"
+          Image: "tryxcom/aws-ass-stop:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchAwsAss"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "aws-ass-stop"
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
+
+  TaskAwsAssStart:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchAwsAss
+    Properties:
+      Family: "task-aws-ass-start"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 1024
+      Cpu: 512
+      ContainerDefinitions:
+        - Name: "aws-ass-start"
+          Essential: "true"
+          Image: "tryxcom/aws-ass-start:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchAwsAss"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "aws-ass-start"
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
+
   TaskCWCreateDashboard:
     Type: AWS::ECS::TaskDefinition
     DependsOn:
@@ -136,6 +197,12 @@ Resources:
       LogGroupName: "cw-{{ project }}-delete-tagged-cfn-stacks"
       RetentionInDays: 14
 
+  CloudWatchAwsAss:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "cw-{{ project }}-aws-ass"
+      RetentionInDays: 14
+
   CloudWatchCWCreateDashboard:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -147,7 +214,6 @@ Resources:
     Properties:
       UserName: create-and-delete-tagged-cfn-stacks
       Policies:
-#        - PolicyDocument: !Sub '{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": "ecs:RunTask", "Condition": { "ArnEquals": { "ecs:cluster": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:ecs/ecs-{{ project }}-mgmt" } }, "Resource": [ "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-delete-tagged-cfn-stacks", "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-create-deleted-tagged-cfn-stacks" ] } ] }'
         - PolicyDocument: !Sub |
             {
               "Version": "2012-10-17",
@@ -172,14 +238,54 @@ Resources:
             }
           PolicyName: "ECSRunTask"
 
+  KeyAwsAssUser:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref AwsAssUser
+
+  AwsAssUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: aws-ass
+      Policies:
+        - PolicyDocument: !Sub |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "ecs:RunTask",
+                "Resource": [
+                  "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-aws-ass-stop",
+                  "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/task-aws-ass-start"
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": [
+                  "${AwsLogsExecutionRole.Arn}",
+                  "${AwsAssTaskRole.Arn}"
+                ]
+              }
+              ]
+            }
+          PolicyName: "ECSRunTask"
+
   KeyDeleteAndCreateTaggedCloudformationStacksUser:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName:
         !Ref DeleteAndCreateTaggedCloudformationStacksUser
 
+
 Outputs:
   AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
     Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
   SecretKeyDeleteAndCreateTaggedCloudformationStacksUser:
     Value: !GetAtt KeyDeleteAndCreateTaggedCloudformationStacksUser.SecretAccessKey
+  AccessKeyAwsAssUser:
+    Value: !Ref KeyAwsAssUser
+  SecretKeyAwsAssUser:
+    Value: !GetAtt KeyAwsAssUser.SecretAccessKey
