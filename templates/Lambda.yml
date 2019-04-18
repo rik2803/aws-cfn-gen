@@ -110,8 +110,29 @@ Resources:
       FunctionName: !Ref {{ lambda_cfn_name }}
       Principal: "{{ liv.principal }}"
       SourceArn: "{{ liv.source_arn }}"
+{%     elif liv.type == 'account' %}
+  {{ lambda_cfn_name }}InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref {{ lambda_cfn_name }}
+      Principal: "{{ liv.principal }}"
 {%     endif %}
 
+{%   endfor %}
+
+{%   for sns_subscr in lambda.sns_subscriptions | default([]) %}
+{%     set sns_subscr_cfn_name = sns_subscr.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+  {{ sns_subscr_cfn_name }}SNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt {{ lambda_cfn_name }}.Arn
+      Protocol: "lambda"
+      Region: "{{ sns_subscr.region | default(target_account.region) | default('eu-central-1') }}"
+      TopicArn: "{{ sns_subscr.topic_arn }}"
+{%     if sns_subscr.filter_policy is defined %}
+      FilterPolicy: '{{ sns_subscr.filter_policy | to_json }}'
+{%     endif %}
 {%   endfor %}
 {% endfor %}
 
