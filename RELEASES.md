@@ -20,13 +20,77 @@ interruptions because of:
 
 #### ECS
 
-* Update AMI to latest version
+* Update AMI to version
 * Add installation of SSM Agent to the ECS LaunchConfiguration. This is required
   to allow for the automatic installation of the Amazon CloudWatch Agent on ECS
   AMI based instances
   
+#### `sns`
+
+* Add SNS topic subscription filter support
+* Introduce possibility to specify a endpoint arn for sns topic subscriptions
+* Add cross account topic policies
+
+#### ECSMgmt
+
+* Add scheduled tasks from config for existing task definitions
+
+#### Lambda
+
+* Add Lambda invoke permissions and subscriptions for other AWS accounts
+
+### Improvements
+
+#### General
+
+* Add `stack_deletion_order` logic for `vpc` and `vpcendpoints`
+* Prerequisites for CloudWatch Agent installation on ECS instances and bastion hosts
+
+#### CW
+
+* Reduce nr of metrics in CloudWatch Agent config file
+
+#### ECSMgmt
+
+* New version of start/stop resources, will exist together with the old version (for now).
+
+#### `s3`
+
+Enable versioning by default.
+
+#### Lambda
+
+* Possibility to customize timeout and memory configuration
+* Add service based lambda permissions by defining invoke
+  permissions as shown below.
+
+```
+lambda:
+- name: MyLambda
+invoke_permissions:
+- type: "service"
+principal: "apigateway.amazonaws.com"
+source_arn: "arn:aws:execute-api:eu-central-1:123456789012:dj48dhw934g/*/*/fanout-setup"
+name: "fanout_setup"
+```
+
+#### Bastion
+
+* Upgrade to latest AMZ2 image
+
 ### Bugfixes
 
+#### `route53delegation`
+
+* Fix typo in the Lambda function key
+
+#### Lambda
+
+* Fix confusing lambda permission naming
+
+#### ECS
+
+* Use variable for `dm.basesize` instead of fixed 20G
 
 ## `0.1.9` (20190213)
 
