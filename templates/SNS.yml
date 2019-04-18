@@ -19,7 +19,7 @@ Resources:
 {%   for subscription in topic.subscriptions | default([]) %}
 {%     set subscr_cfn_name = subscription.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
 {%     if subscription.endpoint_export is defined %}
-{%       set subscr_endpoint = subscription.endpoint_export %}
+{%       set subscr_endpoint = "!ImportValue \"" + subscription.endpoint_export + "\"" %}
 {%     elif subscription.endpoint_arn is defined %}
 {%       set subscr_endpoint = subscription.endpoint_arn %}
 {%     endif %}
@@ -29,7 +29,7 @@ Resources:
       - SNS{{ sns_cfn_name }}
     Type: AWS::SNS::Subscription
     Properties:
-      Endpoint: "{{ subscr_endpoint }}"
+      Endpoint: {{ subscr_endpoint }}
       Protocol: {{ subscription.protocol | default('lambda') }}
       TopicArn: !Ref SNS{{ sns_cfn_name }}
 {%     if subscription.filter_policy is defined %}
@@ -43,9 +43,48 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
       SourceArn: !Ref SNS{{ sns_cfn_name }}
-      FunctionName: "{{ subscr_endpoint }}"
+      FunctionName: {{ subscr_endpoint }}
 {%     endif %}
 {%   endfor %}
+
+{%   if topic.cross_account_policies is defined %}
+  TopicPolicy{{ sns_cfn_name }}:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SNS{{ sns_cfn_name }}
+      PolicyDocument:
+          Version: '2012-10-17'
+          Id: __default_policy_ID
+          Statement:
+            - Sid: __default_statement_ID
+              Effect: Allow
+              Principal:
+                AWS: "*"
+              Action:
+                - SNS:GetTopicAttributes
+                - SNS:SetTopicAttributes
+                - SNS:AddPermission
+                - SNS:RemovePermission
+                - SNS:DeleteTopic
+                - SNS:Subscribe
+                - SNS:ListSubscriptionsByTopic
+                - SNS:Publish
+                - SNS:Receive
+              Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:{{ topic.topic_name }}"
+              Condition:
+                StringEquals:
+                  AWS:SourceOwner: !Sub "${AWS::AccountId}"
+{%     for policy in topic.cross_account_policies %}
+            - Sid: "{{ policy.principal }}"
+              Effect: Allow
+              Principal:
+                AWS: "{{ policy.principal }}"
+              Action: [ "{{ policy.actions | join('", "') }}" ]
+              Resource: "{{ policy.resource }}"
+
+{%     endfor %}
+{%   endif %}
 
 {% endfor %}
 
