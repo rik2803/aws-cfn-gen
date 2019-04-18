@@ -352,7 +352,7 @@ cw:
       targets:
         - type: "import"
           value: "MyLambdaImport"
-          ```
+```
           
 ### Create _Lambda_ functions
 
@@ -1399,6 +1399,9 @@ Allowed values:
 See the [AWS documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-billingmode) for more details.
 
 ### `sns`
+
+**IMPORTANT**: all aubscription names should be unique across all SNS topics. Using the same
+name twice will result in the creation of the last occurrence only!!!
 
 ```
 sns:
