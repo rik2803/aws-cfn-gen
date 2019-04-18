@@ -166,7 +166,7 @@ Resources:
             Content-Disposition: attachment; filename="docker_options.cloudinit"
 
             #cloud-boothook
-              cloud-init-per once docker_options echo 'OPTIONS="$OPTIONS --storage-opt dm.basesize=20G"' >> /etc/sysconfig/docker
+              cloud-init-per once docker_options echo 'OPTIONS="$OPTIONS --storage-opt dm.basesize={{ ecs.cluster.dm_basesize }}"' >> /etc/sysconfig/docker
 
 {% endif %}
             --===============8943416319660996992==
