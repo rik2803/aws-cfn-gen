@@ -41,6 +41,19 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess
 
+  ECSEventsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [events.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
+
   AwsAssTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -137,6 +150,11 @@ Resources:
               awslogs-group: !Ref "CloudWatchAwsAss"
               awslogs-region: !Ref 'AWS::Region'
               awslogs-stream-prefix: "aws-ass-stop"
+{% if ecsmgmt.ass is defined and ecsmgmt.ass.tag_prefix is defined %}
+          Environment:
+            - Name: "ASS_TAG_PREFIX"
+              Value: "{{ ecsmgmt.ass.tag_prefix }}"
+{% endif %}
       ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
       TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
 
@@ -161,6 +179,12 @@ Resources:
               awslogs-group: !Ref "CloudWatchAwsAss"
               awslogs-region: !Ref 'AWS::Region'
               awslogs-stream-prefix: "aws-ass-start"
+{% if ecsmgmt.ass is defined and ecsmgmt.ass.tag_prefix is defined %}
+          Environment:
+            - Name: "ASS_TAG_PREFIX"
+              Value: "{{ ecsmgmt.ass.tag_prefix }}"
+{% endif %}
+
       ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
       TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
 
@@ -279,6 +303,21 @@ Resources:
       UserName:
         !Ref DeleteAndCreateTaggedCloudformationStacksUser
 
+{% for scheduled_task in ecsmgmt.scheduled_tasks | default([]) %}
+  EventRuleScheduledTask{{ scheduled_task.cfn_name }}:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Schedule for Scheduled Task for {{ scheduled_task.cfn_name }}"
+      ScheduleExpression: "{{ scheduled_task.schedule_expression | default('rate(1 hour)') }}"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ECSClusterMgmt.Arn
+          Id: "Target{{ scheduled_task.cfn_name }}"
+          RoleArn: !GetAtt ECSEventsRole.Arn
+          EcsParameters:
+            TaskCount: 1
+            TaskDefinitionArn: !Ref {{ scheduled_task.task_definition_cfn_resource_name }}
+{% endfor %}
 
 Outputs:
   AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
