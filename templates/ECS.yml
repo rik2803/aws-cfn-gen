@@ -195,7 +195,20 @@ Resources:
             yum install -y aws-cfn-bootstrap
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
 
-            --===============8943416319660996992==--
+{% if bastion.pubkeys is defined %}
+            --===============8943416319660996992==
+            Content-Type: text/cloud-config; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="ec2_user_pubkeys.cloudinit"
+
+            #cloud-config
+            runcmd:
+{%   for key in bastion.pubkeys %}
+            - echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
+{%   endfor %}
+
+{% endif %}
           -
             dummy:
               "dummy"

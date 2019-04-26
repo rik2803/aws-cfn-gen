@@ -66,10 +66,10 @@ Resources:
 
           #cloud-config
           runcmd:
-{%   for key in bastion.pubkeys %}
+{%   for key in bastion.pubkeys | default([]) %}
             - echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
 {%   endfor %}
-{%   for key in bastion.hostkeys %}
+{%   for key in bastion.hostkeys | default([]) %}
             - printf -- "{{ key.key }}" > {{ key.location }}
 {%   endfor %}
 
