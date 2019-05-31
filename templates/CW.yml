@@ -61,6 +61,9 @@ Resources:
 {% endif %}
           RETENTION_IN_DAYS: "{{ cw.log_group_settings.retention_in_days | default('14') }}"
           FILTER_PATTERN: "{{ cw.log_group_settings.filter_pattern | default('-DEBUG') }}"
+{% if cw.auto_config_log_group_lambda_exclusion_substring is defined %}
+          LOGGROUP_EXCLUSION_SUBSTRINGS: "{{ cw.auto_config_log_group_lambda_exclusion_substring }}"
+{% endif %}
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
         S3Key: "{{ cw.auto_config_log_group_lambda_s3_key }}"
