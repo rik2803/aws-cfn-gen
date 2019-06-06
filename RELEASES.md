@@ -9,6 +9,18 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.2.1` (20190606)
+
+This is a patch release, with only minor and non-disrupitve changes.
+
+### Bugfixes
+
+#### ECS
+
+Fix case where ECS template fails when no `bastion` data is present in the
+project configuration file. An extra test was added to skip the part where
+the variable was referenced.
+
 ## `0.2.0` (20190308)
 
 This is a minor release, updating to this release might cause service
