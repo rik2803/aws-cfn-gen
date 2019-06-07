@@ -18,9 +18,9 @@ Resources:
               SSEAlgorithm: AES256
         VersioningConfiguration:
 {%   if bucket.versioning is defined %}
-        Status: {{ bucket.versioning | lower | title }}
+          Status: {{ bucket.versioning | lower | title }}
 {%   else %}
-        Status: Enabled
+          Status: Enabled
 {%   endif %}
       LifecycleConfiguration:
 {%   if bucket.lifecycle_configuration is not defined %}
