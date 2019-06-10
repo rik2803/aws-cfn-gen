@@ -2,3 +2,4 @@
 generated-files/*
 testconfig/*
 templates/ECS_keep.yml
+changeset_report.txt
