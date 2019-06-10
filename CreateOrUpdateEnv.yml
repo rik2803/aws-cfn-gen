@@ -62,6 +62,15 @@
         - name: Enable all alarms after playbook execution
           shell: |
             aws cloudwatch enable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
+        - name: Report on created changesets
+          shell: |
+            cat changeset_report.txt | tr '\t' ' '
+          register: changeset
+          when: "create_changeset == 'yes'"
+        - name: Dump changeset report
+          debug:
+            var: changeset.stdout_lines
+          when: "create_changeset == 'yes'"
 
       tags: [ 'always' ]
 
@@ -96,6 +105,27 @@
         - debug:
             var: stack_deletion_order_vpc
       tags: [ 'always' ]
+
+    - name: Get timestamp
+      shell: "date +%Y%m%d%H%M%S"
+      register: tstamp
+      tags: [ 'always' ]
+
+    - name: Set changeset variables
+      set_fact:
+        create_changeset: "{% if create_changeset is not defined %}no{% else %}{{ create_changeset }}{% endif %}"
+        changeset_suffix: "{{ tstamp.stdout }}"
+      tags: [ 'always' ]
+
+    - name: Dump changeset settings
+      debug:
+        var: create_changeset
+      tags: [ 'always' ]
+    - name: Dump changeset settings
+      debug:
+        var: changeset_suffix
+      tags: [ 'always' ]
+
 
     - name: Get aws-cfn-gen tag using git describe --tags
       shell: |
@@ -132,13 +162,22 @@
         - name: Create or Update the VPC CloudFormation stack
           cloudformation:
             stack_name: "{{ vpc.stackname }}"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ vpc.stackname }}{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
               stack_deletion_order:  "{{ stack_deletion_order_vpc }}"
-
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ vpc.stackname }}" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ vpc.stackname }}{{ changeset_suffix }} \
+                --stack-name={{ vpc.stackname }} --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       tags: [ 'vpc' ]
@@ -204,6 +243,8 @@
           - name: Create or Update the VPC Endpoints CloudFormation stack
             cloudformation:
               stack_name: "{{ cfn_project }}VPCEndpoint"
+              create_changeset: "{{ create_changeset }}"
+              changeset_name: "{{ cfn_project }}VPCEndpoint{{ changeset_suffix }}"
               state: "present"
               disable_rollback: false
               template_url: "{{ presign.stdout }}"
@@ -211,7 +252,14 @@
                 aws_cfn_gen_tag: "{{ gittag }}"
                 stack_deletion_order:  "{{ stack_deletion_order_vpcendpoints }}"
             tags: [ 'deploy' ]
-
+          - name: Add result of changeset to a local file
+            shell: |
+              echo "{{ cfn_project }}VPCEndpoint" >> changeset_report.txt
+              aws cloudformation describe-change-set \
+                  --change-set-name={{ cfn_project }}VPCEndpoint{{ changeset_suffix }} \
+                  --stack-name={{ cfn_project }}VPCEndpoint --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                  --output text >> changeset_report.txt
+            tags: [ 'deploy' ]
         tags: [ 'vpc_endpoints', 'vpc' ]
 
       when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
@@ -235,6 +283,8 @@
         - name: Create or Update the BastionHost CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}Bastion"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}Bastion{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
@@ -242,7 +292,14 @@
               aws_cfn_gen_tag: "{{ gittag }}"
               stack_deletion_order: "{{ stack_deletion_order_bastionhost }}"
           tags: [ 'deploy' ]
-
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}Bastion" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}Bastion{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}Bastion --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          tags: [ 'deploy' ]
       when: "bastion is defined"
       tags: [ 'bastion' ]
 
@@ -265,13 +322,22 @@
         - name: Create or Update the ECR CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}ECR"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}ECR{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
-
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}ECR" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}ECR{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}ECR --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          tags: [ 'deploy' ]
       when: "ecr is defined"
       tags: [ 'ecr' ]
 
@@ -294,13 +360,22 @@
         - name: Create or Update the ECSMgmt CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}ECSMgmt"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}ECSMgmt{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
-
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}ECSMgmt" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}ECSMgmt{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}ECSMgmt --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          tags: [ 'deploy' ]
       when: "ecsmgmt is defined"
       tags: [ 'ecsmgmt' ]
 
@@ -328,6 +403,8 @@
         - name: Create or Update the Route53 Delegation CloudFormation stacks
           cloudformation:
             stack_name: "route53-delegation-tooling-{{ item.item.hostedzone.domain | replace('.', '-') }}"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "route53-delegation-tooling-{{ item.item.hostedzone.domain | replace('.', '-') }}{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ item.stdout }}"
@@ -335,7 +412,14 @@
               aws_cfn_gen_tag: "{{ gittag }}"
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
-
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "route53-delegation-tooling-{{ item.item.hostedzone.domain | replace('.', '-') }}" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name=route53-delegation-tooling-{{ item.item.hostedzone.domain | replace('.', '-') }}{{ changeset_suffix }} \
+                --stack-name=route53-delegation-tooling-{{ item.item.hostedzone.domain | replace('.', '-') }} --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          tags: [ 'deploy' ]
       tags: [ 'route53delegation' ]
 
     - name: IAM
@@ -357,12 +441,21 @@
         - name: Create or Update the IAM Stack
           cloudformation:
             stack_name: "{{ cfn_project }}IAM"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}IAM{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}IAM" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}IAM{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}IAM --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
 
       when: awsroles is defined or managed_policies is defined
       tags: [ 'iam' ]
@@ -392,13 +485,22 @@
         - name: Create or Update the Lambda CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}Lambda"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}Lambda{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
-
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}Lambda" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}Lambda{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}Lambda --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          tags: [ 'deploy' ]
       when: "lambda_functions is defined"
       tags: [ 'lambda' ]
 
@@ -428,13 +530,22 @@
           cloudformation:
             region: us-east-1
             stack_name: "{{ cfn_project }}LambdaCloudfront"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}LambdaCloudfront{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
-
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}LambdaCloudfront" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}LambdaCloudfront{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}LambdaCloudfront --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          tags: [ 'deploy' ]
       when: "lambda_functions_cloudfront is defined"
       tags: [ 'lambdacloudfront' ]
 
@@ -457,11 +568,21 @@
         - name: Create or Update the CloudWatch CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}CW"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}CW{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}CW" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}CW{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}CW --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       when: "cw is defined"
@@ -486,11 +607,21 @@
         - name: Create or Update the EFS CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}EFS"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}EFS{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}EFS" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}EFS{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}EFS --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       when: "efs is defined"
@@ -515,12 +646,22 @@
         - name: Create or Update the DynamoDB CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}DynamoDB"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}DynamoDB{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order:  "{{ stack_deletion_order_dynamodb }}"
               aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}DynamoDB" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}DynamoDB{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}DynamoDB --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       when: "dynamodb is defined"
@@ -549,6 +690,8 @@
         - name: Create or Update the Elastic LoadBalancer CloudFormation stacks
           cloudformation:
             stack_name: "{{ cfn_project }}LB{{ item.item.name }}"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}LB{{ item.item.name }}{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ item.stdout }}"
@@ -556,6 +699,14 @@
               stack_deletion_order: "{{ stack_deletion_order_alb }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           with_items: "{{ presign.results }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}LB{{ item.item.name }}" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}LB{{ item.item.name }}{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}LB{{ item.item.name }} --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       tags: [ 'ecs', 'alb' ]
@@ -579,11 +730,21 @@
       - name: Create or Update the SNS CloudFormation stack
         cloudformation:
           stack_name: "{{ cfn_project }}SNS"
+          create_changeset: "{{ create_changeset }}"
+          changeset_name: "{{ cfn_project }}SNS{{ changeset_suffix }}"
           state: "present"
           disable_rollback: false
           template_url: "{{ presign.stdout }}"
           tags:
             aws_cfn_gen_tag: "{{ gittag }}"
+        tags: [ 'deploy' ]
+      - name: Add result of changeset to a local file
+        shell: |
+          echo "{{ cfn_project }}SNS" >> changeset_report.txt
+          aws cloudformation describe-change-set \
+              --change-set-name={{ cfn_project }}SNS{{ changeset_suffix }} \
+              --stack-name={{ cfn_project }}SNS --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+              --output text >> changeset_report.txt
         tags: [ 'deploy' ]
 
       when: "sns is defined"
@@ -608,11 +769,21 @@
         - name: Create or Update the CloudFront CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}CloudFront"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}CloudFront{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}CloudFront" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}CloudFront{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}CloudFront --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       when: "cloudfront_distributions is defined"
@@ -637,12 +808,22 @@
         - name: Create or Update the Route53 Hosted Zones CloudFormation stacks
           cloudformation:
             stack_name: "{{ cfn_project }}Route53"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}Route53{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order:  "{{ stack_deletion_order_route53 }}"
               aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}Route53" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}Route53{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}Route53 --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       when: route53 is defined and route53.private_hosted_zones is defined
@@ -667,12 +848,22 @@
         - name: Create or Update the ECS CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}ECS"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}ECS{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order:  "{{ stack_deletion_order_ecs }}"
               aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}ECS" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}ECS{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}ECS --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
           tags: [ 'deploy' ]
 
       when: ecs is defined
@@ -697,12 +888,23 @@
         - name: Create or Update the S3 CloudFormation stack
           cloudformation:
             stack_name: "{{ cfn_project }}S3"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}S3{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}S3" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}S3{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}S3 --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          tags: [ 'deploy' ]
 
       when: s3 is defined
       tags: [ 's3' ]
+
