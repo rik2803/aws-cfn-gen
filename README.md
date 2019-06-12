@@ -1061,6 +1061,17 @@ The number on MB to reserve for the container. If the container requires more me
 is available (i.e. not reserved) on any of the ECS cluster nodes, the task will not be started.
 This will be logged in the service’s events in de AWS Console.
 
+The value is ignored if `application[n].ecs.memory_reservation` is also set.
+
+##### `application[n].ecs.memory_reservation`
+
+Same as `application[n].ecs.memory`, but with the difference that more memory can be used by
+the container when memory is available on the ECS instance node. Conversely, when the ECS Agent
+looks for memory, it will require the extra memory allocated above the 
+`application[n].ecs.memory_reservation` value, to be freed.
+
+This property is _stronger_ than `application[n].ecs.memory`.
+
 ##### `application[n].ecs.cpu`
 
 The number of CPU shares to allocate to the running container. Each vCPU on AWS

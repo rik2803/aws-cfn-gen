@@ -9,6 +9,37 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.2.2` (2019xxxx)
+
+### Features
+
+#### ECS
+
+##### Allow `MemoryReservation` in `ContainerDefinition`
+
+It is now possible to set the `memory_reservation` property in the `ecs` part of
+an application definition. This will allow the running container to exceed the
+memory limit set by the property, but only when the ECS cluster node has
+memory to spare. When another container requires memory within its memory
+settings, the ECS Agent will try to reclaim the memory from containers that
+exceed their `MemoryReservation` first.
+
+This property is stronger than the `memory` property.
+
+```yaml
+  - name: "servicename"
+    cfn_name: ServiceName
+    target: "ecs"
+    ...
+    ecs:
+      image: "123456789012.dkr.ecr.eu-central-1.amazonaws.com/example/service:latest"
+      containerport: 8080
+      memory_reservation: 2048
+      cpu: 512
+      desiredcount: 2
+    ...
+```
+
 ## `0.2.1` (20190606)
 
 This is a patch release, with only minor and non-disrupitve changes.
