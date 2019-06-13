@@ -292,6 +292,15 @@ Resources:
             TargetOriginId: "{{ origin.origin_name }}-origin"
             PathPattern: "{{ origin.path_pattern | default('/*') }}"
             ViewerProtocolPolicy: "{{ origin.viewer_protocol_policy | default('redirect-to-https') }}"
+{%     if origin.min_ttl is defined %}
+            MinTTL: {{ origin.min_ttl }}
+{%     endif %}
+{%     if origin.max_ttl is defined %}
+            MaxTTL: {{ origin.max_ttl }}
+{%     endif %}
+{%     if origin.default_ttl is defined %}
+            DefaultTTL: {{ origin.default_ttl }}
+{%     endif %}
 {%   endfor %}
 
         DefaultCacheBehavior:
