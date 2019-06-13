@@ -142,20 +142,21 @@ Resources:
             Status: Enabled
 {%       if origin.origin_cors_rules is defined %}
       CorsConfiguration:
+        CorsRules:
 {%         if origin.origin_cors_rules.allowed_headers is defined %}
-        AllowedHeaders: {{ origin.origin_cors_rules.allowed_headers }}
+          AllowedHeaders: {{ origin.origin_cors_rules.allowed_headers }}
 {%         endif %}
 {%         if origin.origin_cors_rules.allowed_methods is defined %}
-        AllowedMethods: {{ origin.origin_cors_rules.allowed_methods }}
+          AllowedMethods: {{ origin.origin_cors_rules.allowed_methods }}
 {%         endif %}
 {%         if origin.origin_cors_rules.allowed_origins is defined %}
-        AllowedOrigins: {{ origin.origin_cors_rules.allowed_origins }}
+          AllowedOrigins: {{ origin.origin_cors_rules.allowed_origins }}
 {%         endif %}
 {%         if origin.origin_cors_rules.exposed_headers is defined %}
-        ExposedHeaders: {{ origin.origin_cors_rules.exposed_headers }}
+          ExposedHeaders: {{ origin.origin_cors_rules.exposed_headers }}
 {%         endif %}
 {%         if origin.origin_cors_rules.max_age is defined %}
-        MaxAge: {{ origin.origin_cors_rules.max_age }}
+          MaxAge: {{ origin.origin_cors_rules.max_age }}
 {%         endif %}
 {%       endif %}
 {%       if cloudfront.logging is defined %}
