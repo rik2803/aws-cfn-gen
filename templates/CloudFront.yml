@@ -291,7 +291,7 @@ Resources:
 {%     endif %}
             TargetOriginId: "{{ origin.origin_name }}-origin"
             PathPattern: "{{ origin.path_pattern | default('/*') }}"
-            ViewerProtocolPolicy: "redirect-to-https"
+            ViewerProtocolPolicy: "{{ origin.viewer_protocol_policy | default('redirect-to-https') }}"
 {%   endfor %}
 
         DefaultCacheBehavior:
