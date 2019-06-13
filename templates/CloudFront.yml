@@ -62,7 +62,7 @@ Resources:
                 Action:
                   - s3:ListAllMyBuckets
                 Resource:
-                  - "arn:aws:s3:::*"
+                  - "*"
 {% endif %}
         - PolicyName: AllowInvalidationAccessToCloudFrontDistribution
           PolicyDocument:
@@ -145,16 +145,16 @@ Resources:
         CorsRules:
           -
 {%         if origin.origin_cors_rules.allowed_headers is defined %}
-            AllowedHeaders: {{ origin.origin_cors_rules.allowed_headers }}
+            AllowedHeaders: {{ origin.origin_cors_rules.allowed_headers | to_yaml }}
 {%         endif %}
 {%         if origin.origin_cors_rules.allowed_methods is defined %}
-            AllowedMethods: {{ origin.origin_cors_rules.allowed_methods }}
+            AllowedMethods: {{ origin.origin_cors_rules.allowed_methods | to_yaml }}
 {%         endif %}
 {%         if origin.origin_cors_rules.allowed_origins is defined %}
-            AllowedOrigins: {{ origin.origin_cors_rules.allowed_origins }}
+            AllowedOrigins: {{ origin.origin_cors_rules.allowed_origins | to_yaml }}
 {%         endif %}
 {%         if origin.origin_cors_rules.exposed_headers is defined %}
-            ExposedHeaders: {{ origin.origin_cors_rules.exposed_headers }}
+            ExposedHeaders: {{ origin.origin_cors_rules.exposed_headers | to_yaml }}
 {%         endif %}
 {%         if origin.origin_cors_rules.max_age is defined %}
             MaxAge: {{ origin.origin_cors_rules.max_age }}
