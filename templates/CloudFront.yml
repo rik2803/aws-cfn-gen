@@ -144,20 +144,20 @@ Resources:
       CorsConfiguration:
 {%         if origin.origin_cors_rules.allowed_headers is defined %}
         AllowedHeaders: {{ origin.origin_cors_rules.allowed_headers }}
-{%         endif %}}
+{%         endif %}
 {%         if origin.origin_cors_rules.allowed_methods is defined %}
         AllowedMethods: {{ origin.origin_cors_rules.allowed_methods }}
-{%         endif %}}
+{%         endif %}
 {%         if origin.origin_cors_rules.allowed_origins is defined %}
         AllowedOrigins: {{ origin.origin_cors_rules.allowed_origins }}
-{%         endif %}}
+{%         endif %}
 {%         if origin.origin_cors_rules.exposed_headers is defined %}
         ExposedHeaders: {{ origin.origin_cors_rules.exposed_headers }}
-{%         endif %}}
+{%         endif %}
 {%         if origin.origin_cors_rules.max_age is defined %}
         MaxAge: {{ origin.origin_cors_rules.max_age }}
-{%         endif %}}
-{%       endif %}}
+{%         endif %}
+{%       endif %}
 {%       if cloudfront.logging is defined %}
       LoggingConfiguration:
         DestinationBucketName: "{{ project }}-{{ cloudfront.name }}-logs"
