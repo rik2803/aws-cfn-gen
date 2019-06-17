@@ -1186,6 +1186,34 @@ The HTTP code that reflects a healthy services. For example:
 
 ##### `application[n].lb.targetgroup`
 
+##### `application[n].lb.sticky`
+
+##### `application[n].lb.targetgroup_attributes`
+
+```yaml
+applicationconfig:
+  - name: myapp
+    ...
+    lb:
+      name: mylb
+      ...
+      targetgroup_attributes:
+        - key: deregistration_delay.timeout_seconds
+          value: 0
+        - key: ...
+          value: ...
+```
+
+Allowed values are described in the _CloudFormation_ documentation for
+`AWS::ElasticLoadBalancingV2::TargetGroup`. The list currently includes
+these attributes:
+
+* `deregistration_delay.timeout_seconds`
+* `slow_start.duration_seconds`
+* `stickiness.enabled`
+* `stickiness.type`
+* `stickiness.lb_cookie.duration_seconds`
+
 #### `application[n].domains`
 
 A list of domains, used to:

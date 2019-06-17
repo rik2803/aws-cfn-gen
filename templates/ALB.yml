@@ -297,12 +297,18 @@ Resources:
       Name: {{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}
       Port: 80
       Protocol: HTTP
-{%     if app.lb.sticky is defined and app.lb.sticky %}
+{%     if (app.lb.sticky is defined and app.lb.sticky) or app.lb.targetgroup_attributes is defined %}
       TargetGroupAttributes:
+{%       if app.lb.sticky is defined and app.lb.sticky %}
         - Key: "stickiness.enabled"
           Value: "true"
         - Key: "stickiness.type"
           Value: "lb_cookie"
+{%       endif %}
+{%       for tgatt in app.lb.targetgroup_attributes | default([]) %}
+        - Key: "{{ tgatt.key }}"
+          Value: "{{ tgatt.value }}"
+{%       endfor %}
 {%     endif %}
       UnhealthyThresholdCount: 2
       VpcId: "{{ vpc_id }}"
