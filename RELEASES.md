@@ -9,7 +9,31 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
-## `0.2.2` (2019xxxx)
+## `0.2.3` (20190617)
+
+### Features
+
+#### `ecs`
+
+```yaml
+applicationconfig:
+  - name: myapp
+    ...
+    lb:
+      name: mylb
+      ...
+      targetgroup_attributes:
+        - key: deregistration_delay.timeout_seconds
+          value: 0
+        - key: ...
+          value: ...
+```
+
+Setting the property `targetgroup_attributes` will add the target group attributes to
+the target group for the application. Consult the AWS CloudFormation documentation for
+`AWS:ElasticLoadBalancerV2::TargetGroup` for accepted values.
+
+## `0.2.2` (20190617)
 
 ### Features
 
