@@ -25,6 +25,101 @@ ansible-playbook CreateOrUpdateEnv.yml --extra-vars configfile=/path/to/your/env
 * A local _Ansible_ and _AWS CLI_ client installation when **not** using the
   `dockerwrapper`
 
+## Running the playbook
+
+### Creating changesets and printing the changeset report
+
+When the switch `-e create_changeset=yes` is added to the command, nothing will be changed,
+a _change set_ will be created for all processed templates (`--tags` also works), and a
+change set report will be printed at the end of the playbook.
+
+An example:
+
+```bash
+$ ansible-playbook CreateOrUpdateEnv.yml \
+    --extra-vars configfile=~/projects/IxorDocs/aws-ixor.ixordocs-dev-ixordocs-config/config.yml \
+    --extra-vars create_changeset=yes \
+    --tags=bastion,cw
+
+...
+
+TASK [Dump changeset report] *************************************************************
+ok: [localhost] => {
+    "changeset.stdout_lines": [
+        "IxordocsDevBastion",
+        "Modify BastionHost True",
+        "Modify RecordSetForBastionHost Conditional",
+        "IxordocsDevCW",
+        "Modify AwsLambdaCWLogsSubscription False",
+        "Modify AwsLambdaCWLogsSubscriptionPermission Conditional",
+        "Modify AwsLambdaEC2InstallCWAgent False",
+        "Modify AwsLambdaEC2InstallCWAgentPermission Conditional",
+        "Modify CWEventRuleCWCreateLogGroup False",
+        "Modify CWEventRuleSSMInstallCWAgent False",
+        "Remove TestPolicy None",
+        "IxordocsDevBastion",
+        "Modify BastionHost True",
+        "Modify RecordSetForBastionHost Conditional",
+        "IxordocsDevCW",
+        "Modify AwsLambdaCWLogsSubscription False",
+        "Modify AwsLambdaCWLogsSubscriptionPermission Conditional",
+        "Modify AwsLambdaEC2InstallCWAgent False",
+        "Modify AwsLambdaEC2InstallCWAgentPermission Conditional",
+        "Modify CWEventRuleCWCreateLogGroup False",
+        "Modify CWEventRuleSSMInstallCWAgent False",
+        "Remove TestPolicy None",
+        "IxordocsDevBastion",
+        "Modify BastionHost True",
+        "Modify RecordSetForBastionHost Conditional",
+        "IxordocsDevCW",
+        "Modify AwsLambdaCWLogsSubscription False",
+        "Modify AwsLambdaCWLogsSubscriptionPermission Conditional",
+        "Modify AwsLambdaEC2InstallCWAgent False",
+        "Modify AwsLambdaEC2InstallCWAgentPermission Conditional",
+        "Modify CWEventRuleCWCreateLogGroup False",
+        "Modify CWEventRuleSSMInstallCWAgent False",
+        "Remove TestPolicy None",
+        "IxordocsDevBastion",
+        "Modify BastionHost True",
+        "Modify RecordSetForBastionHost Conditional",
+        "IxordocsDevCW",
+        "Modify AwsLambdaCWLogsSubscription False",
+        "Modify AwsLambdaCWLogsSubscriptionPermission Conditional",
+        "Modify AwsLambdaEC2InstallCWAgent False",
+        "Modify AwsLambdaEC2InstallCWAgentPermission Conditional",
+        "Modify CWEventRuleCWCreateLogGroup False",
+        "Modify CWEventRuleSSMInstallCWAgent False",
+        "Remove TestPolicy None",
+        "IxordocsDevBastion",
+        "Modify BastionHost True",
+        "Modify RecordSetForBastionHost Conditional",
+        "IxordocsDevCW",
+        "Modify AwsLambdaCWLogsSubscription False",
+        "Modify AwsLambdaCWLogsSubscriptionPermission Conditional",
+        "Modify AwsLambdaEC2InstallCWAgent False",
+        "Modify AwsLambdaEC2InstallCWAgentPermission Conditional",
+        "Modify CWEventRuleCWCreateLogGroup False",
+        "Modify CWEventRuleSSMInstallCWAgent False",
+        "Remove TestPolicy None",
+        "IxordocsDevBastion",
+        "Modify BastionHost True",
+        "Modify RecordSetForBastionHost Conditional",
+        "IxordocsDevCW",
+        "Modify AwsLambdaCWLogsSubscription False",
+        "Modify AwsLambdaCWLogsSubscriptionPermission Conditional",
+        "Modify AwsLambdaEC2InstallCWAgent False",
+        "Modify AwsLambdaEC2InstallCWAgentPermission Conditional",
+        "Modify CWEventRuleCWCreateLogGroup False",
+        "Modify CWEventRuleSSMInstallCWAgent False",
+        "Remove TestPolicy None"
+    ]
+}
+
+PLAY RECAP ******************************************************************************************
+localhost                  : ok=39   changed=14   unreachable=0    failed=0   
+
+```
+
 ## Running the playbook in a controlled way
 
 ### Background
@@ -965,6 +1060,17 @@ loadbalancing to do its job.
 The number on MB to reserve for the container. If the container requires more memory than
 is available (i.e. not reserved) on any of the ECS cluster nodes, the task will not be started.
 This will be logged in the service’s events in de AWS Console.
+
+The value is ignored if `application[n].ecs.memory_reservation` is also set.
+
+##### `application[n].ecs.memory_reservation`
+
+Same as `application[n].ecs.memory`, but with the difference that more memory can be used by
+the container when memory is available on the ECS instance node. Conversely, when the ECS Agent
+looks for memory, it will require the extra memory allocated above the 
+`application[n].ecs.memory_reservation` value, to be freed.
+
+This property is _stronger_ than `application[n].ecs.memory`.
 
 ##### `application[n].ecs.cpu`
 

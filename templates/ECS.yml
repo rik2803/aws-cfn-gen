@@ -187,7 +187,7 @@ Resources:
             yum install -y nfs-utils
 {%   for fs in ecs.efs | default([]) %}
             mkdir -p {{ fs.mountpoint }}
-            echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ {{ fs.mountpoint }} nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
+            echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ {{ fs.mountpoint }} nfs4 noresvport,_netdev,nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
             mount -a
 {%   endfor %}
 {% endif %}
@@ -319,7 +319,11 @@ Resources:
           Cpu: "{{ app.ecs.cpu | default('10') }}"
           Essential: 'true'
           Image: "{{ app.ecs.image }}"
+{%     if app.ecs.memory_reservation is defined %}
+          MemoryReservation: "{{ app.ecs.memory_reservation }}"
+{%     else %}
           Memory: "{{ app.ecs.memory | default(1024) }}"
+{%     endif %}
 {%     if app.ecs.volumes is defined %}
           MountPoints:
 {%       for volume in app.ecs.volumes %}

@@ -9,6 +9,77 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.2.2` (2019xxxx)
+
+### Features
+
+#### General Feature
+
+Run without updating resources, only creating change sets and printing a basic report at the end of the playbook run.
+This can be achieved by adding the commandline switch `--extra-vars create_changeset=yes` to the `ansible-playbook`
+commandline.
+
+#### CloudFront
+
+##### Extent customizable properties
+
+* Allow definition of CORS rules for S3 origins (see example)
+* Make `ViewerProtocolPolicy` customizable with property `viewer_protocol_policy`
+* Make `MaxTTL`, `MinTTL` and `DefaultTTL` customixable with the properties
+  `max_ttl`, `min_ttl` and `default_ttl`.
+
+
+```yaml
+cloudfront_distributions:
+  - name: my-distributions
+    cfn_name: MyDistribution
+    cnames:
+      - "dist.acme.com"
+    certificate_arn: "arn:aws:acm:us-east-1:{{ target_account.account_id }}:certificate/{{ certificate }}"
+    logging: true
+    origins_and_cachebehaviors:
+      - origin_name: "origin-1"
+        origin_cors_rules:
+          allowed_headers: [ 'access-token', 'content-type', 'cache-control', 'pragma' ]
+          allowed_methods: [ 'PUT', 'GET', 'POST', 'DELETE' ]
+          allowed_origins: [ '*' ]
+          max_age: 300
+        forward_headers:
+          - Origin
+        priority: 100
+        path_pattern: "/static/*"
+        allowed_http_methods: options
+        viewer_protocol_policy: "allow-all"
+        default_ttl: 300
+```
+
+#### ECS
+
+##### Allow `MemoryReservation` in `ContainerDefinition`
+
+It is now possible to set the `memory_reservation` property in the `ecs` part of
+an application definition. This will allow the running container to exceed the
+memory limit set by the property, but only when the ECS cluster node has
+memory to spare. When another container requires memory within its memory
+settings, the ECS Agent will try to reclaim the memory from containers that
+exceed their `MemoryReservation` first.
+
+This property is stronger than the `memory` property.
+
+```yaml
+  - name: "servicename"
+    cfn_name: ServiceName
+    target: "ecs"
+    ...
+    ecs:
+      image: "123456789012.dkr.ecr.eu-central-1.amazonaws.com/example/service:latest"
+      containerport: 8080
+      memory_reservation: 2048
+      cpu: 512
+      desiredcount: 2
+    ...
+```
+
 ## `0.2.1` (20190606)
 
 This is a patch release, with only minor and non-disrupitve changes.

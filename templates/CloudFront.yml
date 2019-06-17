@@ -62,7 +62,7 @@ Resources:
                 Action:
                   - s3:ListAllMyBuckets
                 Resource:
-                  - "arn:aws:s3:::*"
+                  - "*"
 {% endif %}
         - PolicyName: AllowInvalidationAccessToCloudFrontDistribution
           PolicyDocument:
@@ -140,6 +140,26 @@ Resources:
         Rules:
           - NoncurrentVersionExpirationInDays: 60
             Status: Enabled
+{%       if origin.origin_cors_rules is defined %}
+      CorsConfiguration:
+        CorsRules:
+          -
+{%         if origin.origin_cors_rules.allowed_headers is defined %}
+            AllowedHeaders: {{ origin.origin_cors_rules.allowed_headers | to_yaml }}
+{%         endif %}
+{%         if origin.origin_cors_rules.allowed_methods is defined %}
+            AllowedMethods: {{ origin.origin_cors_rules.allowed_methods | to_yaml }}
+{%         endif %}
+{%         if origin.origin_cors_rules.allowed_origins is defined %}
+            AllowedOrigins: {{ origin.origin_cors_rules.allowed_origins | to_yaml }}
+{%         endif %}
+{%         if origin.origin_cors_rules.exposed_headers is defined %}
+            ExposedHeaders: {{ origin.origin_cors_rules.exposed_headers | to_yaml }}
+{%         endif %}
+{%         if origin.origin_cors_rules.max_age is defined %}
+            MaxAge: {{ origin.origin_cors_rules.max_age }}
+{%         endif %}
+{%       endif %}
 {%       if cloudfront.logging is defined %}
       LoggingConfiguration:
         DestinationBucketName: "{{ project }}-{{ cloudfront.name }}-logs"
@@ -271,7 +291,16 @@ Resources:
 {%     endif %}
             TargetOriginId: "{{ origin.origin_name }}-origin"
             PathPattern: "{{ origin.path_pattern | default('/*') }}"
-            ViewerProtocolPolicy: "redirect-to-https"
+            ViewerProtocolPolicy: "{{ origin.viewer_protocol_policy | default('redirect-to-https') }}"
+{%     if origin.min_ttl is defined %}
+            MinTTL: {{ origin.min_ttl }}
+{%     endif %}
+{%     if origin.max_ttl is defined %}
+            MaxTTL: {{ origin.max_ttl }}
+{%     endif %}
+{%     if origin.default_ttl is defined %}
+            DefaultTTL: {{ origin.default_ttl }}
+{%     endif %}
 {%   endfor %}
 
         DefaultCacheBehavior:
