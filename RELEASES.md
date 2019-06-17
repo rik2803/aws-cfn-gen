@@ -13,6 +13,46 @@
 
 ### Features
 
+#### General Feature
+
+Run without updating resources, only creating change sets and printing a basic report at the end of the playbook run.
+This can be achieved by adding the commandline switch `--extra-vars create_changeset=yes` to the `ansible-playbook`
+commandline.
+
+#### CloudFront
+
+##### Extent customizable properties
+
+* Allow definition of CORS rules for S3 origins (see example)
+* Make `ViewerProtocolPolicy` customizable with property `viewer_protocol_policy`
+* Make `MaxTTL`, `MinTTL` and `DefaultTTL` customixable with the properties
+  `max_ttl`, `min_ttl` and `default_ttl`.
+
+
+```yaml
+cloudfront_distributions:
+  - name: my-distributions
+    cfn_name: MyDistribution
+    cnames:
+      - "dist.acme.com"
+    certificate_arn: "arn:aws:acm:us-east-1:{{ target_account.account_id }}:certificate/{{ certificate }}"
+    logging: true
+    origins_and_cachebehaviors:
+      - origin_name: "origin-1"
+        origin_cors_rules:
+          allowed_headers: [ 'access-token', 'content-type', 'cache-control', 'pragma' ]
+          allowed_methods: [ 'PUT', 'GET', 'POST', 'DELETE' ]
+          allowed_origins: [ '*' ]
+          max_age: 300
+        forward_headers:
+          - Origin
+        priority: 100
+        path_pattern: "/static/*"
+        allowed_http_methods: options
+        viewer_protocol_policy: "allow-all"
+        default_ttl: 300
+```
+
 #### ECS
 
 ##### Allow `MemoryReservation` in `ContainerDefinition`
