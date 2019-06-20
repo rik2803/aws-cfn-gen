@@ -47,7 +47,7 @@ Resources:
       Code:
         S3Bucket: "{{ lambda.code.s3_bucket }}"
         S3Key: "{{ lambda.code.s3_key }}"
-      Runtime: {{ lambda.runtime | default('python2.7') }}
+      Runwithouttrigger.json: {{ lambda.runtime | default('python2.7') }}
 {%   if lambda.vpc is defined and lambda.vpc %}
       VpcConfig:
         SubnetIds:
@@ -102,6 +102,7 @@ Resources:
       FunctionName: !Ref {{ lambda_cfn_name }}
       Principal: "events.amazonaws.com"
       SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:{{ liv.event_basename | default('*') }}"
 {%     elif liv.type == 'service' %}
   {{ lambda_cfn_name }}InvokePermission:
     Type: AWS::Lambda::Permission
