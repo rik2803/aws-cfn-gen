@@ -1692,7 +1692,7 @@ lambda_functions:
       - name: ENVIRONMENT
         value: "{{ env }}"
       - name: DD_API_KEY
-        value: 351a225b68b4c184fddf55237e9f71d7
+        value: xxxxxxxxxxxxxxxxxxxxxxxxxx
     invoke_permissions:
       - type: predefined
         description: "Allows CloudWatch log events to trigger this lambda function"
