@@ -448,6 +448,9 @@ cw:
         - type: "import"
           value: "MyLambdaImport"
 ```
+
+The value for `filter_pattern` in `cw.log_group_settings` is described in the [AWS documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html
+). Use an empty string to disable the filter.
           
 ### Create _Lambda_ functions
 
@@ -1663,6 +1666,60 @@ This will create the following resources on the account that hosts the _Hosted Z
 * A role for CLI access
 
 ## Common or not so common actions
+
+### Configure the DataDogHQ log shipper
+
+The full configuration of the DD log shipper takes 3 steps:
+
+* Configure the DD Log Shipper Lambda
+* Configure the Lambda function that automatically onboards new
+  _CloudWatch_ log groups and adds a subscription filter to those
+  log groups
+  
+#### Configure the DD logshipper Lambda
+
+```yaml
+lambda_functions:
+  - name: aws-lambda-datadog-logshipper
+    handler: lambda_handler
+    runtime: python2.7
+    code:
+      s3_bucket: "{{ lambda_function_bucket_name }}"
+      s3_key: aws-lambda-datadog-logshipper-4c4579dfe5ab32ca8c5b9ecd8eb06b1281e5a5b7.zip
+    environment:
+      - name: APPLICATION
+        value: "{{ application }}"
+      - name: ENVIRONMENT
+        value: "{{ env }}"
+      - name: DD_API_KEY
+        value: 351a225b68b4c184fddf55237e9f71d7
+    invoke_permissions:
+      - type: predefined
+        description: "Allows CloudWatch log events to trigger this lambda function"
+        name: logs
+```
+
+* `s3_key`: The name of the Lambda ZIP file on the S3 bucket, only requires change
+  if the function is changed.
+* The `APPLICATION` and `ENVIRONMENT` environment variables are used to add metadata
+  to the logged entries to allow for better filtering.
+* The `DD_API_KEY` determines to which DD account the log are sent
+
+#### Configure the log group onboarding function
+
+```yaml
+cw:
+  auto_config_log_group_lambda_s3_key: "cw-logs-new-stream-to-lambda-5de112e77e72fe069784d795412880499551fe5b.zip"
+  log_group_settings:
+    retention_in_days: 14
+    filter_pattern: "-DEBUG"
+  logshipper_lambda_function_arn_import: "AppEnvLambda-AwsLambdaDatadogLogshipperArn"
+```
+
+* `retention_in_days`: How long are log streams kept in CW logs
+* `filter_pattern`: Determines the filter to be applied to incoming messages. See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html) for the syntax.
+* `logshipper_lambda_function_arn_import`: The Lambda to send the logs to. If the destination is _DataDogHQ_
+  see the section above, but you can provide your own function, export its ARN and use it instead.
 
 ### Disable _ServiceStartAlert_
 
