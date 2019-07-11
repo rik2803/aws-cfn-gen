@@ -108,13 +108,13 @@
 
     - name: Get timestamp
       shell: "date +%Y%m%d%H%M%S"
-      register: tstamp
+      register: timestamp
       tags: [ 'always' ]
 
     - name: Set changeset variables
       set_fact:
         create_changeset: "{% if create_changeset is not defined %}no{% else %}{{ create_changeset }}{% endif %}"
-        changeset_suffix: "{{ tstamp.stdout }}"
+        changeset_suffix: "{{ timestamp.stdout }}"
       tags: [ 'always' ]
 
     - name: Dump changeset settings
@@ -184,8 +184,8 @@
       tags: [ 'vpc' ]
       when: "vpc is defined"
 
-  ### Collect info from other stacks
-  ### Should remain after the VPC creation
+    ### Collect info from other stacks
+    ### Should remain after the VPC creation
     - name: Block for VPC
       block:
       - name: Get facts for the VPC stack
@@ -208,10 +208,14 @@
           vpc_sg_app: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
           vpc_sg_elb: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
           vpc_sg_dmz: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGDMZ }}"
+          vpc_sg_rds: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGRDS }}"
           vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
           vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
           vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
           vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
+          vpc_rdssubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ1 }}"
+          vpc_rdssubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ2 }}"
+          vpc_rdssubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ3 }}"
           vpc_publicsubnet: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SubnetPublic }}"
           vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
 
@@ -469,7 +473,6 @@
           tags: [ 'deploy' ]
       when: "ecsmgmt is defined"
       tags: [ 'ecsmgmt' ]
-
 
     - name: Route53Delegation
       block:

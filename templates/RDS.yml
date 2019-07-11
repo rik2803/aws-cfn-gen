@@ -1,0 +1,72 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create a RDS instance.
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: DBSubnetGroup
+      SubnetIds:
+        - {{ vpc_rdssubnet_az1 }}
+        - {{ vpc_rdssubnet_az2 }}
+        - {{ vpc_rdssubnet_az3 }}
+      Tags:
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+
+{% if item.create_db != 'false' %}
+  RDS:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: {{ item.allocated_storage | default('20') }}
+      DBInstanceIdentifier: {{ item.db_instance_id }}
+      DBInstanceClass: {{ item.db_instance_class | default('db.t2.micro') }}
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      Engine: {{ item.db_engine | default('postgres') }}
+{%   if item.db_engine_version is defined %}
+      EngineVersion: {{ item.db_engine_version }}
+{%   endif %}
+      MasterUsername: {{ item.db_user }}
+      MasterUserPassword: {{ item.db_password }}
+      MultiAZ: {{ item.multi_az | default('false') | lower }}
+      StorageType: gp2
+      PreferredBackupWindow: "03:00-05:00"
+      PreferredMaintenanceWindow: "Sat:00:00-Sat:03:00"
+      VPCSecurityGroups:
+        - {{ vpc_sg_rds }}
+      Tags:
+        - Key: "Name"
+          Value: "{{ item.db_instance_id }}"
+        - Key: "Application"
+          Value: "{{ application }}"
+        - Key: "Environment"
+          Value: "{{ env }}"
+{%   if item.ass is defined and item.ass.key is defined and item.ass.value is defined %}
+        - Key: "{{ item.ass.key }}"
+          Value: "{{ item.ass.value }}"
+{%   endif %}
+{% endif %}
+
+{% if item.create_db != 'false' %}
+Outputs:
+  RDS:
+    Value: !Ref RDS
+    Description: "RDS DBInstance"
+    Export:
+      Name: !Sub "${AWS::StackName}-RDS"
+  RDSEndpointAddress:
+    Value: !GetAtt RDS.Endpoint.Address
+    Description: "RDS DBInstance address (hostname)"
+    Export:
+      Name: !Sub "${AWS::StackName}-RDSEndpointAddress"
+  RDSEndpointPort:
+    Value: !GetAtt RDS.Endpoint.Port
+    Description: "RDS DBInstance port"
+    Export:
+      Name: !Sub "${AWS::StackName}-RDSEndpointPort"
+
+{% endif %}
