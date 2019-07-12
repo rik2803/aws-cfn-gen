@@ -170,6 +170,7 @@
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
               stack_deletion_order:  "{{ stack_deletion_order_vpc }}"
+              ass:cfn:deletion-order:  "{{ stack_deletion_order_vpc }}"
           tags: [ 'deploy' ]
         - name: Add result of changeset to a local file
           shell: |
@@ -256,6 +257,7 @@
               tags:
                 aws_cfn_gen_tag: "{{ gittag }}"
                 stack_deletion_order:  "{{ stack_deletion_order_vpcendpoints }}"
+                ass:cfn:deletion-order:  "{{ stack_deletion_order_vpcendpoints }}"
             tags: [ 'deploy' ]
           - name: Add result of changeset to a local file
             shell: |
@@ -297,6 +299,7 @@
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
               stack_deletion_order:  "{{ stack_deletion_order_rdsparametergroups }}"
+              ass:cfn:deletion-order:  "{{ stack_deletion_order_rdsparametergroups }}"
           tags: [ 'deploy' ]
         - name: Add result of changeset to a local file
           shell: |
@@ -382,6 +385,7 @@
             tags:
               aws_cfn_gen_tag: "{{ gittag }}"
               stack_deletion_order: "{{ stack_deletion_order_bastionhost }}"
+              ass:cfn:deletion-order: "{{ stack_deletion_order_bastionhost }}"
           tags: [ 'deploy' ]
         - name: Add result of changeset to a local file
           shell: |
@@ -753,6 +757,7 @@
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order:  "{{ stack_deletion_order_dynamodb }}"
+              ass:cfn:deletion-order:  "{{ stack_deletion_order_dynamodb }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
         - name: Add result of changeset to a local file
@@ -798,6 +803,7 @@
             template_url: "{{ item.stdout }}"
             tags:
               stack_deletion_order: "{{ stack_deletion_order_alb }}"
+              ass:cfn:deletion-order: "{{ stack_deletion_order_alb }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
@@ -919,6 +925,7 @@
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order:  "{{ stack_deletion_order_route53 }}"
+              ass:cfn:deletion-order:  "{{ stack_deletion_order_route53 }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
         - name: Add result of changeset to a local file
@@ -960,6 +967,7 @@
             template_url: "{{ presign.stdout }}"
             tags:
               stack_deletion_order:  "{{ stack_deletion_order_ecs }}"
+              ass:cfn:deletion-order:  "{{ stack_deletion_order_ecs }}"
               aws_cfn_gen_tag: "{{ gittag }}"
           tags: [ 'deploy' ]
         - name: Add result of changeset to a local file
