@@ -26,6 +26,7 @@ Resources:
       DBInstanceIdentifier: {{ item.db_instance_id }}
       DBInstanceClass: {{ item.db_instance_class | default('db.t2.micro') }}
       DBSubnetGroupName: !Ref DBSubnetGroup
+      DeletionProtection: true
       Engine: {{ item.db_engine | default('postgres') }}
 {%   if item.db_engine_version is defined %}
       EngineVersion: {{ item.db_engine_version }}
