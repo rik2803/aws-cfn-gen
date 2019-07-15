@@ -1,4 +1,6 @@
 ---
+# TODO: If tags are passed check their validity
+
 - name: Create a complete Application Environment on AWS
   hosts: localhost
   gather_facts: false
@@ -76,6 +78,7 @@
 
   vars_files:
     - "vars/bitbucket.yml"
+    - "vars/alb_hosted_zone_id.yml"
     - "{{ configfile }}"
 
   tasks:

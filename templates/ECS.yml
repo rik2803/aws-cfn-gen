@@ -473,23 +473,28 @@ Resources:
 {%         for domain in app.domains %}
 {%           for public_hosted_zone in route53.public_hosted_zones | default([]) %}
 {%             if app.lb.type is defined and app.lb.type == 'public' and public_hosted_zone.cfn_name == domain.cfn_name %}
-{%               if domain.listener_rule_host_header != domain.name %}
-{%                 if domain.skiproute53 is not defined or not domain.skiproute53 %}
-{%                   if domain.skiproute53public is not defined or not domain.skiproute53public %}
-{%                     if domain.listener_rule_host_header != public_hosted_zone.name %}
-{#                       Skip RecordSet creation in public hosted zone if host in the listener rule == the domainname #}
-{#                       The Lambda that is triggered by the Custom Resource does not yet support the creation of APEX records #}
+{%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
+{%                 if domain.skiproute53public is not defined or not domain.skiproute53public %}
+{%                   if domain.listener_rule_host_header != public_hosted_zone.name %}
+{%                     set record_type = 'CNAME' %}
+{%                     set alias = 'No' %}
+{%                     set alias_hosted_zone_id = '' %}
+{%                   else %}
+{%                     set record_type = 'A' %}
+{%                     set alias = 'Yes' %}
+{%                     set alias_hosted_zone_id = alb_hosted_zone_id[target_account.region] %}
+{%                   endif %}
 ### AWS::Route53::RecordSet for {{ app.name }} in public hosted zones
-{% set cfn_name = domain.listener_rule_host_header | replace('_', ' ') | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '')  %}
+{%                     set cfn_name = domain.listener_rule_host_header | replace('_', ' ') | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '')  %}
   Route53PublicRecordSet{{ cfn_name }}:
     Type: Custom::CNAME
     Properties:
       ServiceToken: {{ public_hosted_zone.sns_arn }}
       Source: {{ domain.listener_rule_host_header }}.
       Target: !ImportValue "{{ cfn_project }}LB{{ app.lb.name }}-{{ app.lb.name }}DNS"
-      RecordType: CNAME
-{%                     endif %}
-{%                   endif %}
+      RecordType: "{{ record_type }}"
+      Alias: "{{ alias }}"
+      AliasHostedZoneId: "{{ alias_hosted_zone_id }}"
 {%                 endif %}
 {%               endif %}
 {%             endif %}
