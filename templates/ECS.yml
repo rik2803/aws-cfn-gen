@@ -187,20 +187,6 @@ Resources:
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
             /usr/bin/enable-ec2-spot-hibernation
 
-{% if bastion is defined and bastion.pubkeys is defined %}
-            --===============8943416319660996992==
-            Content-Type: text/cloud-config; charset="us-ascii"
-            MIME-Version: 1.0
-            Content-Transfer-Encoding: 7bit
-            Content-Disposition: attachment; filename="ec2_user_pubkeys.cloudinit"
-
-            #cloud-config
-            runcmd:
-{%   for key in bastion.pubkeys %}
-            - echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
-{%   endfor %}
-
-{% endif %}
           -
             dummy:
               "dummy"
@@ -221,15 +207,30 @@ Resources:
               command: !Sub echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
             02_enable_cloudwatch_agent:
               command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:AmazonCloudWatch-linux -s
+            03_create_authorized_keys_file:
+              command: /usr/local/bin/create_authorized_keys
           files:
+            /usr/local/bin/create_authorized_keys:
+              mode: "000755"
+              owner: root
+              group: root
+              content: |
+                #! /bin/env bash
+                echo "### Updating /home/ec2-user/.ssh/authorized_keys ###"
+{% if bastion is defined and bastion.pubkeys is defined %}
+{%   for key in bastion.pubkeys %}
+                grep -q '{{ key.key }}' /home/ec2-user/.ssh/authorized_keys || echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
+{%   endfor %}
+{% endif %}
             /etc/cfn/cfn-hup.conf:
-              mode: 000400
+              mode: "000400"
               owner: root
               group: root
               content: !Sub |
                 [main]
                 stack=${AWS::StackId}
                 region=${AWS::Region}
+                interval=5
             /etc/cfn/hooks.d/cfn-auto-reloader.conf:
               content: !Sub |
                 [cfn-auto-reloader-hook]
