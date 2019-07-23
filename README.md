@@ -668,7 +668,10 @@ Valid values:
 
 #### `ecs.cluster.ebs_size`
 
-Override the default 20GB ECS Cluster instance EBS size. Unit is `GB`.
+Override the default 30GB ECS Cluster instance EBS size. Unit is `GB`. It will
+not add an additional volume, but extend the AMI volume to the requested size.
+
+Must be larger than 30 to avoid stack failure.
 
 **Downtime Warning**: Changing this setting will cause the launch configuration
 to change and will consequently spawn new ECS instances.
@@ -765,13 +768,6 @@ value.
 loadbalancers:
   - name: ALBExtRedirectTest
     ...
-    redirects:
-      - host_header: "acme.com"
-        path_pattern: "/"
-        priority: 200
-        status_code: HTTP_302
-        path: /go_here
-        skiproute53: true
 ```
 
 `redirects` is a list of dicts that define URLs to redirect.
@@ -803,7 +799,7 @@ On of these strings:
 
 Skip the creation of a *Route 53* record if `true`.
 
-* `redirects[n].skiproute53`: Skip in both public and provate hosted zone
+* `redirects[n].skiproute53`: Skip in both public and private hosted zone
 * `redirects[n].skiproute53public`: Skip in public hosted zone
 * `redirects[n].skiproute53private`: skip in private hosted zone
 
