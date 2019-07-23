@@ -266,6 +266,92 @@
 
       when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
+    - name: RDSParameterGroups
+      block:
+        - name: Create CFN template from Ansible template for the RDSParameterGroups
+          template:
+            src: "RDSParameterGroups.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rdsparametergroups.yml"
+        - name: Put CFN template for RDSParameterGroups on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rdsparametergroups.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-rdsparametergroups.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the RDSParameterGroups template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-rdsparametergroups.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the RDSParameterGroups CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}RDSParameterGroups"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}RDSParameterGroups{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+              stack_deletion_order:  "{{ stack_deletion_order_rdsparametergroups }}"
+              ass:cfn:deletion-order:  "{{ stack_deletion_order_rdsparametergroups }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}RDSParameterGroups" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}RDSParameterGroups{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}RDSParameterGroups --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+      tags: [ 'rdsparametergroups', 'rds' ]
+      when: "rds_parameter_groups is defined or rds_cluster_parameter_groups is defined"
+
+    - name: RDS
+      block:
+        - name: Create template from Ansible template for the RDS Database Instances
+          template:
+            src: "RDS.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml"
+          with_items: "{{ rds | default([]) }}"
+        - name: Put CFN template for RDS on s3
+          shell: |
+            aws s3 cp \
+               "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml" \
+               "s3://{{ project }}-cfn-templates/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml"
+          with_items: "{{ rds | default([]) }}"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the RDS template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml"
+          with_items: "{{ rds | default([]) }}"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the RDS CloudFormation stacks
+          cloudformation:
+            stack_name: "{{ cfn_project }}RDS{{ item.item.db_instance_id }}"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}RDS{{ item.item.db_instance_id }}{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ item.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          with_items: "{{ presign.results }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}RDS{{ item.item.db_instance_id }}" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}RDS{{ item.item.db_instance_id }}{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}RDS{{ item.item.db_instance_id }} --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+
+      tags: [ 'rds' ]
+      when: "rds is defined"
+
     - name: Bastion
       block:
         - name: Create CFN template from Ansible template for the Bastion Host

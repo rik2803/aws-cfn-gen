@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: |
+  Create custom RDS Database Parameter Groups
+
+Resources:
+{% for rds_parameter_group in rds_parameter_groups | default([]) %}
+{%   set rdsparametergroup_cfn_name_family = rds_parameter_group.family | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdsparametergroup_cfn_name_cfn_name = rds_parameter_group.cfn_name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdsparametergroup_cfn_name =  rdsparametergroup_cfn_name_family + rdsparametergroup_cfn_name_cfn_name %}
+
+  RDSParameterGroup{{ rdsparametergroup_cfn_name }}:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: {{ rds_parameter_group.description }}
+      Family: {{ rds_parameter_group.family }}
+      Parameters:
+{%   for parameter in rds_parameter_group.parameters %}
+        {{ parameter.key }}: {{ parameter.value }}
+{%   endfor %}
+      Tags:
+        - Key: aws_cfn_gen_tag
+          Value: {{ gittag }}
+{%   endfor %}
+
+{% for rds_cluster_parameter_group in rds_cluster_parameter_groups | default([]) %}
+{%   set rdscluster_parametergroup_cfn_name_family = rds_cluster_parameter_group.family | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdscluster_parametergroup_cfn_name_cfn_name = rds_cluster_parameter_group.cfn_name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdscluster_parametergroup_cfn_name =  rdscluster_parametergroup_cfn_name_family + rdscluster_parametergroup_cfn_name_cfn_name %}
+
+  RDSClusterParameterGroup{{ rdscluster_parametergroup_cfn_name }}:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: {{ rds_cluster_parameter_group.description }}
+      Family: {{ rds_cluster_parameter_group.family }}
+      Parameters:
+{%   for parameter in rds_cluster_parameter_group.parameters %}
+        {{ parameter.key }}: {{ parameter.value }}
+{%   endfor %}
+      Tags:
+        - Key: aws_cfn_gen_tag
+          Value: {{ gittag }}
+{%   endfor %}
+
+Outputs:
+{% for rds_parameter_group in rds_parameter_groups | default([]) %}
+{%   set rdsparametergroup_cfn_name_family = rds_parameter_group.family | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdsparametergroup_cfn_name_cfn_name = rds_parameter_group.cfn_name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdsparametergroup_cfn_name =  rdsparametergroup_cfn_name_family + rdsparametergroup_cfn_name_cfn_name %}
+  RDSParameterGroup{{ rdsparametergroup_cfn_name }}:
+    Value: !Ref RDSParameterGroup{{ rdsparametergroup_cfn_name }}
+    Description: "RDS Parameter Group {{ rds_parameter_group.cfn_name }} for family {{ rds_parameter_group.family }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ rdsparametergroup_cfn_name }}"
+
+{% endfor %}
+
+{% for rds_cluster_parameter_group in rds_cluster_parameter_groups | default([]) %}
+{%   set rdscluster_parametergroup_cfn_name_family = rds_cluster_parameter_group.family | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdscluster_parametergroup_cfn_name_cfn_name = rds_cluster_parameter_group.cfn_name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+{%   set rdscluster_parametergroup_cfn_name =  rdscluster_parametergroup_cfn_name_family + rdscluster_parametergroup_cfn_name_cfn_name %}
+  RDSParameterGroup{{ rdscluster_parametergroup_cfn_name }}:
+    Value: !Ref RDSClusterParameterGroup{{ rdscluster_parametergroup_cfn_name }}
+    Description: "RDS Parameter Group {{ rds_cluster_parameter_group.cfn_name }} for family {{ rds_cluster_parameter_group.family }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ rdscluster_parametergroup_cfn_name }}"
+
+{% endfor %}
