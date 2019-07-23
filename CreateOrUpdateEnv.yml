@@ -314,7 +314,7 @@
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
       tags: [ 'rdsparametergroups', 'rds' ]
-      when: "rds_parameter_groups is defined"
+      when: "rds_parameter_groups is defined or rds_cluster_parameter_groups is defined"
 
     - name: RDS
       block:
