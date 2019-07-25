@@ -24,7 +24,7 @@ Resources:
     Properties:
       AllocatedStorage: {{ item.allocated_storage | default('20') }}
       DBInstanceIdentifier: {{ item.db_instance_id }}
-      DBInstanceClass: {{ item.db_instance_class | default('db.t2.micro') }}
+      DBInstanceClass: {{ item.db_instance_class | default('db.t3.micro') }}
       DBSubnetGroupName: !Ref DBSubnetGroup
       DeletionProtection: true
       Engine: {{ item.db_engine | default('postgres') }}
