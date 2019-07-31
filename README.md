@@ -1282,15 +1282,7 @@ be reached.
 
 ### `ecr`: _Elastic Container Registry_
 
-A list of repositories to create on the AWS account. This implicitely creates 2 users,
-`ECRPush` and `ECRPull` and their obvious permissions on all those repositories.
-
-```yaml
-ecr:
-  repositories:
-    - name: acme/mydockerimage
-      cfn_name: AcmeMyDockerImage
-```
+See `docs/ECR.md`
 
 ### `cloudfront_distributions`
 

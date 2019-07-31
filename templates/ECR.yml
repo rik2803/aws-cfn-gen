@@ -12,6 +12,23 @@ Resources:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: "{{ repo.name }}"
+{%   if repo.cross_account_access is defined and repo.cross_account_access.pull is defined %}
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: AllowPull
+            Effect: Allow
+            Principal:
+              AWS:
+{%     for account_id in repo.cross_account_access.pull %}
+                - "arn:aws:iam::{{ account_id }}:root"
+{%     endfor %}
+            Action:
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+{%   endif %}
       LifecyclePolicy:
         LifecyclePolicyText: |
           {
