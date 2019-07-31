@@ -9,6 +9,16 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.2.4` (20190731)
+
+### Features
+
+* RDS Cluster Parameter Group creation
+* Allow cross account ECR repository pulls for selected AWS
+  accounts
+* RDS Instance module
+
+####
 ## `0.2.3` (20190617)
 
 ### Features
