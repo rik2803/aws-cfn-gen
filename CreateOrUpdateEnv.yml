@@ -273,7 +273,7 @@
             tags: [ 'deploy' ]
         tags: [ 'vpc_endpoints', 'vpc' ]
 
-      when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
+      when: "vpc is defined and referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
     - name: RDSParameterGroups
       block:
