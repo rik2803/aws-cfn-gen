@@ -942,7 +942,7 @@
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
 
-      when: route53 is defined and route53.private_hosted_zones is defined
+      when: "route53 is defined and route53.private_hosted_zones is defined"
       tags: [ 'createstack', 'route53', 'ecs' ]
 
     - name: ECS Cluster
