@@ -561,7 +561,7 @@
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
 
-      when: awsroles is defined or managed_policies is defined
+      when: "awsroles is defined or managed_policies is defined"
       tags: [ 'iam' ]
 
     - name: Lambda
@@ -984,7 +984,7 @@
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
 
-      when: ecs is defined
+      when: "ecs is defined"
       tags: [ 'ecs' ]
 
     - name: S3 buckets
@@ -1024,6 +1024,6 @@
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
 
-      when: s3 is defined
+      when: "s3 is defined"
       tags: [ 's3' ]
 
