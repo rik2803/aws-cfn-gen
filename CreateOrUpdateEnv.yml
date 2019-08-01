@@ -192,88 +192,89 @@
     ### Should remain after the VPC creation
     - name: Block for VPC
       block:
-      - name: Get facts for the VPC stack
-        cloudformation_facts:
-          stack_name: "{{ referenced_stacks.VPCStackName }}"
-        register: vpcfacts
-        tags: [ 'always' ]
+        - name: Get facts for the VPC stack
+          cloudformation_facts:
+            stack_name: "{{ referenced_stacks.VPCStackName }}"
+          register: vpcfacts
+          tags: [ 'always' ]
 
-      - name: Dump vpcfacts
-        debug:
-          var: vpcfacts
-        tags: [ 'always' ]
+        - name: Dump vpcfacts
+          debug:
+            var: vpcfacts
+          tags: [ 'always' ]
 
-      - name: Set more variables
-        set_fact:
-          iam_stackname: "{{ cfn_project }}IAM"
-          vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
-          vpc_privatesubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
-          vpc_publicsubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
-          vpc_sg_app: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
-          vpc_sg_elb: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
-          vpc_sg_dmz: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGDMZ }}"
-          vpc_sg_rds: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGRDS }}"
-          vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
-          vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
-          vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
-          vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
-          vpc_rdssubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ1 }}"
-          vpc_rdssubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ2 }}"
-          vpc_rdssubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ3 }}"
-          vpc_publicsubnet: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SubnetPublic }}"
-          vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
+        - name: Set more variables
+          set_fact:
+            iam_stackname: "{{ cfn_project }}IAM"
+            vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
+            vpc_privatesubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
+            vpc_publicsubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
+            vpc_sg_app: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+            vpc_sg_elb: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
+            vpc_sg_dmz: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGDMZ }}"
+            vpc_sg_rds: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGRDS }}"
+            vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
+            vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
+            vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
+            vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
+            vpc_rdssubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ1 }}"
+            vpc_rdssubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ2 }}"
+            vpc_rdssubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ3 }}"
+            vpc_publicsubnet: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SubnetPublic }}"
+            vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
 
-        tags: [ 'always' ]
+          tags: [ 'always' ]
 
-      - name: Set more variables
-        set_fact:
-          vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
-          vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
+        - name: Set more variables
+          set_fact:
+            vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+            vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
 
-        tags: [ 'always' ]
-        when: "vpc_nr_of_azs is defined and vpc_nr_of_azs == '3'"
+          tags: [ 'always' ]
+          when: "vpc_nr_of_azs is defined and vpc_nr_of_azs == '3'"
 
-      - name: VPCEndPoint
-        block:
-          - name: Create CFN template from Ansible template for the VPCEndPoints
-            template:
-              src: "VPCEndpoint.yml"
-              dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
-          - name: Put CFN template on s3
-            shell: |
-              aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml" \
-                        "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
-            tags: [ 'deploy' ]
-          - name: Get presigned URL for the template on S3
-            shell: |
-              aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
-            register: presign
-            tags: [ 'deploy' ]
-          - name: Create or Update the VPC Endpoints CloudFormation stack
-            cloudformation:
-              stack_name: "{{ cfn_project }}VPCEndpoint"
-              create_changeset: "{{ create_changeset }}"
-              changeset_name: "{{ cfn_project }}VPCEndpoint{{ changeset_suffix }}"
-              state: "present"
-              disable_rollback: false
-              template_url: "{{ presign.stdout }}"
-              tags:
-                aws_cfn_gen_tag: "{{ gittag }}"
-                stack_deletion_order:  "{{ stack_deletion_order_vpcendpoints }}"
-                ass:cfn:deletion-order:  "{{ stack_deletion_order_vpcendpoints }}"
-            tags: [ 'deploy' ]
-          - name: Add result of changeset to a local file
-            shell: |
-              echo "{{ cfn_project }}VPCEndpoint" >> changeset_report.txt
-              aws cloudformation describe-change-set \
-                  --change-set-name={{ cfn_project }}VPCEndpoint{{ changeset_suffix }} \
-                  --stack-name={{ cfn_project }}VPCEndpoint --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
-                  --output text >> changeset_report.txt
-            when: "create_changeset is defined and create_changeset == 'yes'"
-            tags: [ 'deploy' ]
-        tags: [ 'vpc_endpoints', 'vpc' ]
+        - name: VPCEndPoint
+          block:
+            - name: Create CFN template from Ansible template for the VPCEndPoints
+              template:
+                src: "VPCEndpoint.yml"
+                dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
+            - name: Put CFN template on s3
+              shell: |
+                aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml" \
+                          "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+              tags: [ 'deploy' ]
+            - name: Get presigned URL for the template on S3
+              shell: |
+                aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-vpcendpoint.yml"
+              register: presign
+              tags: [ 'deploy' ]
+            - name: Create or Update the VPC Endpoints CloudFormation stack
+              cloudformation:
+                stack_name: "{{ cfn_project }}VPCEndpoint"
+                create_changeset: "{{ create_changeset }}"
+                changeset_name: "{{ cfn_project }}VPCEndpoint{{ changeset_suffix }}"
+                state: "present"
+                disable_rollback: false
+                template_url: "{{ presign.stdout }}"
+                tags:
+                  aws_cfn_gen_tag: "{{ gittag }}"
+                  stack_deletion_order:  "{{ stack_deletion_order_vpcendpoints }}"
+                  ass:cfn:deletion-order:  "{{ stack_deletion_order_vpcendpoints }}"
+              tags: [ 'deploy' ]
+            - name: Add result of changeset to a local file
+              shell: |
+                echo "{{ cfn_project }}VPCEndpoint" >> changeset_report.txt
+                aws cloudformation describe-change-set \
+                    --change-set-name={{ cfn_project }}VPCEndpoint{{ changeset_suffix }} \
+                    --stack-name={{ cfn_project }}VPCEndpoint --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                    --output text >> changeset_report.txt
+              when: "create_changeset is defined and create_changeset == 'yes'"
+              tags: [ 'deploy' ]
+          tags: [ 'vpc_endpoints', 'vpc' ]
+          when: "vpc is defined"
 
-      when: "vpc is defined and referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
+      when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
     - name: RDSParameterGroups
       block:
