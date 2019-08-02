@@ -315,8 +315,17 @@ Resources:
           Id: "Target{{ scheduled_task.cfn_name }}"
           RoleArn: !GetAtt ECSEventsRole.Arn
           EcsParameters:
+            LaunchType: "FARGATE"
             TaskCount: 1
             TaskDefinitionArn: !Ref {{ scheduled_task.task_definition_cfn_resource_name }}
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: "DISABLED"
+                SecurityGroups:
+                  - "{{ vpc_privatesubnet_az1 }}"
+                  - "{{ vpc_privatesubnet_az2 }}"
+                Subnets:
+                  - "{{ vpc_sg_app }}"
 {% endfor %}
 
 Outputs:
