@@ -1566,21 +1566,7 @@ The ARN to the resource that subscribes to the topic.
 
 ### The `ecsmgmt` FARGATE ECS cluster
 
-When the property `ecsmgmt` is set, these resources will be created:
-
-* a ECS FARGATE cluster. This cluster is not backed by EC2 instances and
-  does not add to your AWS bill unless a FARGATE service is run
-* an execution role
-* a task role
-* 2 task definitions
-  * `tryxcom/aws-delete-tagged-cfn-stacks:latest`
-  * `tryxcom/aws-create-deleted-tagged-cfn-stacks:latest`
-
-See these github repositories for more information on what these
-images do:
-
-* [https://github.com/rik2803/aws-create-deleted-tagged-cfn-stacks]()
-* [https://github.com/rik2803/aws-delete-tagged-cfn-stacks]()
+The documentation for this module has been moved to `docs/ECSMgmt.md`.
 
 ### Route53 Delegation
 

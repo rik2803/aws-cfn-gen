@@ -27,7 +27,12 @@ Resources:
               - Effect: Allow
                 Action: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents', 'logs:DescribeLogStreams' ]
                 Resource: '*'
-
+        - PolicyName: ecrpull
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [ 'ecr:GetDownloadUrlForLayer', 'ecr:BatchGetImage', 'ecr:BatchCheckLayerAvailability', 'ecr:GetAuthorizationToken' ]
+                Resource: '*'
   DeleteAndCreateTaggedStacksTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -328,6 +333,96 @@ Resources:
                   - "{{ vpc_sg_app }}"
 {% endfor %}
 
+{% for fargate_task in ecsmgmt.fargate_tasks | default([]) %}
+
+  IAMAccessKey{{ fargate_task.cfn_name }}:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref IAMUser{{ fargate_task.cfn_name }}
+
+  IAMUser{{ fargate_task.cfn_name }}:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: {{ fargate_task.name }}
+      Policies:
+        - PolicyDocument: !Sub |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "ecs:RunTask",
+                "Resource": [
+                  "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/{{ fargate_task.name }}"
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": [
+                  "${AwsLogsExecutionRole.Arn}",
+                  "${TaskRole{{ fargate_task.cfn_name }}.Arn}"
+                ]
+              }
+              ]
+            }
+          PolicyName: "ECSRunTask"
+
+  TaskRole{{ fargate_task.cfn_name }}:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+{%   for task_role_policy in fargate_task.task_role_policies %}
+        - "{{ task_role_policy }}"
+{%   endfor %}
+
+  CWLogGroup{{ fargate_task.cfn_name }}:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "cw-{{ fargate_task.name }}"
+      RetentionInDays: 14
+
+  Task{{ fargate_task.cfn_name }}:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CWLogGroup{{ fargate_task.cfn_name }}
+      - TaskRole{{ fargate_task.cfn_name }}
+    Properties:
+      Family: "{{ fargate_task.name }}"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 1024
+      Cpu: 512
+      ContainerDefinitions:
+        - Name: "{{ fargate_task.name }}"
+          Essential: "true"
+          Image: "{{ fargate_task.image }}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CWLogGroup{{ fargate_task.cfn_name }}"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "{{ fargate_task.name }}"
+          Environment:
+            - Name: "dummy"
+              Value: "dummy"
+{%   for env in fargate_task.environment | default([]) %}
+            - Name: "{{ env.name }}"
+              Value: "{{ env.value }}"
+{%   endfor %}
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole{{ fargate_task.cfn_name }}.Arn
+{% endfor %}
+
 Outputs:
   AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
     Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
@@ -337,3 +432,9 @@ Outputs:
     Value: !Ref KeyAwsAssUser
   SecretKeyAwsAssUser:
     Value: !GetAtt KeyAwsAssUser.SecretAccessKey
+{% for fargate_task in ecsmgmt.fargate_tasks %}
+  AccessKey{{ fargate_task.cfn_name }}:
+    Value: !Ref IAMAccessKey{{ fargate_task.cfn_name }}
+  SecretKey{{ fargate_task.cfn_name }}:
+    Value: !GetAtt IAMAccessKey{{ fargate_task.cfn_name }}.SecretAccessKey
+{% endfor %}

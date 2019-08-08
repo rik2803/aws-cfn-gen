@@ -28,6 +28,7 @@ Resources:
               - "ecr:GetDownloadUrlForLayer"
               - "ecr:BatchGetImage"
               - "ecr:BatchCheckLayerAvailability"
+              - "ecr:GetAuthorizationToken"
 {%   endif %}
       LifecyclePolicy:
         LifecyclePolicyText: |
