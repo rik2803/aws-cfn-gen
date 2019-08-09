@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: |
+  Create KMS keys
+
+Resources:
+
+{% for key in kms.keylist | default([]) %}
+  KMSKey{{ key.cfn_name }}:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: "{{ key.description | default(key.cfn_name) }}"
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: "key-default-1"
+        Statement:
+          -
+            Sid: "Enable IAM Permissions for root user and admin role"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+                - !Sub "arn:aws:iam::${AWS::AccountId}:role/admin"
+            Action: "kms:*"
+            Resource: "*"
+          -
+              Sid: "Allow Decrypt and DescribeKey to listed accounts"
+              Effect: "Allow"
+              Principal:
+                AWS:
+{%   for principal in key.policy.principals %}
+                  - {{ principal.principal_string }}
+{%   endfor %}
+              Action:
+                - "kms:DescribeKey"
+                - "kms:Decrypt"
+              Resource: "*"
+
+  KMSAlias{{ key.cfn_name }}:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: "alias/{{ key.cfn_name }}"
+      TargetKeyId: !GetAtt KMSKey{{ key.cfn_name }}.Arn
+
+{% endfor %}
+
+Outputs:
+{% for key in kms.keylist | default([]) %}
+  KMSKeyAlias{{ key.cfn_name }}:
+    Value: !Ref KMSAlias{{ key.cfn_name }}
+    Export:
+      Name: !Sub "${AWS::StackName}-KMSKeyAlias{{ key.cfn_name }}"
+
+  KMSKey{{ key.cfn_name }}:
+    Value: !Ref KMSKey{{ key.cfn_name }}
+    Export:
+      Name: !Sub "${AWS::StackName}-KMSKey{{ key.cfn_name }}"
+
+  KMSKeyArn{{ key.cfn_name }}:
+    Value: !GetAtt KMSKey{{ key.cfn_name }}.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-KMSKeyArn{{ key.cfn_name }}"
+
+{% endfor %}

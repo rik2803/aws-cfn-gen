@@ -276,6 +276,84 @@
 
       when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
+    - name: KMS
+      block:
+        - name: Create CFN template from Ansible template for KMS
+          template:
+            src: "KMS.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-kms.yml"
+        - name: Put CFN template for KMS on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-kms.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-kms.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the KMS template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-kms.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the KMS CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}KMS"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}KMS{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}KMS" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}KMS{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}KMS --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+      tags: [ 'kms' ]
+      when: "kms is defined"
+
+    - name: SecretsManager
+      block:
+        - name: Create CFN template from Ansible template for SecretsManager
+          template:
+            src: "SecretsManager.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-secretsmanager.yml"
+        - name: Put CFN template for SecretsManager on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-secretsmanager.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-secretsmanager.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the SecretsManager template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-secretsmanager.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the SecretsManager CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}SecretsManager"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}SecretsManager{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}SecretsManager" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}SecretsManager{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}SecretsManager --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+      tags: [ 'secrets_manager' ]
+      when: "secrets_manager is defined"
+
     - name: RDSParameterGroups
       block:
         - name: Create CFN template from Ansible template for the RDSParameterGroups
