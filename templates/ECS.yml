@@ -385,7 +385,7 @@ Resources:
 {%     if app.ecs.ulimits is defined %}
           Ulimits:
 {%       for ulimit in app.ecs.ulimits %}
-            - Name: {{ ulimit.name }}
+            - Name: {{ ulimit.name | lower }}
               SoftLimit: {{ ulimit.soft_limit }}
               HardLimit: {{ ulimit.hard_limit }}
 {%       endfor %}
