@@ -209,6 +209,12 @@ Resources:
               command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:AmazonCloudWatch-linux -s
             03_create_authorized_keys_file:
               command: /usr/local/bin/create_authorized_keys
+{% if ecs.metadata is defined and ecs.metadata.commands is defined %}
+{%   for metadata_command in ecs.metadata.commands %}
+            {{ metadata_command.id}}:
+              command: {{ metadata_command.command }}
+{%   endfor %}
+{% endif %}
           files:
             /usr/local/bin/create_authorized_keys:
               mode: "000755"
