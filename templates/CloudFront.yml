@@ -240,7 +240,7 @@ Resources:
         Comment: "CloudFront distribution for {{ application }}"
         Enabled: true
         HttpVersion: http2
-        DefaultRootObject: "index.html"
+        DefaultRootObject: {{ cloudfront.default_root_object | default("index.html") }}
 {%   if cloudfront.custom_error_responses is defined %}
         CustomErrorResponses:
 {%     for err in cloudfront.custom_error_responses %}
