@@ -195,6 +195,16 @@ follow these steps:
 * CloudFront distribution
 * DynamoDB tables
 
+Following _modules_ have their own documentation file:
+
+* [Elastic Container Registry](docs/ECR.md)
+* [Elastic Container Service](DICS/ECS.md)
+* [The mamagement ECS Fargate cluster](docs/ECSMgmt.md)
+* [KMS](docs/MKS.md)
+* [RDS](docs/RDS.md)
+* [RDS Parameter Group](docs/RDSParameterGroups.md)
+* [SecretsManager](docs/SecretsManager.md)
+
 ## Order of installation is important
 
 The template for certain resources may depend on resources created by other
@@ -639,49 +649,7 @@ extended to `arn:aws:iam::123456789012:policy/<name>`. From version `0.1.5`, the
 
 ### `ecs`: _Elastic Container Services_
 
-Create an (empty) ECS cluster.
-
-```yaml
-ecs:
-  task_change_state_rule: "ENABLED|DISABLED"
-  cluster:
-    keypair: "id_rsa_ixor.ixordocs-prd"
-    instance_type: "t2.xlarge"
-    cluster_size:
-      min: 2
-      max: 5
-      desired: 2
-    ebs_size: 40
-    dnm_basesize: 20G
-```
-
-#### `ecs.task_change_state_rule`
-
-`ENABLE` or `DISABLE` the _CloudWatch_ event rule that sends events to the monitoring
-SNS topic (and possibly notifications on Slack, Vhat, ...).
-
-Valid values:
-
-* `ENABLED`
-* `DISABLED` (default)
-
-
-#### `ecs.cluster.ebs_size`
-
-Override the default 30GB ECS Cluster instance EBS size. Unit is `GB`. It will
-not add an additional volume, but extend the AMI volume to the requested size.
-
-Must be larger than 30 to avoid stack failure.
-
-**Downtime Warning**: Changing this setting will cause the launch configuration
-to change and will consequently spawn new ECS instances.
-
-#### `ecs.cluster.dm_basesize`
-
-Override the default 10GB of thin provisioned container storage. Unit is required (i.e. `20G`)
-
-**Downtime Warning**: Changing this setting will cause the launch configuration
-to change and will consequently spawn new ECS instances.
+Moved to [here](docs/ECS.md).
 
 ### `loadbalancers`: Create _Application Load Balancers_
 

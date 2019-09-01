@@ -1,6 +1,5 @@
 # ECR
 
-
 ## Description
 
 A list of repositories to create on the AWS account. A default lifecycle configuration

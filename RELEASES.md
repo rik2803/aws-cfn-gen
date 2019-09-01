@@ -9,6 +9,17 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.3.0` (20190901)
+
+This is a minor release, updating to this release might cause service
+interruptions because of the support for AMZN2 images in the ECS module.
+
+### Features
+
+* `ECS`: ECS AMZN2 support, set `ecs.cluster.amzn2` to `true` to enable
+* `CloudFront`: Add property `cloudfront.default_root_object`
+* `ECSMgmt`: Add custom scheduled tasks to the management ECS cluster
+
 ## `0.2.4` (20190731)
 
 ### Features
@@ -18,7 +29,6 @@
   accounts
 * RDS Instance module
 
-####
 ## `0.2.3` (20190617)
 
 ### Features
