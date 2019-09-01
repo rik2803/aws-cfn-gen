@@ -198,7 +198,7 @@ follow these steps:
 Following _modules_ have their own documentation file:
 
 * [Elastic Container Registry](docs/ECR.md)
-* [Elastic Container Service](DICS/ECS.md)
+* [Elastic Container Service](docs/ECS.md)
 * [The mamagement ECS Fargate cluster](docs/ECSMgmt.md)
 * [KMS](docs/MKS.md)
 * [RDS](docs/RDS.md)
