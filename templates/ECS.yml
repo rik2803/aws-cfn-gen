@@ -7,6 +7,15 @@ Description: |
 Mappings:
   AWSRegionToAMI:
     eu-central-1:
+      AMIID: ami-042ae7188819e7e9b
+    eu-west-1:
+      AMIID: ami-00921cd1ce43d567a
+    eu-west-2:
+      AMIID: ami-0e1065cc4f7231034
+    eu-west-3:
+      AMIID: ami-020cc3695affa4b6b
+  AWSRegionToAmzn2AMI:
+    eu-central-1:
       AMIID: ami-09577c19fbe1bd7fa
     eu-west-1:
       AMIID: ami-04a084a6d17d9816e
@@ -133,24 +142,25 @@ Resources:
           Id: "TargetMonitoringSNSTopic"
 
 
+{% if ecs.cluster.amzn2 is defined and ecs.cluster.amzn2 %}
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
+      ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
-{% if ecs.cluster.ebs_size is defined %}
+{%   if ecs.cluster.ebs_size is defined %}
       BlockDeviceMappings:
       - DeviceName: "/dev/xvda"
         Ebs:
           VolumeSize: '{{ ecs.cluster.ebs_size }}'
-{% endif %}
+{%   endif %}
       KeyName: "{{ ecs.cluster.keypair }}"
-{% if ecs.cluster.spot_price is defined %}
+{%   if ecs.cluster.spot_price is defined %}
       SpotPrice: "{{ ecs.cluster.spot_price }}"
-{% endif %}
+{%   endif %}
       UserData:
         Fn::Base64:
           Fn::Sub:
@@ -172,14 +182,14 @@ Resources:
             yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm || true
             cd -
 
-{% if ecs.efs is defined %}
+{%   if ecs.efs is defined %}
             yum install -y nfs-utils
-{%   for fs in ecs.efs | default([]) %}
+{%     for fs in ecs.efs | default([]) %}
             mkdir -p {{ fs.mountpoint }}
             echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ {{ fs.mountpoint }} nfs4 noresvport,_netdev,nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
             mount -a
-{%   endfor %}
-{% endif %}
+{%     endfor %}
+{%   endif %}
             echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
             yum install -y https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm || true
             yum install -y aws-cfn-bootstrap hibagent
@@ -190,11 +200,11 @@ Resources:
           -
             dummy:
               "dummy"
-{% for fs in ecs.efs | default([]) %}
+{%   for fs in ecs.efs | default([]) %}
             {{ fs.export_name }}:
               Fn::ImportValue:
                 "{{ fs.export_name }}"
-{% endfor %}
+{%   endfor %}
     Metadata:
       AWS::CloudFormation::Init:
         config:
@@ -209,12 +219,12 @@ Resources:
               command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:AmazonCloudWatch-linux -s
             03_create_authorized_keys_file:
               command: /usr/local/bin/create_authorized_keys
-{% if ecs.metadata is defined and ecs.metadata.commands is defined %}
-{%   for metadata_command in ecs.metadata.commands %}
+{%   if ecs.metadata is defined and ecs.metadata.commands is defined %}
+{%     for metadata_command in ecs.metadata.commands %}
             {{ metadata_command.id}}:
               command: {{ metadata_command.command }}
-{%   endfor %}
-{% endif %}
+{%     endfor %}
+{%   endif %}
           files:
             /usr/local/bin/create_authorized_keys:
               mode: "000755"
@@ -223,11 +233,11 @@ Resources:
               content: |
                 #! /bin/env bash
                 echo "### Updating /home/ec2-user/.ssh/authorized_keys ###"
-{% if bastion is defined and bastion.pubkeys is defined %}
-{%   for key in bastion.pubkeys %}
+{%   if bastion is defined and bastion.pubkeys is defined %}
+{%     for key in bastion.pubkeys %}
                 grep -q '{{ key.key }}' /home/ec2-user/.ssh/authorized_keys || echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
-{%   endfor %}
-{% endif %}
+{%     endfor %}
+{%   endif %}
             /etc/cfn/cfn-hup.conf:
               mode: "000400"
               owner: root
@@ -251,6 +261,93 @@ Resources:
                 files:
                   - /etc/cfn/cfn-hup.conf
                   - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+{% else %}
+{# LaunchConfiguration for Amazon Linux 1 clusters #}
+  ContainerInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
+      SecurityGroups:
+        - "{{ vpc_sg_app }}"
+      InstanceType: "{{ ecs.cluster.instance_type }}"
+      IamInstanceProfile: !Ref 'EC2InstanceProfile'
+{%   if ecs.cluster.ebs_size is defined %}
+      BlockDeviceMappings:
+      - DeviceName: "/dev/xvdcz"
+        Ebs:
+          VolumeSize: '{{ ecs.cluster.ebs_size }}'
+{%   endif %}
+      KeyName: "{{ ecs.cluster.keypair }}"
+{%   if ecs.cluster.spot_price is defined %}
+      SpotPrice: "{{ ecs.cluster.spot_price }}"
+{%   endif %}
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+          - |
+            Content-Type: multipart/mixed; boundary="===============8943416319660996992=="
+            MIME-Version: 1.0
+
+{%   if ecs.cluster.dm_basesize is defined %}
+            --===============8943416319660996992==
+            Content-Type: text/cloud-boothook; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="docker_options.cloudinit"
+
+            #cloud-boothook
+              cloud-init-per once docker_options echo 'OPTIONS="$OPTIONS --storage-opt dm.basesize={{ ecs.cluster.dm_basesize }}"' >> /etc/sysconfig/docker
+
+{%   endif %}
+            --===============8943416319660996992==
+            Content-Type: text/x-shellscript; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="ecs_config.cloudinit"
+
+            #!/bin/bash -xe
+
+            ### Install SSM agent
+            cd /tmp
+            yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm || true
+            start amazon-ssm-agent || true
+            cd -
+
+{%   if ecs.efs is defined %}
+            yum install -y nfs-utils
+{%     for fs in ecs.efs | default([]) %}
+            mkdir -p {{ fs.mountpoint }}
+            echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ {{ fs.mountpoint }} nfs4 noresvport,_netdev,nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
+            mount -a
+{%     endfor %}
+{%   endif %}
+            echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+            yum install -y aws-cfn-bootstrap
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+
+{%   if bastion is defined and bastion.pubkeys is defined %}
+            --===============8943416319660996992==
+            Content-Type: text/cloud-config; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="ec2_user_pubkeys.cloudinit"
+
+            #cloud-config
+            runcmd:
+{%     for key in bastion.pubkeys %}
+            - echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
+{%     endfor %}
+
+{%   endif %}
+          -
+            dummy:
+              "dummy"
+{%   for fs in ecs.efs | default([]) %}
+            {{ fs.export_name }}:
+              Fn::ImportValue:
+                "{{ fs.export_name }}"
+{%   endfor %}
+{% endif %}
 
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
