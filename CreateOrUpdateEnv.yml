@@ -599,6 +599,7 @@
                 --stack-name=route53-delegation-tooling-{{ item.item.hostedzone.domain | replace('.', '-') }} --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
                 --output text >> changeset_report.txt
           when: "create_changeset is defined and create_changeset == 'yes'"
+          with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
       tags: [ 'route53delegation' ]
 
