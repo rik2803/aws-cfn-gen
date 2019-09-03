@@ -897,6 +897,7 @@
                 --change-set-name={{ cfn_project }}LB{{ item.item.name }}{{ changeset_suffix }} \
                 --stack-name={{ cfn_project }}LB{{ item.item.name }} --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
                 --output text >> changeset_report.txt
+          with_items: "{{ presign.results }}"
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
 
