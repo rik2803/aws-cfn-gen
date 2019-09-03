@@ -3,6 +3,17 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: |
   Create a Bastion host
 
+### For latest ECS optimized AMIs: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
+Mappings:
+  AWSRegionToAmzn2AMI:
+    eu-central-1:
+      AMIID: ami-0cc293023f983ed53
+    eu-west-1:
+      AMIID: ami-0bbc25e23a7640b9b
+    eu-west-2:
+      AMIID: ami-0d8e27447ec2c8410
+    eu-west-3:
+      AMIID: ami-0adcddd3324248c4c
 
 Resources:
 
@@ -32,7 +43,7 @@ Resources:
     Properties:
       DisableApiTermination: false
       IamInstanceProfile: !Ref 'BastionEC2InstanceProfile'
-      ImageId: ami-09def150731bdbcc2 # Amazon Linux 2 ami for eu-central-1
+      ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
       InstanceType: {{ bastion.instance_type | default('t2.micro') }}
       KeyName: "{{ bastion.keypair_name }}"
       NetworkInterfaces: 
