@@ -432,7 +432,7 @@ Outputs:
     Value: !Ref KeyAwsAssUser
   SecretKeyAwsAssUser:
     Value: !GetAtt KeyAwsAssUser.SecretAccessKey
-{% for fargate_task in ecsmgmt.fargate_tasks %}
+{% for fargate_task in ecsmgmt.fargate_tasks | default([]) %}
   AccessKey{{ fargate_task.cfn_name }}:
     Value: !Ref IAMAccessKey{{ fargate_task.cfn_name }}
   SecretKey{{ fargate_task.cfn_name }}:
