@@ -551,16 +551,21 @@ Resources:
 {%             if private_hosted_zone.cfn_name == domain.cfn_name %}
 {%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
 {%                 if domain.skiproute53private is not defined or not domain.skiproute53private %}
-{%                   if domain.listener_rule_host_header != private_hosted_zone.name %}
-{#                     Skip RecordSet creation in public hosted zone if host in the listener rule == the domainname #}
-{#                     The Lambda that is triggered by the Custom Resource does not yet support the creation of APEX records #}
+{%                   if domain.listener_rule_host_header is not defined or domain.listener_rule_host_header != private_hosted_zone.name %}
+{%                     if domain.listener_rule_host_header is not defined %}
+{%                       set recordset_name = domain.name %}
+{%                     else %}
+{%                       set recordset_name = domain.listener_rule_host_header %}
+{%                     endif %}
+{#                     Skip RecordSet creation in private hosted zone if host in the listener rule == the domainname #}
+{#                     APEX record creation not supported in provate hosted zones on aws-cfn-gen #}
 ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
   Route53RecordSet{{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}{{ domain.cfn_name_suffix | default('') }}:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: !ImportValue "{{ cfn_project }}Route53-Route53PrivateHostedZone{{ domain.cfn_name }}"
       Comment: "DNS name for {{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}."
-      Name: "{{ domain.listener_rule_host_header }}."
+      Name: "{{ recordset_name }}."
       Type: CNAME
       TTL: '300'
       ResourceRecords:
