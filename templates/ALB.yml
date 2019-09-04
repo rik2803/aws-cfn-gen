@@ -259,7 +259,7 @@ Resources:
 
   ## Create application listener rules
 {% for app in applicationconfig | default([]) %}
-{%   if app.domains is defined and app.lb.name == item.name %}
+{%   if app.domains is defined and app.lb is defined and app.lb.name == item.name %}
 {%     for dom in app.domains %}
   ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}{{ dom.cfn_name_suffix | default('') }}{{ dom.listener_rule_path_pattern | default("All") | replace('*', 'Star') | replace('/', ' ') | title | replace(' ', '') }}:
     Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
@@ -343,7 +343,7 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-TGDefaultHTTPS"
 {% for app in applicationconfig | default([]) %}
-{%   if app.domains is defined and app.lb.name == item.name %}
+{%   if app.domains is defined and app.lb is defined and app.lb.name == item.name %}
   TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
     Value: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
     Description: "Target Group for application {{ app.name }} in project {{ project }}."
