@@ -343,7 +343,7 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-TGDefaultHTTPS"
 {% for app in applicationconfig | default([]) %}
-{%   if app.domains is defined and app.lb is defined and app.lb.name == item.name %}
+{%   if app.domains is defined and app.lb.name == item.name %}
   TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
     Value: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
     Description: "Target Group for application {{ app.name }} in project {{ project }}."
