@@ -59,8 +59,8 @@ Resources:
 {% elif cw.logshipper_lambda_function_arn is defined %}
           LAMBDA_FUNCTION_ARN: "{{ cw.logshipper_lambda_function_arn }}"
 {% endif %}
-          RETENTION_IN_DAYS: "{{ cw.log_group_settings.retention_in_days | default('14') }}"
-          FILTER_PATTERN: "{{ cw.log_group_settings.filter_pattern | default('-DEBUG') }}"
+          RETENTION_IN_DAYS: "{{ (cw.log_group_settings | default({})).retention_in_days | default('14') }}"
+          FILTER_PATTERN: "{{ (cw.log_group_settings | default({})).filter_pattern | default('-DEBUG') }}"
 {% if cw.auto_config_log_group_lambda_exclusion_substring is defined %}
           LOGGROUP_EXCLUSION_SUBSTRINGS: "{{ cw.auto_config_log_group_lambda_exclusion_substring }}"
 {% endif %}
