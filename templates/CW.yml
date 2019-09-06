@@ -200,7 +200,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Description: "{{ event_rule.description | default('') }}"
-      EventPattern: '{ "source": [ "{{ event_rule.source }}" ], "detail-type": [ "{{ event_rule.detail_type }}" ]{% if event_rule.event_source is defined and event_rule.event_name is defined %}, "detail": {"eventSource": [ "{{ event_rule.event_source }}" ], "eventName": {{ event_rule.event_name | to_json }} }{%   endif %} }'
+      EventPattern: '{{ event_rule.pattern | to_json }}'
       Name: "{{ event_rule.name }}"
       State: "ENABLED"
 {%   if event_rule.targets is defined %}
