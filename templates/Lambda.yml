@@ -29,6 +29,8 @@ Resources:
 {%   endif %}
 {%   if 'java' in lambda.runtime %}
       Handler: "{{ lambda_fn_name }}.{{ lambda.class_name | default('Handler') }}::{{ lambda.handler }}"
+{%   elif 'go' in lambda.runtime %}
+      Handler: "{{ lambda.handler }}"
 {%   else %}
       Handler: "{{ lambda_fn_name }}.{{ lambda.handler }}"
 {% endif %}
