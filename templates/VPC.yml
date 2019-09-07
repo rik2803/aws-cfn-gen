@@ -3,18 +3,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: |
   Create a VPC (aws-cfn-gen version: {{ gittag | default('na') }})
 
-  Will create a /16 VPC, of which the network part should be entered in the CIDR at creation.
-
-  It will create:
-    - A public subnet 0.0/24 (i.e. for bastion)
-    - A IGW
-    - A Nat FW
-    - 2 or 3 Private subnets for applications
-    - 2 or 3 Private subnets for RDS (optionally)
-    - 1 Public subnet for ELB
-    - 2 routing tables (private and public)
-    - SG, including setting allowed (max 2) IPs for connection to bastion
-
 Conditions:
   3AZs: !Equals [ "{{ vpc.nr_of_azs }}", "3" ]
   RDSSubnets: !Or
