@@ -1,10 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create ECS Container Registries and a ecr-push user with full ECR permissions to be able to
-  push images to the repository.
-
-  All repositories have a lifecycle attached to remove untagged images older than 14 days.
+  Create ECS Container Registries and a ecr-push user (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
 {% for repo in ecr.repositories %}

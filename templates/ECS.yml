@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: |
-  Create an ECS stack for {{ project }}
+  Create an ECS stack for {{ project }} (aws-cfn-gen version: {{ gittag | default('na') }})
 
 ### For latest ECS optimized AMIs: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
 Mappings:

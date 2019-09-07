@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create Lambda functions in us-east-1 for use by CloudFront Lambda@Edge
+  Create Lambda functions in us-east-1 for use by CloudFront Lambda@Edge (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
 

@@ -1,6 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Create VPC Endpoints for project {{ project }}
+Description: |
+  Create VPC Endpoints for project {{ project }} (aws-cfn-gen version: {{ gittag | default('na') }})
 Resources:
 
   VPCEndpointS3:

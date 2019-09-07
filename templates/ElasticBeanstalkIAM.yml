@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
   Create the IAM roles and instance profiles required for the creation of
-  Elastic BeanStalk instances
+  Elastic BeanStalk instances (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
 

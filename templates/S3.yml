@@ -1,6 +1,9 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Create S3 buckets for project {{ project }}
+
+Description: |
+  Create S3 buckets for project {{ project }} (aws-cfn-gen version: {{ gittag | default('na') }})
+
 Resources:
 {% for bucket in s3 %}
   {{ cfn_project }}{{ bucket.cfn_name }}:

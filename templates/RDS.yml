@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create a RDS instance.
+  Create a RDS instance (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
   DBSubnetGroup:

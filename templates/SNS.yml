@@ -3,7 +3,7 @@
 
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create one or more SNS Topics
+  Create one or more SNS Topics (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
 {% for topic in sns %}

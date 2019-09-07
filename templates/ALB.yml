@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Create loadbalancer {{ item.name }}
+Description: |
+  Create loadbalancer {{ item.name }} (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Mappings:
   Region2ELBAccountId:

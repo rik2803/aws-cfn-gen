@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Create CloudWatch related resources
+Description: |
+  Create CloudWatch related resources (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
 

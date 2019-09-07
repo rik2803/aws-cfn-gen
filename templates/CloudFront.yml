@@ -19,22 +19,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create CloudFront distributions. The real users of the distribution
-  can plug-in their bucket, Origin and behaviour any time after creation of this CFN stack.
-
-  Creates:
-    - empty S3 bucket with:
-      - Website enabled
-      - Encrypted data-at-rest
-      - Policy to enforce encryption
-    - Cloudfront configuration
-    - Add origin to default cache behaviour
-    - All Origins, behaviors and S3 buckets described in the
-      envoronment's configuration file
-
-  Ansible should be used to manipulate the stack, because the CloudFormation
-  template is generated from the template and the data in the configuration
-  file
+  Create CloudFront distributions (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
 

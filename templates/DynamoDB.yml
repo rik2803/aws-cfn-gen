@@ -1,3 +1,7 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Create DynamoDB tables (aws-cfn-gen version: {{ gittag | default('na') }})
+
 Resources:
 {% for table in dynamodb %}
   DDBTable{{ table.table_name | title }}:

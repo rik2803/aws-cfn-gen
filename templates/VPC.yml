@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create a VPC.
+  Create a VPC (aws-cfn-gen version: {{ gittag | default('na') }})
 
   Will create a /16 VPC, of which the network part should be entered in the CIDR at creation.
 

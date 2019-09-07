@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create Lambda functions
+  Create Lambda functions (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
 

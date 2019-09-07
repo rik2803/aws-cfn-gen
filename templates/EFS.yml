@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  Create one or more EFS filesystems
+  Create one or more EFS filesystems (aws-cfn-gen version: {{ gittag | default('na') }})
 
 
 Resources:

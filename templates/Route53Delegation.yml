@@ -1,5 +1,5 @@
 Description: |
-  Create all resources required to allow specified accounts to manage Route53 Resource Records in {{ item.hostedzone.domain }}
+  Create all resources required to allow specified accounts to manage Route53 Resource Records in {{ item.hostedzone.domain }} (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
             
