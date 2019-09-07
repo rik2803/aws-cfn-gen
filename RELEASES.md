@@ -9,6 +9,37 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.3.1` (20190907)
+
+### Features
+
+* Add `aws-cfn-gen` version to the CloudFormation stack description
+
+### Fixes
+
+#### _Lambda_
+
+* Add Golang
+* Source account not allowed in invoke permission for CW Event rule
+* Environment variable values can be an exported CloudFormation output
+
+```
+lambda_functions:
+  - name: mylambdafunction
+    function_name: MyLambdaFunction
+    ...
+    environment:
+      - name: ENVVAR_FROM_IMPORT
+        value_from_import: "NameOfTheImport"
+```
+
+#### _CloudWatch_
+
+* Allow Event Rule creation with free event pattern
+* Add some extra checks on property existence and validity
+* The CloudWatch stack is unconditionally created because it
+  contains resources other stacks depend on
+
 ## `0.3.0` (20190901)
 
 This is a minor release, updating to this release might cause service
