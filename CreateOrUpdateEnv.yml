@@ -771,7 +771,6 @@
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
 
-      when: "cw is defined"
       tags: [ 'cw' ]
 
     - name: EFS
