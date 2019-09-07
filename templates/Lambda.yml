@@ -103,7 +103,6 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref {{ lambda_cfn_name }}
       Principal: "events.amazonaws.com"
-      SourceAccount: !Ref AWS::AccountId
       SourceArn: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:{{ liv.event_basename | default('*') }}"
 {%     elif liv.type == 'service' %}
   {{ lambda_cfn_name }}InvokePermission:
