@@ -99,8 +99,6 @@ Resources:
           Id: AwsLambdaCWLogsSubscription
 {% endif %}
 
-{% if cw.ec2_install_cwagent_lambda_s3_key is defined %}
-
   SSMParameterCWAgent:
     Type: "AWS::SSM::Parameter"
     Properties:
@@ -135,6 +133,8 @@ Resources:
         	}
         }
       Description: "SSM Parameter for CWAgent installation configuration."
+
+{% if cw.ec2_install_cwagent_lambda_s3_key is defined %}
 
   LambdaEC2InstallCWAgentRole:
     Type: AWS::IAM::Role
