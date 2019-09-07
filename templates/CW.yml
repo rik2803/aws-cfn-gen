@@ -46,6 +46,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - !Ref CWLogGroupSubscriptionsPolicy
 
+{% if cw.auto_config_log_group_lambda_s3_key is defined %}
   ### Lambda function to ship CW Logs to whatever destination
   AwsLambdaCWLogsSubscription:
     Type: AWS::Lambda::Function
@@ -54,16 +55,16 @@ Resources:
       Role: !GetAtt LambdaCWLogsSubscriptionRole.Arn
       Environment:
         Variables:
-{% if cw.logshipper_lambda_function_arn_import is defined %}
+{%   if cw.logshipper_lambda_function_arn_import is defined %}
           LAMBDA_FUNCTION_ARN: !ImportValue "{{ cw.logshipper_lambda_function_arn_import }}"
-{% elif cw.logshipper_lambda_function_arn is defined %}
+{%   elif cw.logshipper_lambda_function_arn is defined %}
           LAMBDA_FUNCTION_ARN: "{{ cw.logshipper_lambda_function_arn }}"
-{% endif %}
+{%   endif %}
           RETENTION_IN_DAYS: "{{ (cw.log_group_settings | default({})).retention_in_days | default('14') }}"
           FILTER_PATTERN: "{{ (cw.log_group_settings | default({})).filter_pattern | default('-DEBUG') }}"
-{% if cw.auto_config_log_group_lambda_exclusion_substring is defined %}
+{%   if cw.auto_config_log_group_lambda_exclusion_substring is defined %}
           LOGGROUP_EXCLUSION_SUBSTRINGS: "{{ cw.auto_config_log_group_lambda_exclusion_substring }}"
-{% endif %}
+{%   endif %}
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
         S3Key: "{{ cw.auto_config_log_group_lambda_s3_key }}"
@@ -95,7 +96,7 @@ Resources:
       Targets:
         - Arn: !GetAtt AwsLambdaCWLogsSubscription.Arn
           Id: AwsLambdaCWLogsSubscription
-
+{% endif %}
 
 {% if cw.ec2_install_cwagent_lambda_s3_key is defined %}
 
