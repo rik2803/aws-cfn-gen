@@ -107,7 +107,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref {{ lambda_cfn_name }}
       Principal: "events.amazonaws.com"
-      SourceArn: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:{{ liv.event_basename | default('*') }}"
+      SourceArn: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:{{ liv.event_basename }}"
 {%     elif liv.type == 'service' %}
   {{ lambda_cfn_name }}InvokePermission:
     Type: AWS::Lambda::Permission
