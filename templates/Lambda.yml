@@ -43,7 +43,11 @@ Resources:
       Environment:
         Variables:
 {%     for env in lambda.environment %}
+{%       if env.value_from_import is defined %}
+         {{ env.name }}: !ImportValue "{{ env.value_from_import }}"
+{%       else %}
          {{ env.name }}: "{{ env.value }}"
+{%       endif %}
 {%     endfor %}
 {%   endif %}
       Code:
