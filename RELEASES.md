@@ -9,6 +9,12 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.3.2` (20190912)
+
+### Fixes
+
+* Fix failure when cw property is not defined
+
 ## `0.3.1` (20190907)
 
 ### Features
