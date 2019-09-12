@@ -110,6 +110,12 @@
             var: stack_deletion_order_vpc
       tags: [ 'always' ]
 
+    - name: "Default (empty) value for cw"
+      set_fact:
+        cw: "yes"
+      when: "cw is not defined"
+      tags: [ 'always' ]
+
     - name: Get timestamp
       shell: "date +%Y%m%d%H%M%S"
       register: timestamp
