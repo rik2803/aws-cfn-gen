@@ -6,7 +6,7 @@ Description: |
 Resources:
 
 
-### Create the Lambda functinos and execution roles
+### Create the Lambda functions and execution roles
 {% for lambda in lambda_functions | default([]) %}
 {#   Create some variables #}
 {%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
