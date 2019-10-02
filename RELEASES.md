@@ -9,6 +9,17 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.3.3` (20191002)
+
+### Fixes
+
+* Quote principals in KMS IAM to avoid failure when account-id starts with zero
+
+### Improvements
+
+* Set deletion tag on cloudfront resources, default is 0 (no deletion), change
+  to non-zero in environment config to instruct ASS to delete the CloudFront stack
+
 ## `0.3.2` (20190912)
 
 ### Fixes
