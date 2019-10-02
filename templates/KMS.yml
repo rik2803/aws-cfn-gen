@@ -29,7 +29,7 @@ Resources:
               Principal:
                 AWS:
 {%   for principal in key.policy.principals %}
-                  - {{ principal.principal_string }}
+                  - "{{ principal.principal_string }}"
 {%   endfor %}
               Action:
                 - "kms:DescribeKey"
