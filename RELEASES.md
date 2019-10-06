@@ -9,6 +9,12 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.3.4` (20191006)
+
+### Features
+
+* The _S3_ module now exports outputs for the created resources,
+ 
 ## `0.3.3` (20191002)
 
 ### Fixes
