@@ -65,3 +65,25 @@ Resources:
 {%     endif %}
 {%   endfor %}
 {% endif %}
+
+Outputs:
+{% for bucket in s3 %}
+  {{ cfn_project }}{{ bucket.cfn_name }}:
+    Value: !Ref {{ cfn_project }}{{ bucket.cfn_name }}
+    Description: "S3 bucket {{ bucket.cfn_name }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}"
+
+  {{ cfn_project }}{{ bucket.cfn_name }}WebsiteURL:
+    Value: !GetAtt {{ cfn_project }}{{ bucket.cfn_name }}.WebsiteURL
+    Description: "S3 bucket {{ bucket.cfn_name }} website URL"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-WebsiteURL"
+
+  {{ cfn_project }}{{ bucket.cfn_name }}WebsiteDomain:
+    Value: "{{ application }}-{{ env }}-{{ bucket.name }}.s3-website.{{ target_account.region }}.amazonaws.com"
+    Description: "S3 bucket {{ bucket.cfn_name }} website domain"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-WebsiteDomain"
+
+{% endfor %}
