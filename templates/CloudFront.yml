@@ -207,7 +207,11 @@ Resources:
         - ServerSideEncryptionByDefault:
             SSEAlgorithm: "AES256"
       AccessControl: "LogDeliveryWrite"
-{%   endif %}
+      Tags:
+        - Key: "ass:s3:clean-bucket-on-stop"
+          Value: "yes"
+
+        {%   endif %}
 
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
     DependsOn:
