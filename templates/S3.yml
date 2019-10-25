@@ -68,6 +68,7 @@ Resources:
 
 Outputs:
 {% for bucket in s3 %}
+{%   if s3.skip_output is defined and s3.skip_output %}
   {{ cfn_project }}{{ bucket.cfn_name }}:
     Value: !Ref {{ cfn_project }}{{ bucket.cfn_name }}
     Description: "S3 bucket {{ bucket.cfn_name }}"
@@ -86,4 +87,5 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-WebsiteDomain"
 
+{%   endif %}
 {% endfor %}
