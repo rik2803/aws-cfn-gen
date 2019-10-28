@@ -791,6 +791,7 @@ s3:
     access_control: Private
     static_website_hosting: no
     versioning: {Enabled|Suspended}
+    skip_output: {true|false}
     lifecycle_configuration: |
       Rules:
         - ExpirationInDays: 14
@@ -852,6 +853,13 @@ Allowed values:
 * `Enabled`
 * `Suspended`
 
+#### `skip_output`
+
+Default behaviour is to create an output for an s3 bucket, use this property to skip
+the creation of the output.
+
+This property was added to avoid the number of outputs to reach 60, which is a AWS limit
+on the number of outputs per stack.
 
 #### `lifecycle_configuration`
 

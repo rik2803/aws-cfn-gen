@@ -66,9 +66,16 @@ Resources:
 {%   endfor %}
 {% endif %}
 
-Outputs:
+{% set s3_output_list = [] %}
 {% for bucket in s3 %}
-{%   if s3.skip_output is defined and s3.skip_output %}
+{%   if bucket.skip_output is defined and not bucket.skip_output  %}
+{%     set _ = s3_output_list.append({'cfn_name': bucket.cfn_name, 'name': bucket.name}) %}
+{%   endif %}
+{% endfor %}
+
+{% if s3_output_list | length > 0 %}
+Outputs:
+{%   for bucket in s3_output_list %}
   {{ cfn_project }}{{ bucket.cfn_name }}:
     Value: !Ref {{ cfn_project }}{{ bucket.cfn_name }}
     Description: "S3 bucket {{ bucket.cfn_name }}"
@@ -87,5 +94,5 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-WebsiteDomain"
 
-{%   endif %}
-{% endfor %}
+{%   endfor %}
+{% endif %}
