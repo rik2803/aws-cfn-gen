@@ -9,6 +9,12 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.3.5` (20191120)
+
+### Improvements
+
+* `ECSMgmt`: make memory and cpu for fargate tasks configurable
+ 
 ## `0.3.4` (20191006)
 
 ### Features
