@@ -18,6 +18,7 @@ When the property `ecsmgmt` is set, these resources will be created:
   * A _CloudWatch_ log group where the task's log streams will be
     sent to
   * And the _Task Definition_, of course
+* Custom scheduled task definitions
 
 See these github repositories for more information on what these
 images do:
@@ -29,10 +30,11 @@ images do:
 
 ### Main
 
-| Property         | Required? | Description                                                                       | Default |
-|------------------|-----------|-----------------------------------------------------------------------------------|---------|
-| `ass.tag_prefix` | no        | Prefix used to set the `ASS_TAG_PREFIX` in the `ASS` task definitions             |         |
-| `fargate_tasks`  | no        | List of dicts that define custom task definitions to run in the _FARGATE_ cluster |         |
+| Property         | Required? | Description                                                                                  |
+|------------------|-----------|----------------------------------------------------------------------------------------------|
+| `ass.tag_prefix`  | no        | Prefix used to set the `ASS_TAG_PREFIX` in the `ASS` task definitions                       |
+| `fargate_tasks`   | no        | List of dicts that define custom task definitions to run in the _FARGATE_ cluster           |
+| `scheduled_tasks` | no        | List of dicts that define custom scheduled task definitions to run in the _FARGATE_ cluster |
 
 ### Fargate task definition
 
@@ -43,6 +45,19 @@ images do:
 | `image`              | yes       | The docker image used to run the task                                                            |         |
 | `task_role_policies` | yes       | A list of existing managed policies to add to the task role                                      |         |
 | `environment`        | no        | A list of dicts with `name` and `value` keys used to set the environment for the task definition |         |
+| `memory`             | no        | Memory (MB) for the fargate task                                                                 | `1024`  |
+| `cpu`                | no        | CPU (unit 1/1000 vcpu) used for the fargate task                                                 | `512`   |
+
+**Remark**: Check [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html)
+for allowed `memory`/`cpu` combinations. Invalid combinations will cause the stack to fail.
+
+### Scheduled task definition
+
+| Property                            | Required? | Description                                                              |
+|-------------------------------------|-----------|--------------------------------------------------------------------------|
+| `cfn_name`                          | yes       | _CloudFormation_ resource compatible name                                |
+| `schedule_expression`               | yes       | Schedule expression, `cron()` or `rate()`, see AWS docs for details      |
+| `task_definition_cfn_resource_name` | yes       | The task definition to use. Define task definitions with `fargate_tasks` |
 
 ## Example configuration
 
