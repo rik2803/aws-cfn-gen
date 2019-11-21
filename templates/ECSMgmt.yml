@@ -327,10 +327,10 @@ Resources:
               AwsVpcConfiguration:
                 AssignPublicIp: "DISABLED"
                 SecurityGroups:
+                  - "{{ vpc_sg_app }}"
+                Subnets:
                   - "{{ vpc_privatesubnet_az1 }}"
                   - "{{ vpc_privatesubnet_az2 }}"
-                Subnets:
-                  - "{{ vpc_sg_app }}"
 {% endfor %}
 
 {% for fargate_task in ecsmgmt.fargate_tasks | default([]) %}
