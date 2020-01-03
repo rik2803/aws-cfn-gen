@@ -80,8 +80,13 @@ Resources:
 {%   for key in bastion.pubkeys | default([]) %}
             - echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
 {%   endfor %}
+{%   if bastion.hostkeys is defined %}
+            - rm -f /etc/ssh/ssh_host_*
+{%   endif %}
 {%   for key in bastion.hostkeys | default([]) %}
             - printf -- "{{ key.key }}" > {{ key.location }}
+            - chmod 0640 {{ key.location }}
+            - chown root:ssh_keys {{ key.location }}
 {%   endfor %}
 
 {% endif %}
