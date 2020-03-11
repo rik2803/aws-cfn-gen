@@ -9,6 +9,13 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.3.6` (20200311)
+
+### Improvements
+
+* Add `ssl_policy` property to loadbalancer to determine the SSL policy to
+  use on the HTTPS listener.
+
 ## `0.3.5` (20191120)
 
 ### Improvements

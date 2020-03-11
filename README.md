@@ -674,7 +674,7 @@ It creates a typical loadbalancer, with these components:
 loadbalancers:
   - name: ALBExt
     scheme: "internet-facing"
-    certificate_arn: "arn:aws:acm:eu-central-1:632928949881:certificate/2e225841-3a4a-41cd-a677-325f7d2cf262"
+    certificate_arn: "arn:aws:acm:eu-central-1:123456789012:certificate/55555555-4444-4444-7777-555555555555"
     def_tg_http_healthcheckpath: /health
     def_tg_https_healthcheckpath: /health
   - name: ALBInt
