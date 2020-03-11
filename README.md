@@ -692,6 +692,12 @@ loadbalancers:
         filter_pattern: "-DEBUG"  
 ```
 
+#### `ssl_policy` (optional, default is `ELBSecurityPolicy-2016-08`)
+
+The SSL/TLS policy to use for the HTTPS listener. It defaults to today's AWS default
+`ELBSecurityPolicy-2016-08`, and can have any value from the list you can find
+[here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies).
+
 #### `access_logs`
 
 When `access_logs` is defined and `state` is `enabled`,
