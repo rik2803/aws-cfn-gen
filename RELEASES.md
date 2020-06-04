@@ -9,6 +9,17 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.4.0` (20200604)
+
+### Features
+
+#### `ECS` Update AMIs to latest version
+
+Update the ECS AMI's to the latest version.
+
+**Downtime Warning**: Using this version for the first time will cause the ECS
+cluster to be rebuild because of the new AMI's.
+
 ## `0.3.6` (20200311)
 
 ### Improvements
