@@ -22,6 +22,8 @@ Create an (empty) ECS cluster.
 | `cluster.spot_price`           | no        | Use spot instances when set, use property to set max bid price                                 |            |
 | `cluster.instance_type`        | yes       | The EC2 instance type to use for the cluster                                                   |            |
 | `cluster.amzn2`                | no        | Should a AMZN2 image be used for the cluster?                                                  | `false`    |
+| `cluster.amz2ami`              | no        | Override the default AMI (used only when `amzn2` is `true`)                                    | `false`    |
+| `cluster.amzami`               | no        | Override the default AMI (used only when `amzn2` is `false`)                                   | `false`    |
 | `cluster.cluster_size`         | no        | A description for the access, this is not used in any resource                                 |            |
 | `cluster.cluster_size.min`     | no        | Minimal cluster size                                                                           | `1`        |
 | `cluster.cluster_size.max`     | no        | Maximal cluster size                                                                           | `1`        |
@@ -36,6 +38,8 @@ ecs:
     keypair: "id_rsa_ixor.ixordocs-prd"
     instance_type: "t2.xlarge"
     amzn2: true
+    amzami: ami-xxxxxxxxxxx
+    amz2ami: ami-xxxxxxxxxxx
     cluster_size:
       min: 2
       max: 5

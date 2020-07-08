@@ -801,6 +801,14 @@ s3:
     lifecycle_configuration: |
       Rules:
         - ExpirationInDays: 14
+    cors:
+      allowed_headers:
+        - '*'
+      allowed_methods:
+        - 'GET'
+        - 'PUT'
+      allowed_origins:
+        - '*'
 ```
 
 #### `name`
@@ -878,6 +886,60 @@ If `lifecycle_configuration` is not specified, the default lifecycle rule is:
           - NoncurrentVersionExpirationInDays: 60
             Status: Enabled
 ```
+
+#### 'cors'
+
+Add CORS permissions to the bucket. This is optional, when omitted no CORS settings will be
+applied. This is the default AWS behaviour.
+
+You can specify all properties like this:
+
+```yaml
+s3:
+  - name: mybucket
+    cors:
+      allowed_headers:
+        - '*'
+      allowed_methods:
+        - 'GET'
+        - 'PUT'
+      allowed_origins:
+        - '*'
+      exposed_headers:
+        - 'Header1'
+        - 'Header2'
+```
+
+Or:
+
+```yaml
+s3:
+  - name: mybucket
+    cors: yes
+```
+
+The value does not matter, the presence of the `cors` property will apply these CORS settings to the
+bucket:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+<CORSRule>
+    <AllowedOrigin>*</AllowedOrigin>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>PUT</AllowedMethod>
+    <AllowedHeader>*</AllowedHeader>
+</CORSRule>
+</CORSConfiguration>
+```
+
+Omitting a property from the configuration will use following defaults:
+
+* `allowed_origins`: `['*']`
+* `allowed_methods`: `['GET', 'PUT']`
+* `allowed_headers`: `['*']`
+* No defaults for `exposed_headers`
+
 
 ### `applicationconfig`
 

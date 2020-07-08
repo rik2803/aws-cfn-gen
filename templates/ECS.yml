@@ -146,7 +146,11 @@ Resources:
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
+{%   if ecs.cluster.amz2ami is defined %}
+      ImageId: {{ ecs.cluster.amz2ami }}
+{% else %}
       ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
+{%   endif %}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
@@ -266,7 +270,11 @@ Resources:
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
+{%   if ecs.cluster.amzami is defined %}
+      ImageId: {{ ecs.cluster.amzami }}
+{% else %}
       ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
+{%   endif %}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"

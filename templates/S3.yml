@@ -25,6 +25,16 @@ Resources:
 {%   else %}
         Status: Enabled
 {%   endif %}
+{%   if bucket.cors is defined %}
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: {{ (bucket.cors.allowed_headers | default(['*'])) | to_yaml }}
+            AllowedMethods: {{ (bucket.cors.allowed_methods | default(['GET', 'PUT'])) | to_yaml }}
+            AllowedOrigins: {{ (bucket.cors.allowed_origins | default(['*'])) | to_yaml }}
+{%     if bucket.cors.exposed_headers is defined %}
+            ExposedHeaders: {{ bucket.cors.exposed_headers | to_yaml }}
+{%     endif %}
+{%   endif %}
       LifecycleConfiguration:
 {%   if bucket.lifecycle_configuration is not defined %}
         Rules:
