@@ -9,6 +9,21 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.4.1` (20200708)
+
+### Features
+
+#### `S3` CORS
+
+Optionally set CORS rules on the bucket.
+
+#### `ECS` AMI override
+
+Use `amzami` or `amz2ami` to override the default AMI:
+
+* Use the ECS AMI
+* Use the AMI for the region you are deploying in
+
 ## `0.4.0` (20200604)
 
 ### Features
