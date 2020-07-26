@@ -366,6 +366,7 @@ bastion:
   instance_type: t2.micro
   route53_sns_topic: arn:aws:sns:eu-central-1:123456789012:RequestRoute53CNAMEZ123456789012
   hostname: "bastion-myaccount"
+  eip: true
   domain: "acme.com"
   keypair_name: "id_rsa_myaccount"
   pubkeys:
@@ -397,6 +398,13 @@ If this property is not defined, not _Route53 RecordSet_ will be created.
 #### `bastion.hostname` (Optional)
 
 Only required if `bastion.route53_sns_topic` is set.
+
+#### `bastion.eip`
+
+Create an _Elastic IP Address_ for the bastion instance and assing is to the instance if this property exists and is
+`true`.
+
+Defualt value is `false`.
 
 #### `bastion.domain` (Optional)
 
