@@ -25,6 +25,14 @@ Resources:
 {%   else %}
         Status: Enabled
 {%   endif %}
+{%   if bucket.public_access_block_configuration is defined %}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: {{ bucket.public_access_block_configuration.block_public_acls | default("true") }}
+        BlockPublicPolicy: {{ bucket.public_access_block_configuration.block_public_policy | default("true") }}
+        IgnorePublicAcls: {{ bucket.public_access_block_configuration.ignore_public_acls | default("true") }}
+        RestrictPublicBuckets: {{ bucket.public_access_block_configuration.restrict_public_buckets | default("true") }}
+
+{%   endif %}
 {%   if bucket.cors is defined %}
       CorsConfiguration:
         CorsRules:
