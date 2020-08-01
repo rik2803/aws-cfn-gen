@@ -211,7 +211,7 @@ Resources:
         - Key: "ass:s3:clean-bucket-on-stop"
           Value: "yes"
 
-        {%   endif %}
+{%   endif %}
 
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
     DependsOn:
@@ -334,6 +334,10 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
+{%     if origin.oai is defined %}
+        S3OriginConfig:
+          OriginAccessIdentity: TODO
+{%     endif %}
 {%   endfor %}
         PriceClass: PriceClass_100
         ViewerCertificate:

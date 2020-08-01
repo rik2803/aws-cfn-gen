@@ -148,7 +148,7 @@ Resources:
     Properties:
 {%   if ecs.cluster.amz2ami is defined %}
       ImageId: {{ ecs.cluster.amz2ami }}
-{% else %}
+{%   else %}
       ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
 {%   endif %}
       SecurityGroups:
@@ -365,9 +365,9 @@ Resources:
         - "{{ vpc_privatesubnet_az2 }}"
         - "{{ vpc_privatesubnet_az3 }}"
       LaunchConfigurationName: !Ref 'ContainerInstances'
-      MinSize: '{{ ecs.cluster.cluster_size.min | default("1") }}'
-      MaxSize: '{{ ecs.cluster.cluster_size.max | default( [ ecs.cluster.cluster_size.max, 1 ] | max ) }}'
-      DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | default( [ ecs.cluster.cluster_size.min, 1 ] | max ) }}'
+      MinSize: '{{ ecs.cluster.cluster_size.min | int | default("1") }}'
+      MaxSize: '{{ ecs.cluster.cluster_size.max | int | default( [ ecs.cluster.cluster_size.max | int, 1 ] | max ) }}'
+      DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | int | default( [ ecs.cluster.cluster_size.min | int, 1 ] | max ) }}'
       Tags:
       - Key: Application
         Value: "{{ application }}"
@@ -529,7 +529,7 @@ Resources:
     Properties:
       ServiceName: "{{ project }}-{{ app.name }}"
       Cluster: !Ref 'ECSCluster'
-      DesiredCount: '{{ app.ecs.desiredcount | default(1) }}'
+      DesiredCount: '{{ app.ecs.desiredcount | default(1) | int }}'
       ### The DeploymentConfiguration settings are the defaults, they were added
       ### for documentation reasons
       ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html

@@ -112,5 +112,11 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-WebsiteDomain"
 
+  {{ cfn_project }}{{ bucket.cfn_name }}DomainName:
+    Value: "{{ application }}-{{ env }}-{{ bucket.name }}.s3.{{ target_account.region }}.amazonaws.com"
+    Description: "S3 bucket {{ bucket.cfn_name }} IPv4 API domain name"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-ApiDomainName"
+
 {%   endfor %}
 {% endif %}
