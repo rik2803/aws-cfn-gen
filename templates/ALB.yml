@@ -153,7 +153,7 @@ Resources:
       - Key: Customer
         Value: "{{ customer | default('NA') }}"
 
-{% if "internal" not in item.scheme %}
+{% if "internal" not in item.scheme or (item.force_tls | default(False)) %}
   Listener{{ item.name }}:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
