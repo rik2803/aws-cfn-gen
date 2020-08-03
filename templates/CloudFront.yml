@@ -362,7 +362,7 @@ Resources:
 {% endfor %}
 
 {% for oai in s3_oai_list %}
-{%   let cfn_oai = oai | replace('-', ' ') | title | replace(' ', '') %}
+{%   set cfn_oai = oai | replace('-', ' ') | title | replace(' ', '') %}
   Oai{{ cfn_oai }}:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
