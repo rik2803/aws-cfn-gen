@@ -341,8 +341,8 @@ Resources:
               HTTPSPort: 443
               OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
 {%     if origin.oai is defined %}
-        S3OriginConfig:
-          OriginAccessIdentity: TODO
+            S3OriginConfig:
+              OriginAccessIdentity: TODO
 {%     endif %}
 {%   endfor %}
         PriceClass: PriceClass_100
