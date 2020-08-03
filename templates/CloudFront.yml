@@ -362,7 +362,7 @@ Resources:
 {%     endif %}
 {%     if origin.oai is defined %}
             S3OriginConfig:
-              OriginAccessIdentity: TODO
+              OriginAccessIdentity: !Ref Oai{{ origin.oai }}
 {%     else %}
             CustomOriginConfig:
               HTTPPort: 80
