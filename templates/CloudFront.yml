@@ -362,7 +362,7 @@ Resources:
 {%     endif %}
 {%     if origin.oai is defined %}
             S3OriginConfig:
-              OriginAccessIdentity: !Ref {{ origin.oai }}
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${{{ origin.oai }}}"
 {%     else %}
             CustomOriginConfig:
               HTTPPort: 80
