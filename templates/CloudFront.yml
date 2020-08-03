@@ -1,5 +1,4 @@
 {# Create a list of buckets for which to create and attach a policy for the oai #}
-{% set s3_oai_list = [] %}
 {# Create a list of origin buckets to be used in the deploy user creation #}
 {% set s3_origin_list = [] %}
 {% for cloudfront in cloudfront_distributions %}
@@ -180,6 +179,35 @@ Resources:
 {%   endfor %}
 {% endfor %}
 
+{% for oai in cloudfront_oai | default([]) %}
+{%   set cfn_oai = oai | replace('-', ' ') | title | replace(' ', '') %}
+  Oai{{ cfn_oai }}:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "Oai{{ cfn_oai }}"
+
+  S3BucketPolicy{{ cfn_oai }}:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: "{{ oai }}"
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: "PolicyForCloudFrontPrivateContent{{ cfn_oai }}"
+        Statement:
+          - Sid: '1'
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${Oai{{ cfn_oai }}}"
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - "arn:aws:s3:::{{ oai }}/*"
+              - "arn:aws:s3:::{{ oai }}"
+
+{% endfor %}
+
 {% for cloudfront in cloudfront_distributions %}
   S3{{ cfn_project }}{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin:
     Type: AWS::S3::Bucket
@@ -319,13 +347,9 @@ Resources:
 {%     if origin.domain is defined %}
 {%       if origin.domain.type == 'import' %}
             DomainName: !ImportValue "{{ origin.domain.name }}"
-{%         if origin.domain.resourcetype == 's3' %}
-{%           set _ = s3_oai_list.append(origin.domain.resourcename) %}
-{%         endif %}
 {%       endif %}
 {%       if origin.domain.type == 's3' %}
             DomainName: "{{ origin.domain.name }}.s3-website.{{ target_account.region }}.amazonaws.com"
-{%           set _ = s3_oai_list.append(origin.domain.name) %}
 {%       endif %}
 {%       if origin.domain.type == 'custom' %}
             DomainName: "{{ origin.domain.origin_domain_name }}"
@@ -359,35 +383,6 @@ Resources:
           Value: {{ env | default('NA') }}
         - Key: Customer
           Value: {{ customer | default('NA') }}
-
-{% endfor %}
-
-{% for oai in s3_oai_list %}
-{%   set cfn_oai = oai | replace('-', ' ') | title | replace(' ', '') %}
-  Oai{{ cfn_oai }}:
-    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-    Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: "Oai{{ cfn_oai }}"
-
-  S3BucketPolicy{{ cfn_oai }}:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: "{{ oai }}"
-      PolicyDocument:
-        Version: '2008-10-17'
-        Id: "PolicyForCloudFrontPrivateContent{{ cfn_oai }}"
-        Statement:
-          - Sid: '1'
-            Effect: Allow
-            Principal:
-              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${Oai{{ cfn_oai }}}"
-            Action:
-              - s3:GetObject
-              - s3:ListBucket
-            Resource:
-              - "arn:aws:s3:::{{ oai }}/*"
-              - "arn:aws:s3:::{{ oai }}"
 
 {% endfor %}
 
