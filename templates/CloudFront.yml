@@ -336,13 +336,14 @@ Resources:
 {%     else %}
             DomainName: "{{ origin.origin_name }}.s3-website.{{ target_account.region }}.amazonaws.com"
 {%     endif %}
+{%     if origin.oai is defined %}
+            S3OriginConfig:
+              OriginAccessIdentity: TODO
+{%     else %}
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
-{%     if origin.oai is defined %}
-            S3OriginConfig:
-              OriginAccessIdentity: TODO
 {%     endif %}
 {%   endfor %}
         PriceClass: PriceClass_100
