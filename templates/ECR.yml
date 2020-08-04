@@ -4,7 +4,7 @@ Description: |
   Create ECS Container Registries and a ecr-push user (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
-{% for repo in ecr.repositories %}
+{% for repo in ecr.repositories | default([]) %}
   {{ repo.cfn_name }}:
     Type: AWS::ECR::Repository
     Properties:
