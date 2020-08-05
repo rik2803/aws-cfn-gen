@@ -8,6 +8,6 @@ Resources:
   {{ waf_association.name}}:
     Type: AWS::WAFv2::WebACLAssociation
     Properties:
-      ResourceArn: !Import "{{ waf_association.arn_import }}"
+      ResourceArn: !ImportValue "{{ waf_association.arn_import }}"
       WebACLArn: "{{ waf_association.waf_arn }}"
 {% endfor %}
