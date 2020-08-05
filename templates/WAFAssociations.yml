@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Associate a (manually created) WebACL with a resource that can be
+  associated with a WebACL (API GW, ALB)
+
+Resources:
+{% for waf_association in waf_associations %}
+  {{ waf_association.name}}:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !Import "{{ waf_association.arn_import }}"
+      WebACLArn: "{{ waf_association.waf_arn }}"
+{% endfor %}

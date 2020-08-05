@@ -1031,6 +1031,46 @@
       when: "cloudfront_distributions is defined"
       tags: [ 'cloudfront' ]
 
+    - name: WAF Associations
+      block:
+        - name: Create CFN template from Ansible template for the WAF Associations
+          template:
+            src: WAFAssociations.yml
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml"
+        - name: "Put CFN template for WAF associations on s3"
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-waf-associations.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-waf-associations.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the WAF associations stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}WAFAssociations"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}WAFAssociations{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}WAFAssociations" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}WAFAssociations{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}WAFAssociations --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+
+      when: "waf_associations is defined"
+      tags: [ 'waf_associations' ]
+
     - name: Route 53
       block:
         - name: Create template from Ansible template for the Route53 Hosted Zones
