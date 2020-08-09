@@ -285,7 +285,7 @@ Resources:
 {%   endif %}
       Actions:
         - Type: fixed-response
-          FixedResponeConfig:
+          FixedResponseConfig:
             ContentType: "{{ fixed_respone.content_type | default('text/plain') }}"
             StatusCode: "{{ fixed_respone.status_code | default('HTTP_404') }}"
             MessageBody: "{{ fixed_respone.message_body | default(fixed_respone.status_code | default('HTTP_404')) }}"
