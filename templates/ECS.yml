@@ -159,9 +159,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: "/dev/xvda"
           Ebs:
-{%     if (ecs.cluster.ebs_size is defined) %}
-            VolumeSize: '{{ ecs.cluster.ebs_size }}'
-{%     endif %}
+            VolumeSize: "{{ ecs.cluster.ebs_size | default('30') }}"
 {%     if ecs.cluster.encrypt_ebs | default(false) %}
             Encrypted: true
 {%     endif %}
@@ -288,9 +286,7 @@ Resources:
       BlockDeviceMappings:
       - DeviceName: "/dev/xvdcz"
         Ebs:
-{%     if ecs.cluster.ebs_size is defined %}
-          VolumeSize: '{{ ecs.cluster.ebs_size }}'
-{%     endif %}
+          VolumeSize: "{{ ecs.cluster.ebs_size | default('30') }}"
 {%     if ecs.cluster.encrpyt_ebs | default(false) %}
           Encrypted: true
 {%     endif %}
