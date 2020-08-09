@@ -279,7 +279,7 @@ Resources:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
-{%   if ecs.cluster.ebs_size is defined or (cluster.encrypt_ebs | default(false)) %}
+{%   if ecs.cluster.ebs_size is defined or (ecs.cluster.encrypt_ebs | default(false)) %}
       BlockDeviceMappings:
 {%     if ecs.cluster.ebs_size is defined %}
       - DeviceName: "/dev/xvdcz"
