@@ -220,7 +220,7 @@ Resources:
       UnhealthyThresholdCount: 2
       VpcId: "{{ vpc_id }}"
 
-  ## Create configuration for redirects
+## Create configuration for redirects
 {% for redirect in item.redirects | default([]) %}
 {%   set redir_resource_basename = redirect.host_header | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '') %}
   RedirAction{{ redir_resource_basename }}:
@@ -257,6 +257,38 @@ Resources:
       Target: !GetAtt LB{{ item.name }}.DNSName
       RecordType: CNAME
 {%   endif %}
+{% endfor %}
+
+## Create configuration for fixed responses
+{% for fixed_respone in item.fixed_responses | default([]) %}
+  FixedResponse{{ fixed_respone.cfn_name }}:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref Listener{{ item.name }}
+      Priority: "{{ fixed_respone.priority }}"
+      Conditions:
+{%   if fixed_respone.host_header is not defined and fixed_respone.path_pattern is not defined %}
+{#     Default behavior if path nor host are defined #}
+        - Field: host-header
+          Values:
+            - "defaultwillneverhappen.com"
+{%   endif %}
+{%   if fixed_respone.host_header is defined %}
+        - Field: host-header
+          Values:
+            - "{{ fixed_respone.host_header }}"
+{%   endif %}
+{%   if fixed_respone.path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ fixed_respone.path_pattern }}"
+{%   endif %}
+      Actions:
+        - Type: fixed-response
+          FixedResponeConfig:
+            ContentType: "{{ fixed_respone.content_type | default('text/plain') }}"
+            StatusCode: "{{ fixed_respone.status_code | default('HTTP_404') }}"
+            MessageBody: "{{ fixed_respone.message_body | default(fixed_respone.status_code | default('HTTP_404')) }}"
 {% endfor %}
 
   ## Create application listener rules
