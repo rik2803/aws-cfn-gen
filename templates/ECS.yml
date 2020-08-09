@@ -279,11 +279,21 @@ Resources:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
-{%   if ecs.cluster.ebs_size is defined %}
+{%   if ecs.cluster.ebs_size is defined or (cluster.encrypt_ebs | default(false)) %}
       BlockDeviceMappings:
+{%     if ecs.cluster.ebs_size is defined %}
       - DeviceName: "/dev/xvdcz"
         Ebs:
           VolumeSize: '{{ ecs.cluster.ebs_size }}'
+{%       if ecs.cluster.encrpyt_ebs | default(false) %}
+          Encrypted: true
+{%       endif %}
+{%     if ecs.cluster.encrpyt_ebs | default(false) %}
+      - DeviceName: "/dev/xvda"
+        Ebs:
+          Encrypted: true
+{%     endif %}
+{%     endif %}
 {%   endif %}
       KeyName: "{{ ecs.cluster.keypair }}"
 {%   if ecs.cluster.spot_price is defined %}
