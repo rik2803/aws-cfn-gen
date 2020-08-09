@@ -155,11 +155,16 @@ Resources:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
-{%   if ecs.cluster.ebs_size is defined %}
+{%   if (ecs.cluster.ebs_size is defined) or (ecs.cluster.encrypt_ebs | default(false)) %}
       BlockDeviceMappings:
-      - DeviceName: "/dev/xvda"
-        Ebs:
-          VolumeSize: '{{ ecs.cluster.ebs_size }}'
+        - DeviceName: "/dev/xvda"
+          Ebs:
+{%     if (ecs.cluster.ebs_size is defined) %}
+            VolumeSize: '{{ ecs.cluster.ebs_size }}'
+{%     endif %}
+{%     if ecs.cluster.encrypt_ebs | default(false) %}
+            Encrypted: true
+{%     endif %}
 {%   endif %}
       KeyName: "{{ ecs.cluster.keypair }}"
 {%   if ecs.cluster.spot_price is defined %}
@@ -272,7 +277,7 @@ Resources:
     Properties:
 {%   if ecs.cluster.amzami is defined %}
       ImageId: {{ ecs.cluster.amzami }}
-{% else %}
+{%   else %}
       ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
 {%   endif %}
       SecurityGroups:
@@ -281,17 +286,12 @@ Resources:
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
 {%   if (ecs.cluster.ebs_size is defined) or (ecs.cluster.encrypt_ebs | default(false)) %}
       BlockDeviceMappings:
-{%     if ecs.cluster.ebs_size is defined %}
       - DeviceName: "/dev/xvdcz"
         Ebs:
+{%     if ecs.cluster.ebs_size is defined %}
           VolumeSize: '{{ ecs.cluster.ebs_size }}'
-{%       if ecs.cluster.encrpyt_ebs | default(false) %}
-          Encrypted: true
-{%       endif %}
 {%     endif %}
 {%     if ecs.cluster.encrpyt_ebs | default(false) %}
-      - DeviceName: "/dev/xvda"
-        Ebs:
           Encrypted: true
 {%     endif %}
 {%   endif %}
