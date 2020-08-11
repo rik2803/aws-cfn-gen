@@ -58,6 +58,12 @@ Resources:
         IndexDocument: {{ bucket.indexdocument | default('index.html') }}
         ErrorDocument: {{ bucket.errordocument | default('index.html') }}
 {%   endif %}
+{%   if bucket.send_create_events_to_lambda_import is defined %}
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Function: !ImportValue {{ bucket.send_create_events_to_lambda_import }}
+{%   endif %}
       Tags:
       - Key: Application
         Value: "{{ application }}"
