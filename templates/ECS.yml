@@ -1,7 +1,7 @@
 {% set non_fargate_count = 0 %}
 {% for app in applicationconfig %}
 {%   if app.launchtype | default('EC2') == 'EC2' %}
-{%     non_fargate_count = non_fargate_count + 1 %}
+{%     set non_fargate_count = non_fargate_count + 1 %}
 {%   endif %}
 {% endfor %}
 
