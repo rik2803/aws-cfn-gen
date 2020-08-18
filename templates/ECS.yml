@@ -553,6 +553,9 @@ Resources:
             - "{{ vpc_privatesubnet_az1 }}"
             - "{{ vpc_privatesubnet_az2 }}"
             - "{{ vpc_privatesubnet_az3 }}"
+{%       else %}
+{#         You cannot specify an IAM role for services that require a service linked role. #}
+      Role: !Ref 'ECSServiceRole'
 {%       endif %}
 {%       if app.deploymentconfiguration is defined %}
       DeploymentConfiguration:
@@ -562,7 +565,6 @@ Resources:
       TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
 {%       if app.lb is defined %}
       HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
-      Role: !Ref 'ECSServiceRole'
       LoadBalancers:
         - ContainerName: "{{ project }}-{{ app.name }}"
           ContainerPort: "{{ app.ecs.containerport }}"
