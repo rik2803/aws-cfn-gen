@@ -522,6 +522,9 @@ Resources:
 {%     if app.ecs.task_role_arn is defined %}
       TaskRoleArn: "{{ app.ecs.task_role_arn }}"
 {%     endif %}
+{%     if app.ecs.execution_role_arn is defined %}
+      ExecutionRoleArn: "{{ app.ecs.execution_role_arn }}"
+{%     endif %}
 
 {%     if app.target | lower == 'ecs_scheduled_task' %}
   EventRuleScheduledTask{{ cfn_project }}{{ app.cfn_name }}:
