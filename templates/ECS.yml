@@ -459,8 +459,14 @@ Resources:
       Volumes:
 {%       for volume in app.ecs.volumes %}
         - Name: {{ volume.name }}
+{%         if app.launchtype | default('EC2') == 'FARGATE' %}
+          EFSVolumeConfiguration:
+            FileSystemId: !ImportValue {{ volume.efs_import }}
+            TransitEncryption: ENABLED
+{%         else %}
           Host:
             SourcePath: {{ volume.hostpath }}
+{%         endif %}
 {%       endfor %}
 {%     endif %}
       ContainerDefinitions:
