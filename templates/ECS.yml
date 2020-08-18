@@ -451,6 +451,8 @@ Resources:
     Properties:
       Family: "task-{{ project }}-{{ app.name }}"
 {%     if app.launchtype | default('EC2') == 'FARGATE' %}
+      Cpu: "{{ app.ecs.cpu }}"
+      Memory: "{{ app.ecs.memory }}"
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
