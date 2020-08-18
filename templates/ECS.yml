@@ -539,6 +539,18 @@ Resources:
       ### The DeploymentConfiguration settings are the defaults, they were added
       ### for documentation reasons
       ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html
+{%       if app.launchtype | default('EC2') == 'FARGATE' %}
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsVpcConfiguration:
+          AssignPublicIp: "DISABLED"
+          SecurityGroups:
+            - "{{ vpc_sg_app }}"
+          Subnets:
+            - "{{ vpc_privatesubnet_az1 }}"
+            - "{{ vpc_privatesubnet_az2 }}"
+            - "{{ vpc_privatesubnet_az3 }}"
+{%       endif %}
 {%       if app.deploymentconfiguration is defined %}
       DeploymentConfiguration:
         MaximumPercent: {{ app.deploymentconfiguration.max_percent | default(200) }}
