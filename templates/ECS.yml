@@ -557,6 +557,7 @@ Resources:
       ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html
 {%       if app.launchtype | default('EC2') == 'FARGATE' %}
       LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: "DISABLED"
