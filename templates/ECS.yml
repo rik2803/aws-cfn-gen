@@ -545,7 +545,7 @@ Resources:
 {%       if app.launchtype | default('EC2') == 'FARGATE' %}
       LaunchType: FARGATE
       NetworkConfiguration:
-        AwsVpcConfiguration:
+        AwsvpcConfiguration:
           AssignPublicIp: "DISABLED"
           SecurityGroups:
             - "{{ vpc_sg_app }}"
