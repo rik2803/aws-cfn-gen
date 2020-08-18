@@ -1,3 +1,10 @@
+{% set non_fargate_count = 0 %}
+{% for app in applicationconfig %}
+{%   if app.launchtype | default('EC2') == 'EC2' %}
+{%     non_fargate_count = non_fargate_count + 1 %}
+{%   endif %}
+{% endfor %}
+
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: |
@@ -363,6 +370,7 @@ Resources:
 {%   endfor %}
 {% endif %}
 
+{% if non_fargate_count > 0 %}
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -393,6 +401,7 @@ Resources:
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: 'true'
+{% endif %}
 
   ### Resources for Tasks and Services
 {% for app in applicationconfig %}
