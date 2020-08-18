@@ -542,6 +542,19 @@ Resources:
         EcsParameters:
           TaskCount: 1
           TaskDefinitionArn: !Ref Task{{ cfn_project }}{{ app.cfn_name }}
+{%       if app.launchtype | default('EC2') == 'FARGATE' %}
+          LaunchType: FARGATE
+          PlatformVersion: "1.4.0"
+          NetworkConfiguration:
+            AwsVpcConfiguration:
+              AssignPublicIp: "DISABLED"
+              SecurityGroups:
+                - "{{ vpc_sg_app }}"
+              Subnets:
+                - "{{ vpc_privatesubnet_az1 }}"
+                - "{{ vpc_privatesubnet_az2 }}"
+                - "{{ vpc_privatesubnet_az3 }}"
+{%       endif %}
 {%     endif %}
 
 {%     if app.target | lower == 'ecs' %}
@@ -568,7 +581,7 @@ Resources:
             - "{{ vpc_privatesubnet_az2 }}"
             - "{{ vpc_privatesubnet_az3 }}"
 {%       else %}
-{#         You cannot specify an IAM role for services that require a service linked role. #}
+{#         You cannot specify an IAM role for services that require a service linked role (as FARGATE does). #}
       Role: !Ref 'ECSServiceRole'
 {%       endif %}
 {%       if app.deploymentconfiguration is defined %}
