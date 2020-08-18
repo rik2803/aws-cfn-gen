@@ -450,6 +450,9 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: "task-{{ project }}-{{ app.name }}"
+{%     if app.launchtype | default('EC2') == 'FARGATE' %}
+      NetworkMode: awsvpc
+{%     endif %}
 {%     if app.ecs.volumes is defined %}
       Volumes:
 {%       for volume in app.ecs.volumes %}
