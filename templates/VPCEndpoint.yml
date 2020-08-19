@@ -29,3 +29,4 @@ Resources:
 {%   endfor %}
       VpcEndpointType: Interface
       VpcId: !ImportValue {{ vpc_import }}
+{% endfor %}
