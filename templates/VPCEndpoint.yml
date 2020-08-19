@@ -12,3 +12,20 @@ Resources:
         - "{{ vpc_privatesubnet_routetable }}"
         - "{{ vpc_publicsubnet_routetable }}"
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+
+{% for ep in vpc_interface_endpoints %}
+  VPCEndpoint{{ ep.cfn_name }}:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+{%   for sg_import in ep.sg_imports %}
+        - !ImportValue {{ sg_import }}
+{%   endfor %}
+      ServiceName: {{ ep.aws_service }}
+      SubnetIds:
+{%   for subnet_import in ep.subnet_imports %}
+        - !ImportValue {{ subnet_import }}
+{%   endfor %}
+      VpcEndpointType: Interface
+      VpcId: !ImportValue {{ vpc_import }}
