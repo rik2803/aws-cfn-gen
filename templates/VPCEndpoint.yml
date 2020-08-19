@@ -28,5 +28,5 @@ Resources:
         - !ImportValue {{ subnet_import }}
 {%   endfor %}
       VpcEndpointType: Interface
-      VpcId: !ImportValue {{ vpc_import }}
+      VpcId: !ImportValue {{ ep.vpc_import }}
 {% endfor %}
