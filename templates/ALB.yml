@@ -339,6 +339,7 @@ Resources:
 {%     else %}
       Port: 80
       Protocol: HTTP
+{%     endif %}
 {%     if (app.lb.sticky is defined and app.lb.sticky) or app.lb.targetgroup_attributes is defined %}
       TargetGroupAttributes:
 {%       if app.lb.sticky is defined and app.lb.sticky %}
