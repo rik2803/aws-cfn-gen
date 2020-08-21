@@ -332,6 +332,11 @@ Resources:
       Matcher:
         HttpCode: {{ app.lb.healthcheckokcode | default('200-299') }}
       Name: {{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}
+
+{%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
+      Port: 443
+      Protocol: HTTPS
+{%     else %}
       Port: 80
       Protocol: HTTP
 {%     if (app.lb.sticky is defined and app.lb.sticky) or app.lb.targetgroup_attributes is defined %}
