@@ -1481,6 +1481,12 @@ Can be one of these values:
                                   for example, `myawsbucket/production`. Do not include a `/`
                                   at the end of the directory name. 
 
+#### Custom Origin Headers
+
+* `header_name`: Name of the header.
+
+* `header_value`: Value of the header.
+
 #### Custom Error Responses
 
 ```yaml
