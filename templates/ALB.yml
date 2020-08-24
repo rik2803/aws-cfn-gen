@@ -323,7 +323,11 @@ Resources:
     Properties:
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: {{ app.lb.healthcheckpath | default('/') }}
+{%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
+      HealthCheckProtocol: HTTPS
+{%     else %}
       HealthCheckProtocol: HTTP
+{%     endif %}
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
 {%     if app.launchtype | default('EC2') == 'FARGATE' %}
@@ -332,7 +336,6 @@ Resources:
       Matcher:
         HttpCode: {{ app.lb.healthcheckokcode | default('200-299') }}
       Name: {{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}
-
 {%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
       Port: 443
       Protocol: HTTPS
