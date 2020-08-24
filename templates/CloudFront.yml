@@ -334,7 +334,8 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
-              OriginSSLProtocols: {{ origin.protocol_ssl_protocol | default('TLSv1.2') }}
+              OriginSSLProtocols: 
+              - {{ origin.protocol_ssl_protocol | default('TLSv1.2') }}
 {%    if origin.origin_custom_headers is defined %}
             OriginCustomHeaders:
 {%      for header in origin.origin_custom_headers %}
