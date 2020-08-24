@@ -1,0 +1,404 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Create loadbalancer {{ item.name }} (aws-cfn-gen version: {{ gittag | default('na') }})
+
+Mappings:
+  Region2ELBAccountId:
+    us-east-1:
+      AccountId: "127311923021"
+    us-west-1:
+      AccountId: "027434742980"
+    us-west-2:
+      AccountId: "797873946194"
+    eu-west-1:
+      AccountId: "156460612806"
+    eu-west-2:
+      AccountId: "652711504416"
+    eu-west-3:
+      AccountId: "009996457667"
+    ap-northeast-1:
+      AccountId: "582318560864"
+    ap-northeast-2:
+      AccountId: "600734575887"
+    ap-northeast-3:
+      AccountId: "383597477331"
+    ap-southeast-1:
+      AccountId: "114774131450"
+    ap-southeast-2:
+      AccountId: "783225319266"
+    ap-south-1:
+      AccountId: "718504428378"
+    us-east-2:
+      AccountId: "033677994240"
+    sa-east-1:
+      AccountId: "507241528517"
+    cn-north-1:
+      AccountId: "638102146993"
+    eu-central-1:
+      AccountId: "054676820928"
+
+
+Resources:
+
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+  S3ALBAccessLogs{{ item.name }}:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: "{{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+        - ExpirationInDays: {{ item.accesslogs.log_expiry_days | default('1') }}
+          Status: "Enabled"
+{%   if item.accesslogs is defined and item.accesslogs.s3_objectcreated_lambda_import is defined %}
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function: !ImportValue "{{ item.accesslogs.s3_objectcreated_lambda_import }}"
+          Event: "s3:ObjectCreated:*"
+{%   endif %}
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+
+  S3ALBAccessLogsBucketPolicy{{ item.name }}:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: "S3ALBAccessLogs{{ item.name }}"
+    Properties:
+      Bucket: !Ref S3ALBAccessLogs{{ item.name }}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        -   Sid: S3AccessForLoadbalancer
+            Effect: Allow
+            Action: "s3:PutObject"
+            Resource: !Sub arn:aws:s3:::{{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}/*
+            Principal:
+              AWS: !FindInMap [Region2ELBAccountId, !Ref 'AWS::Region', AccountId]
+
+{%     if item.accesslogs.cw_logs is defined %}
+  CloudWatch{{ item.name }}:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "{{ item.accesslogs.cw_logs.log_group_name }}"
+      RetentionInDays: "{{ item.accesslogs.log_expiry_days }}"
+{%     endif %}
+
+{%     if item.accesslogs.cw_logs_subscription_filter is defined %}
+  CWSubscrFilter{{ item.name }}:
+    Type: AWS::Logs::SubscriptionFilter
+    DependsOn:
+      - CloudWatch{{ item.name }}
+    Properties:
+{%         if item.accesslogs.cw_logs_subscription_filter.type == 'lambda' %}
+      DestinationArn: !ImportValue "{{ cfn_project }}Lambda-{{ item.accesslogs.cw_logs_subscription_filter.lambda_cfn_export_name }}"
+{%         endif %}
+      FilterPattern: '{{ item.accesslogs.cw_logs_subscription_filter.filter_pattern | default('') }}'
+      LogGroupName: "{{ item.accesslogs.cw_logs_subscription_filter.log_group_name }}"
+{%     endif %}
+
+{% endif %}
+
+  LB{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+    DependsOn:
+      - "S3ALBAccessLogs{{ item.name }}"
+      - "S3ALBAccessLogsBucketPolicy{{ item.name }}"
+{% endif %}
+    Properties:
+      Name: "lb-{{ project }}-{{ item.name }}"
+      Scheme: "{{ item.scheme }}"
+      Type: "application"
+{% if "internal" in item.scheme %}
+      SecurityGroups:
+        - "{{ vpc_sg_app }}"
+        - "{{ vpc_sg_elb }}"
+      Subnets:
+        - "{{ vpc_privatesubnet_az1 }}"
+        - "{{ vpc_privatesubnet_az2 }}"
+        - "{{ vpc_privatesubnet_az3 }}"
+{% else %}
+      SecurityGroups:
+        - "{{ vpc_sg_elb }}"
+      Subnets:
+        - "{{ vpc_elbsubnet_az1 }}"
+        - "{{ vpc_elbsubnet_az2 }}"
+        - "{{ vpc_elbsubnet_az3 }}"
+{% endif %}
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: {{ item.idle_timeout_seconds | default('60') }}
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+        - Key: access_logs.s3.enabled
+          Value: true
+        - Key: access_logs.s3.bucket
+          Value: {{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}
+{% else %}
+        - Key: access_logs.s3.enabled
+          Value: false
+{% endif %}
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+
+{% if "internal" not in item.scheme or (item.force_tls | default(False)) %}
+  Listener{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'TGDefaultHTTPS'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
+      Port: '443'
+      Protocol: HTTPS
+      SslPolicy: "{{ item.ssl_policy | default('ELBSecurityPolicy-2016-08') }}"
+      Certificates:
+        - CertificateArn: {{ item.certificate_arn }}
+  Listener{{ item.name }}HTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: redirect
+        RedirectConfig:
+          StatusCode: 'HTTP_301'
+          Protocol: 'HTTPS'
+          Port: '443'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
+      Port: '80'
+      Protocol: HTTP
+{% else %}
+  Listener{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'TGDefaultHTTP'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
+      Port: '80'
+      Protocol: HTTP
+{% endif %}
+
+  TGDefaultHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: "LB{{ item.name }}"
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: {{ item.def_tg_https_healthcheckpath | default('/') }}
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Name: tg-{{ shortproject }}-{{ item.name | lower }}-def-443
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: "{{ vpc_id }}"
+
+  TGDefaultHTTP:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: "LB{{ item.name }}"
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath:  {{ item.def_tg_http_healthcheckpath | default('/') }}
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: "{{ vpc_id }}"
+      Tags:
+        - Key: "Name"
+          Value: "tg-{{ shortproject }}-{{ item.name | lower }}-def-80"
+
+## Create configuration for redirects
+{% for redirect in item.redirects | default([]) %}
+{%   set redir_resource_basename = redirect.host_header | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '') %}
+  RedirAction{{ redir_resource_basename }}:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref Listener{{ item.name }}
+      Priority: "{{ redirect.priority }}"
+      Conditions:
+        - Field: host-header
+          Values:
+            - "{{ redirect.host_header }}"
+{%   if redirect.path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ redirect.path_pattern }}"
+{%   endif %}
+      Actions:
+        - Type: redirect
+          RedirectConfig:
+            StatusCode: "{{ redirect.status_code | default('HTTP_301') }}"
+            Host: "{{ redirect.to | default('#{host}') }}"
+            Path: "{{ redirect.path | default('/#{path}') }}"
+            Port: "{{ redirect.port | default('#{port}') }}"
+            Protocol: "{{ redirect.protocol | default('#{protocol}') }}"
+            Query: "{{ redirect.query | default('#{query}') }}"
+
+{%   if redirect.skiproute53 is not defined or not redirect.skiproute53 %}
+  ### Route53 (does not yet support creation of APEX alias)
+  RedirR53{{ redir_resource_basename }}:
+    Type: Custom::CNAME
+    Properties:
+      ServiceToken: {{ redirect.sns_topic_arn_for_r53 }}
+      Source: "{{ redirect.host_header }}."
+      Target: !GetAtt LB{{ item.name }}.DNSName
+      RecordType: CNAME
+{%   endif %}
+{% endfor %}
+
+## Create configuration for fixed responses
+{% for fixed_respone in item.fixed_responses | default([]) %}
+  FixedResponse{{ fixed_respone.cfn_name }}:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref Listener{{ item.name }}
+      Priority: "{{ fixed_respone.priority }}"
+      Conditions:
+{%   if fixed_respone.host_header is not defined and fixed_respone.path_pattern is not defined %}
+{#     Default behavior if path nor host are defined #}
+        - Field: host-header
+          Values:
+            - "defaultwillneverhappen.com"
+{%   endif %}
+{%   if fixed_respone.host_header is defined %}
+        - Field: host-header
+          Values:
+            - "{{ fixed_respone.host_header }}"
+{%   endif %}
+{%   if fixed_respone.path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ fixed_respone.path_pattern }}"
+{%   endif %}
+      Actions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: "{{ fixed_respone.content_type | default('text/plain') }}"
+            StatusCode: "{{ fixed_respone.status_code | default('HTTP_404') }}"
+            MessageBody: "{{ fixed_respone.message_body | default(fixed_respone.status_code | default('HTTP_404')) }}"
+{% endfor %}
+
+  ## Create application listener rules
+{% for app in applicationconfig | default([]) %}
+{%   if app.domains is defined and app.lb is defined and app.lb.name == item.name %}
+{%     for dom in app.domains %}
+  ListenerRule{{ cfn_project }}{{ app.cfn_name }}{{ dom.cfn_name }}{{ dom.cfn_name_suffix | default('') }}{{ dom.listener_rule_path_pattern | default("All") | replace('*', 'Star') | replace('/', ' ') | title | replace(' ', '') }}:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
+      Conditions:
+        - Field: host-header
+          Values:
+            - "{{ dom.listener_rule_host_header }}"
+{%       if dom.listener_rule_path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ dom.listener_rule_path_pattern }}"
+{%       endif %}
+      ListenerArn: !Ref "Listener{{ item.name }}"
+      Priority: {{ dom.priority }}
+
+{%     endfor %}
+
+
+  ## Create the application target groups
+  TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: "LB{{ item.name }}"
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: {{ app.lb.healthcheckpath | default('/') }}
+{%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
+      HealthCheckProtocol: HTTPS
+{%     else %}
+      HealthCheckProtocol: HTTP
+{%     endif %}
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+{%     if app.launchtype | default('EC2') == 'FARGATE' %}
+      TargetType: ip
+{%     endif %}
+      Matcher:
+        HttpCode: {{ app.lb.healthcheckokcode | default('200-299') }}
+{%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
+      Port: 443
+      Protocol: HTTPS
+{%     else %}
+      Port: 80
+      Protocol: HTTP
+{%     endif %}
+{%     if (app.lb.sticky is defined and app.lb.sticky) or app.lb.targetgroup_attributes is defined %}
+      TargetGroupAttributes:
+{%       if app.lb.sticky is defined and app.lb.sticky %}
+        - Key: "stickiness.enabled"
+          Value: "true"
+        - Key: "stickiness.type"
+          Value: "lb_cookie"
+{%       endif %}
+{%       for tgatt in app.lb.targetgroup_attributes | default([]) %}
+        - Key: "{{ tgatt.key }}"
+          Value: "{{ tgatt.value }}"
+{%       endfor %}
+{%     endif %}
+      UnhealthyThresholdCount: 2
+      VpcId: "{{ vpc_id }}"
+      Tags:
+        - Key: "Name"
+          Value: "{{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) }}"
+
+{%   endif %}
+{% endfor %}
+
+Outputs:
+  {{ item.name }}:
+    Value: !Ref "LB{{ item.name }}"
+    Description: "{{ item.description | default(item.name) }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}"
+  {{ item.name }}DNS:
+    Value: !GetAtt LB{{ item.name }}.DNSName
+    Description: "{{ item.description | default(item.name) }} DNS name"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}DNS"
+  {{ item.name }}CanonicalHostedZoneID:
+    Value: !GetAtt LB{{ item.name }}.CanonicalHostedZoneID
+    Description: "{{ item.description | default(item.name) }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}CanonicalHostedZoneID"
+  TGDefaultHTTP:
+    Value: !Ref "TGDefaultHTTP"
+    Description: "Default Target Group for HTTP."
+    Export:
+      Name: !Sub "${AWS::StackName}-TGDefaultHTTP"
+  TGDefaultHTTPS:
+    Value: !Ref "TGDefaultHTTPS"
+    Description: "Default Target Group for HTTPS."
+    Export:
+      Name: !Sub "${AWS::StackName}-TGDefaultHTTPS"
+{% for app in applicationconfig | default([]) %}
+{%   if app.domains is defined and app.lb.name == item.name %}
+  TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
+    Value: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
+    Description: "Target Group for application {{ app.name }} in project {{ project }}."
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}"
+
+{%   endif %}
+{% endfor %}

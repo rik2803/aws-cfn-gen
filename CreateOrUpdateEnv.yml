@@ -84,7 +84,7 @@
   tasks:
     - name: Set all stack_deletion_order variables
       set_fact:
-        stack_deletion_order_dynamodb:           "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb                | default(0)  }}{% endif %}"
+        stack_deletion_order_dynamodb:           "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).dynamodb           | default(0)  }}{% endif %}"
         stack_deletion_order_vpc:                "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).vpc                | default(0)  }}{% endif %}"
         stack_deletion_order_vpcendpoints:       "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).vpcendpoints       | default(0)  }}{% endif %}"
         stack_deletion_order_cloudfront:         "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).cloudfront         | default(0)  }}{% endif %}"
@@ -93,6 +93,7 @@
         stack_deletion_order_ecs:                "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).ecs                | default(10) }}{% endif %}"
         stack_deletion_order_route53:            "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).route53            | default(20) }}{% endif %}"
         stack_deletion_order_alb:                "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb                | default(30) }}{% endif %}"
+        stack_deletion_order_alb2:               "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb2               | default(30) }}{% endif %}"
       tags: [ 'always' ]
 
     - name: Dump Stack Deletion facts
@@ -908,6 +909,53 @@
           tags: [ 'deploy' ]
 
       tags: [ 'ecs', 'alb' ]
+
+    - name: Loadbalancers2
+      block:
+        - name: Create template from Ansible template for the LoadBalancers2
+          template:
+            src: "ALB2.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb2-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers2 | default([]) }}"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp \
+               "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb2-{{ item.name }}.yml" \
+               "s3://{{ project }}-cfn-templates/cfn-{{ project }}-alb2-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers2 | default([]) }}"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-alb2-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers2 | default([]) }}"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the Elastic LoadBalancer2 CloudFormation stacks
+          cloudformation:
+            stack_name: "{{ cfn_project }}LB2{{ item.item.name }}"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}LB2{{ item.item.name }}{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ item.stdout }}"
+            tags:
+              stack_deletion_order: "{{ stack_deletion_order_alb2 }}"
+              ass:cfn:deletion-order: "{{ stack_deletion_order_alb2 }}"
+              aws_cfn_gen_tag: "{{ gittag }}"
+          with_items: "{{ presign.results }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}LB2{{ item.item.name }}" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}LB2{{ item.item.name }}{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}LB2{{ item.item.name }} --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          with_items: "{{ presign.results }}"
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+
+      tags: [ 'ecs', 'alb2' ]
 
     - name: SNS
       block:
