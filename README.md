@@ -1365,8 +1365,8 @@ cloudfront_distributions:
           - lambda_function_arn_export: Cfnname-
         priority: 999
         origin_custom_headers:
-        - name: "{{ cloudfront.header_name }}"
-          value: "{{ cloudfront.header_value }}"
+          - name: "{{ cloudfront.header_name }}"
+            value: "{{ cloudfront.header_value }}"
 ```
 
 ```
