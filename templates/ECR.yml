@@ -71,6 +71,17 @@ Resources:
               Effect: Allow
               Resource: '*'
             Version: '2012-10-17'
+        - PolicyName: AllowTaskDefinitionCreation
+          PolicyDocument:
+            Statement:
+            - Action:
+                - ecs:ListTaskDefinitionFamilies
+                - ecs:RegisterTaskDefinition
+                - ecs:ListTaskDefinitions
+                - ecs:DescribeTaskDefinition
+              Effect: Allow
+              Resource: '*'
+            Version: '2012-10-17'
 
 
   ECRPull:
