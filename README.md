@@ -1497,7 +1497,6 @@ cloudfront_distributions:
 #### Custom Origin Headers
 
 * `header_name`: Name of the header.
-
 * `header_value`: Value of the header.
 
 #### `origin_bucket_redirects`
