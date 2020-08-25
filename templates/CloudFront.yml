@@ -334,6 +334,15 @@ Resources:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
+              OriginSSLProtocols: 
+                - {{ origin.origin_ssl_protocols | default('TLSv1.2') }}
+{%    if origin.origin_custom_headers is defined %}
+            OriginCustomHeaders:
+{%      for header in origin.origin_custom_headers %}
+              - HeaderName: "{{ header.name }}"
+                HeaderValue: "{{ header.value }}"
+{%      endfor %}
+{%    endif %} 
 {%   endfor %}
         PriceClass: PriceClass_100
         ViewerCertificate:
