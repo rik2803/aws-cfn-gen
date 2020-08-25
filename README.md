@@ -1372,6 +1372,9 @@ cloudfront_distributions:
           - event_type: viewer-request
           - lambda_function_arn_export: Cfnname-
         priority: 999
+        origin_custom_headers:
+          - name: "{{ cloudfront.header_name }}"
+            value: "{{ cloudfront.header_value }}"
 ```
 
 ```
@@ -1498,6 +1501,11 @@ cloudfront_distributions:
         response_code: 200
         response_page_path: /index.html
 ```
+
+#### Custom Origin Headers
+
+* `header_name`: Name of the header.
+* `header_value`: Value of the header.
 
 #### `origin_bucket_redirects`
 
