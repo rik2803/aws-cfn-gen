@@ -258,6 +258,9 @@ Resources:
 {%   endfor %}
         Comment: "CloudFront distribution for {{ application }}"
         Enabled: true
+{%   if cloudfront.webacl_id is defined %}
+        WebACLId: {{ cloudfront.webacl_id }}
+{%   endif %}
         HttpVersion: http2
         DefaultRootObject: "{{ cloudfront.default_root_object | default('index.html') }}"
 {%   if cloudfront.custom_error_responses is defined %}
@@ -372,6 +375,7 @@ Resources:
               OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
               OriginSSLProtocols:
                 - {{ origin.origin_ssl_protocols | default('TLSv1.2') }}
+{%     endif %}
 {%     if origin.origin_custom_headers is defined %}
             OriginCustomHeaders:
 {%       for header in origin.origin_custom_headers %}
@@ -402,3 +406,10 @@ Outputs:
       !Ref DeployAccessKey
   SecretKeyDeployUser:
     Value: !GetAtt DeployAccessKey.SecretAccessKey
+{% for cloudfront in cloudfront_distributions %}
+  CloudFrontDistribution{{ cloudfront.cfn_name }}:
+    Value: !Sub "arn:aws:cloudfront::{{ target_account.account_id }}:distribution/${CloudFrontDistribution{{ cloudfront.cfn_name }}}"
+    Description: "Cloudfront Distribution {{ cloudfront.cfn_name }}"
+    Export:
+      Name: !Sub "${AWS::StackName}{{ cloudfront.cfn_name }}"
+{% endfor %}
