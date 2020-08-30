@@ -58,6 +58,7 @@ Resources:
             Statement:
             - Action:
                 - ecs:UpdateService
+                - ecs:ListServices
               Effect: Allow
               Resource: '*'
             Version: '2012-10-17'
