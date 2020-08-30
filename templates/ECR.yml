@@ -59,7 +59,10 @@ Resources:
             - Action:
                 - iam:PassRole
               Effect: Allow
-              Resource: 'arn:aws:iam::{{ target_account.account_id }}:role/ECSTaskRole*'
+              Resource:
+                - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSTaskRole*'
+                - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSExecutionRole'
+                - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSExecutionRole*'
             Version: '2012-10-17'
         - PolicyName: AllowServiceUpdate
           PolicyDocument:
