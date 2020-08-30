@@ -53,6 +53,14 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
       Policies:
+        - PolicyName: AllowPassRole
+          PolicyDocument:
+            Statement:
+            - Action:
+                - iam:PassRole
+              Effect: Allow
+              Resource: 'arn:aws:iam::{{ target_account.account_id }}:role/ECSTaskRole*'
+            Version: '2012-10-17'
         - PolicyName: AllowServiceUpdate
           PolicyDocument:
             Statement:
@@ -67,7 +75,7 @@ Resources:
             Statement:
             - Action:
                 - cloudwatch:DescribeAlarms
-                - cloudwatch:DisableAlarmActions
+                - cloudwatch:DisableAarmActions
                 - cloudwatch:EnableAlarmActions
               Effect: Allow
               Resource: '*'
