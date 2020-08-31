@@ -13,7 +13,7 @@ Resources:
         - "{{ vpc_publicsubnet_routetable }}"
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
 
-{% for ep in vpc_interface_endpoints | default[] %}
+{% for ep in vpc_interface_endpoints | default([]) %}
   VPCEndpoint{{ ep.cfn_name }}:
     Type: AWS::EC2::VPCEndpoint
     Properties:
