@@ -63,7 +63,7 @@ Resources:
                 - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSTaskRole*'
                 - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSExecutionRole'
                 - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSExecutionRole*'
-                - 'arn:aws:iam::{{ target_account.account_id }}:role/CWEvent*'
+                - 'arn:aws:iam::{{ target_account.account_id }}:role/CwEvent*'
             Version: '2012-10-17'
         - PolicyName: AllowEventsActions
           PolicyDocument:
