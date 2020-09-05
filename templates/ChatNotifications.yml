@@ -1,0 +1,49 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create CloudFront distributions (aws-cfn-gen version: {{ gittag | default('na') }})
+
+Resources:
+
+{% for chat_webhook in chat_notifications | default([]) %}
+  ChatWebhook{{ chat_webhook.cfn_name }}:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LambdaBasicExecutionRole"
+      Environment:
+        Variables:
+          WEBHOOKPATH: "{{ chat_webhook.path }}"
+          WEBHOOKHOST: "{{ chat_webhook.host }}"
+      Code:
+        S3Bucket: "{{ lambda_function_bucket_name }}"
+        S3Key: "{{ lambda_s3_keys.sns_to_chat }}"
+      Runtime: nodejs12.x
+
+  SNSSubscriptionChatWebhook{{ chat_webhook.cfn_name }}:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt ChatWebhook{{ chat_webhook.cfn_name }}.Arn
+      Protocol: lambda
+      TopicArn: "{{ target_account.monitoring_sns_arn }}"
+
+  SNSPermissionChatWebhook{{ chat_webhook.cfn_name }}:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ChatWebhook{{ chat_webhook.cfn_name }}.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: sns.amazonaws.com
+      SourceArn: "{{ target_account.monitoring_sns_arn }}"
+
+{% endfor %}
+  HealthNotification:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Post all health notifications on the Monitoring SNS topic
+      State: "ENABLED"
+      EventPattern:
+        source:
+          - aws.health
+      Targets:
+        - Arn: "{{ target_account.monitoring_sns_arn }}"
+          Id: !Sub "IdHealthNotification${AWS::AccountId}"

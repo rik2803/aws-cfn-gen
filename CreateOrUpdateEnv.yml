@@ -55,6 +55,9 @@
             then
               aws s3 mb "s3://{{ project.name }}-cfn-templates"
             fi
+            aws s3api put-bucket-encryption \
+              --bucket {{ project.name }}-cfn-templates \
+              --server-side-encryption-configuration '{"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}'
 
       tags: [ 'always' ]
 
@@ -447,6 +450,45 @@
 
       tags: [ 'rds' ]
       when: "rds is defined"
+
+    - name: ChatNotifications
+      block:
+        - name: Create CFN template from Ansible template for ChatNotifications
+          template:
+            src: "ChatNotifications.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml"
+        - name: Put CFN template for ChatNotification on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-chatnotifications.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the ChatNotifications template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-chatnotifications.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the ChatNotifications CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}ChatNotifications"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}ChatNotifications{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}ChatNotifications" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}ChatNotifications{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}ChatNotifications --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+      tags: [ 'chat_notifications' ]
+      when: "chat_notifications is defined"
 
     - name: Bastion
       block:
