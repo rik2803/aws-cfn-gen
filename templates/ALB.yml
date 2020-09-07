@@ -363,7 +363,6 @@ Resources:
           Value: "{{ tgatt.value }}"
 {%       endfor %}
 {%     endif %}
-      UnhealthyThresholdCount: 2
       VpcId: "{{ vpc_id }}"
 
 {%   endif %}
