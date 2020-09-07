@@ -872,7 +872,7 @@ Resources:
       HealthCheckTimeoutSeconds: {{ app.lb.health_check_timeout_seconds | default('5') }}
       HealthyThresholdCount: {{ app.lb.healthy_threshold_count | default('2') }}
       UnhealthyThresholdCount: {{ app.lb.unhealthy_threshold_count | default('2') }}
-      HealthCheckPath: {{ app.lb.healthcheckpath | app.lb.health_check_path | default('/') }}
+      HealthCheckPath: {{ app.lb.healthcheckpath | default('/') }}
 {%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
       HealthCheckProtocol: HTTPS
 {%     else %}
