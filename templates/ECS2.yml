@@ -867,15 +867,17 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: "LB{{ item.name }}"
     Properties:
-      HealthCheckIntervalSeconds: 10
-      HealthCheckPath: {{ app.lb.healthcheckpath | default('/') }}
+      HealthCheckEnabled: {{ app.lb.health_check_enabled | default(true) }}
+      HealthCheckIntervalSeconds: {{ app.lb.health_check_interval_seconds | default('10') }}
+      HealthCheckTimeoutSeconds: {{ app.lb.health_check_timeout_seconds | default('5') }}
+      HealthyThresholdCount: {{ app.lb.healthy_threshold_count | default('2') }}
+      UnhealthyThresholdCount: {{ app.lb.unhealthy_threshold_count | default('2') }}
+      HealthCheckPath: {{ app.lb.healthcheckpath | app.lb.health_check_path | default('/') }}
 {%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
       HealthCheckProtocol: HTTPS
 {%     else %}
       HealthCheckProtocol: HTTP
 {%     endif %}
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
 {%     if app.launchtype | default('EC2') == 'FARGATE' %}
       TargetType: ip
 {%     endif %}
