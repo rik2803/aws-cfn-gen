@@ -13,59 +13,59 @@
 | `logging.includecookies`          | no        |         |            |
 |&nbsp;|&nbsp;|&nbsp;|&nbsp;|
 | `origins_and_cachebehaviors`                            | no        |         |            |
-| `origins_and_cachebehaviors.[n].origin_name`                | yes        | Resource naming origin    |            |
-| `origins_and_cachebehaviors.[n].forward_headers.[n]` | no | [deprecated] Which headers cloudfront needs to cache        |            |
-| `origins_and_cachebehaviors.forward_cookies`                                    | no  | [deprecated]   |            |
-| `origins_and_cachebehaviors.forward_cookies.[n].forward`                            | yes   | [deprecated] Not include cookies in the cache key         |            |
-| `origins_and_cachebehaviors.forward_cookies.[n].whitelisted_names`                  | Conditional     | [deprecated] How many different cookies CloudFront forwards        |            |
-| `origins_and_cachebehaviors.[n].allowed_http_methods`  | no | HTTP methods cloudfront needs to forward        |            |
-| `origins_and_cachebehaviors.[n].path_pattern`               | yes  | The pattern that specifies which requests to apply the behavior to |  /* |
-| `origins_and_cachebehaviors.[n].viewer_protocol_policy`     | yes   | The protocol that viewers can use to access   | redirect-to-https  |
-| `origins_and_cachebehaviors.[n].protocol_policy`            | yes        | The protocol that CloudFront uses to connect to the origin | http-only |
-| `origins_and_cachebehaviors.[n].origin_ssl_protocols`            | no        | The minimum SSL/TLS protocol that CloudFront uses when connecting to your origin | TLSv1.2  |
-| `origins_and_cachebehaviors.[n].min_ttl`      | no        | [deprecated] Minimum amount of time in CloudFront caches  |            |
-| `origins_and_cachebehaviors.[n].max_ttl`                            | no        | [deprecated] Maximum amount of time in CloudFront caches        |            |
-| `origins_and_cachebehaviors.[n].default_ttl`                        | no        | [deprecated] Default amount of time  in CloudFront caches        |            |
-| `origins_and_cachebehaviors.[n].certificate_arn`      | Conditional  | The Amazon Resource Name of the ACM certificate        |            |
-| `origins_and_cachebehaviors.[n].minimum_protocol_version`           | Conditional  |  The minimum SSL/TLS protocol/ciphers with viewers  |  TLSv1 |
+| `origins_a_cacheb.[n].origin_name`                | yes        | Resource naming origin    |            |
+| `origins_a_cacheb.[n].forward_headers.[n]` | no | [deprecated] Which headers cloudfront needs to cache        |            |
+| `origins_a_cacheb.forward_cookies`                                    | no  | [deprecated]   |            |
+| `origins_a_cacheb.forward_cookies.[n].forward`                            | yes   | [deprecated] Not include cookies in the cache key         |            |
+| `origins_a_cacheb.forward_cookies.[n].whitelisted_names`                  | Conditional     | [deprecated] How many different cookies CloudFront forwards        |            |
+| `origins_a_cacheb.[n].allowed_http_methods`  | no | HTTP methods cloudfront needs to forward        |            |
+| `origins_a_cacheb.[n].path_pattern`               | yes  | The pattern that specifies which requests to apply the behavior to |  /* |
+| `origins_a_cacheb.[n].viewer_protocol_policy`     | yes   | The protocol that viewers can use to access   | redirect-to-https  |
+| `origins_a_cacheb.[n].protocol_policy`            | yes        | The protocol that CloudFront uses to connect to the origin | http-only |
+| `origins_a_cacheb.[n].origin_ssl_protocols`            | no        | The minimum SSL/TLS protocol that CloudFront uses when connecting to your origin | TLSv1.2  |
+| `origins_a_cacheb.[n].min_ttl`      | no        | [deprecated] Minimum amount of time in CloudFront caches  |            |
+| `origins_a_cacheb.[n].max_ttl`                            | no        | [deprecated] Maximum amount of time in CloudFront caches        |            |
+| `origins_a_cacheb.[n].default_ttl`                        | no        | [deprecated] Default amount of time  in CloudFront caches        |            |
+| `origins_a_cacheb.[n].certificate_arn`      | Conditional  | The Amazon Resource Name of the ACM certificate        |            |
+| `origins_a_cacheb.[n].minimum_protocol_version`           | Conditional  |  The minimum SSL/TLS protocol/ciphers with viewers  |  TLSv1 |
 |&nbsp;|&nbsp;|&nbsp;|&nbsp;|
-| `origins_and_cachebehaviors.origin_custom_headers`                            | no        | Custom headers send to the origin |            |
-| `origins_and_cachebehaviors.[n].origin_custom_headers.name`                   | yes        |         |            |
-| `origins_and_cachebehaviors.[n].origin_custom_headers.value`                  | yes        |         |            |
+| `origins_a_cacheb.origin_custom_headers`                            | no        | Custom headers send to the origin |            |
+| `origins_a_cacheb.[n].origin_custom_headers.name`                   | yes        |         |            |
+| `origins_a_cacheb.[n].origin_custom_headers.value`                  | yes        |         |            |
 |&nbsp;|&nbsp;|&nbsp;|&nbsp;|
-| `origins_and_cachebehaviors.domain`                    | no        |         |  arn:aws:s3:::" + origin.origin_name + "/*" |
-| `origins_and_cachebehaviors.domain.type`               | yes        | Type of the origin  |            |
-| `origins_and_cachebehaviors.domain.name`               | yes        | DomainName (type import/s3)  |            |
-| `origins_and_cachebehaviors.domain.origin_domain_name` | yes        | DomainName (type custom)  |            |
-| `origins_and_cachebehaviors.domain.origin_path`        | no        | Path that CloudFront appends to the origin domain name |    |
+| `origins_a_cacheb.domain`                    | no        |         |  arn:aws:s3:::" + origin.origin_name + "/*" |
+| `origins_a_cacheb.domain.type`               | yes        | Type of the origin  |            |
+| `origins_a_cacheb.domain.name`               | yes        | DomainName (type import/s3)  |            |
+| `origins_a_cacheb.domain.origin_domain_name` | yes        | DomainName (type custom)  |            |
+| `origins_a_cacheb.domain.origin_path`        | no        | Path that CloudFront appends to the origin domain name |    |
 |&nbsp;|&nbsp;|&nbsp;|&nbsp;|
-| `origins_and_cachebehaviors.custom_error_responses`    | no        | CloudFront replaces HTTP custom error messages|            |
-| `origins_and_cachebehaviors.custom_error_responses.error_caching_min_ttl`     | no        | Minimum time to let CloudFront cache the ErrorCode |  300  |
-| `origins_and_cachebehaviors.custom_error_responses.error_code`                | yes        | Status code custom error page |  404  |
-| `origins_and_cachebehaviors.custom_error_responses.response_code`             | Conditional  | Status code along with the custom error page  |  200 |
-| `origins_and_cachebehaviors.custom_error_responses.response_page_path`        | Conditional  | path to the custom error page  | /index.html |
+| `origins_a_cacheb.custom_error_responses`    | no        | CloudFront replaces HTTP custom error messages|            |
+| `origins_a_cacheb.custom_error_responses.error_caching_min_ttl`     | no        | Minimum time to let CloudFront cache the ErrorCode |  300  |
+| `origins_a_cacheb.custom_error_responses.error_code`                | yes        | Status code custom error page |  404  |
+| `origins_a_cacheb.custom_error_responses.response_code`             | Conditional  | Status code along with the custom error page  |  200 |
+| `origins_a_cacheb.custom_error_responses.response_page_path`        | Conditional  | path to the custom error page  | /index.html |
 |&nbsp;|&nbsp;|&nbsp;|&nbsp;|
-| `origins_and_cachebehaviors.lambda_function_associations.[n]`          | no        | Lambda function associations for a cache behavior  |            |
-| `origins_and_cachebehaviors.lambda_function_associations.[n].event_type`             | no        | event type that triggers a Lambda function |            |
-| `origins_and_cachebehaviors.lambda_function_associations.[n].lambda_function_arn`    | no        | ARN of the Lambda function |            |
-| `origins_and_cachebehaviors.lambda_function_associations.[n].lambda_function_version`    | no        | Version of the Lambda function   |            |
+| `origins_a_cacheb.lambda_function_associations.[n]`          | no        | Lambda function associations for a cache behavior  |            |
+| `origins_a_cacheb.lambda_function_associations.[n].event_type`             | no        | event type that triggers a Lambda function |            |
+| `origins_a_cacheb.lambda_function_associations.[n].lambda_function_arn`    | no        | ARN of the Lambda function |            |
+| `origins_a_cacheb.lambda_function_associations.[n].lambda_function_version`    | no        | Version of the Lambda function   |            |
 | S3 |&nbsp;|&nbsp;|&nbsp;|
-| `origins_and_cachebehaviors.origin_cors_rules`                                     | no        | The cross-origin access rule for an Amazon S3 bucket |            |
-| `origins_and_cachebehaviors.origin_cors_rules.[n].allowed_headers.[n]`  | no        | Allow header that are specified  |  |
-| `origins_and_cachebehaviors.origin_cors_rules.[n].allowed_methods.[n]`  | yes       | An HTTP method that you allow the origin to run |   |
-| `origins_and_cachebehaviors.origin_cors_rules.[n].allowed_origins.[n]`  | yes       | One or more origins you want customers to be able to access the bucket from  | |
-| `origins_and_cachebehaviors.origin_cors_rules.[n].exposed_headers.[n]`  | no        | One or more headers in the response ||
-| `origins_and_cachebehaviors.origin_cors_rules.[n].max_age`                             | no        |         |       |
+| `origins_a_cacheb.origin_cors_rules`                                     | no        | The cross-origin access rule for an Amazon S3 bucket |            |
+| `origins_a_cacheb.origin_cors_rules.[n].allowed_headers.[n]`  | no        | Allow header that are specified  |  |
+| `origins_a_cacheb.origin_cors_rules.[n].allowed_methods.[n]`  | yes       | An HTTP method that you allow the origin to run |   |
+| `origins_a_cacheb.origin_cors_rules.[n].allowed_origins.[n]`  | yes       | One or more origins you want customers to be able to access the bucket from  | |
+| `origins_a_cacheb.origin_cors_rules.[n].exposed_headers.[n]`  | no        | One or more headers in the response ||
+| `origins_a_cacheb.origin_cors_rules.[n].max_age`                             | no        |         |       |
 |&nbsp;|&nbsp;|&nbsp;|&nbsp;|
-| `origins_and_cachebehaviors.origin_bucket_redirects`                                    | no        |  Specifies how requests are redirected |   |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].redirect_rule`                  | yes        |  Container for redirect information  |    |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].redirect_rule.hostname`         | no        | The host name to use in the redirect request |     |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].redirect_rule.http_redirect_code`   | no        | The HTTP redirect code to use on the response  | 301 |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].redirect_rule.protocol`             | no        | Protocol to use when redirecting requests | HTTPS  |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].redirect_rule.replace_key_with`     | no        | The object key prefix to use in the redirect request |   |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].routing_rule_condition`             | no        | The condition that must be met for the specified redirect  |   |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].routing_rule_condition.type`        | yes        | Type of routing role  |   |
-| `origins_and_cachebehaviors.origin_bucket_redirects.[n].routing_rule_condition.value`       | Conditional | The HTTP error code when the redirect is applied | 404 |
+| `origins_a_cacheb.origin_bucket_redirects`                                    | no        |  Specifies how requests are redirected |   |
+| `origins_a_cacheb.origin_bucket_redirects.[n].redirect_rule`                  | yes        |  Container for redirect information  |    |
+| `origins_a_cacheb.origin_bucket_redirects.[n].redirect_rule.hostname`         | no        | The host name to use in the redirect request |     |
+| `origins_a_cacheb.origin_bucket_redirects.[n].redirect_rule.http_redirect_code`   | no        | The HTTP redirect code to use on the response  | 301 |
+| `origins_a_cacheb.origin_bucket_redirects.[n].redirect_rule.protocol`             | no        | Protocol to use when redirecting requests | HTTPS  |
+| `origins_a_cacheb.origin_bucket_redirects.[n].redirect_rule.replace_key_with`     | no        | The object key prefix to use in the redirect request |   |
+| `origins_a_cacheb.origin_bucket_redirects.[n].routing_rule_condition`             | no        | The condition that must be met for the specified redirect  |   |
+| `origins_a_cacheb.origin_bucket_redirects.[n].routing_rule_condition.type`        | yes        | Type of routing role  |   |
+| `origins_a_cacheb.origin_bucket_redirects.[n].routing_rule_condition.value`       | Conditional | The HTTP error code when the redirect is applied | 404 |
 ```yaml
 cloudfront_distributions:
   - name: apps
@@ -76,7 +76,7 @@ cloudfront_distributions:
     minimum_protocol_version: "SSLv3" | "TLSv1" | "TLSv1_2016" | "TLSv1.1_2016" | "TLSv1.2_2018"
     logging:
       prefix: apps
-    origins_and_cachebehaviors:
+    origins_a_cacheb:
       - origin_name: "apps-{{ application }}-{{ env }}"
         forward_headers:
           - Origin
@@ -98,7 +98,7 @@ cloudfront_distributions:
     cnames:
       - "redirect.acme.com"
     certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx"
-    origins_and_cachebehaviors:
+    origins_a_cacheb:
       - origin_name: "redirect-test"
         forward_headers:
           - Origin
@@ -141,7 +141,7 @@ the AWS account where the CloudFormation template is bing deployed.
 
 
 ```yaml
-    origins_and_cachebehaviors:
+    origins_a_cacheb:
       - ...
       - origin_name: "{{ application }}-{{ env }}-name"
         domain:
@@ -152,7 +152,7 @@ the AWS account where the CloudFormation template is bing deployed.
 ```
 
 ```yaml
-    origins_and_cachebehaviors:
+    origins_a_cacheb:
       - ...
       - origin_name: "{{ application }}-{{ env }}-name"
         domain:
@@ -163,7 +163,7 @@ the AWS account where the CloudFormation template is bing deployed.
 ```
 
 ```yaml
-    origins_and_cachebehaviors:
+    origins_a_cacheb:
       - ...
       - origin_name: "{{ application }}-{{ env }}-name"
         domain:
@@ -173,14 +173,14 @@ the AWS account where the CloudFormation template is bing deployed.
         ...  
 ```
 
-##### `origins_and_cachebehaviors[n].origin_name`
+##### `origins_a_cacheb[n].origin_name`
 
 The value of this propery is used to:
 
 * Name the origin
 * Implicitely create a bucket with the same name (mind the global uniqueness!!)
 
-##### `origins_and_cachebehaviors[n].domain.type`
+##### `origins_a_cacheb[n].domain.type`
 
 Can be one of these values:
 
@@ -244,7 +244,7 @@ for full details on the redirection.
 cloudfront_distributions:
   - name: redirect-test
     ...
-    origins_and_cachebehaviors:
+    origins_a_cacheb:
       - origin_name: "redirect-test"
         ...
         origin_bucket_redirects:
@@ -263,7 +263,7 @@ cloudfront_distributions:
 cloudfront_distributions:
   - name: headers-test
     ...
-    origins_and_cachebehaviors:
+    origins_a_cacheb:
         - ...
           origin_custom_headers:
             - name: auth
