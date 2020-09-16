@@ -1,7 +1,7 @@
-{% set non_fargate_count = 0 %}
+{% set non_fargate_count = namespace(value=0) %}
 {% for app in applicationconfig %}
 {%   if app.launchtype | default('EC2') == 'EC2' %}
-{%     set non_fargate_count = non_fargate_count + 1 %}
+{%     set non_fargate_count.value = non_fargate_count.value + 1 %}
 {%   endif %}
 {% endfor %}
 
@@ -10,19 +10,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: |
   Create an ECS stack for {{ project }} (aws-cfn-gen version: {{ gittag | default('na') }})
 
-  non_fargate_count is {{ non_fargate_count }}
+  non_fargate_count is {{ non_fargate_count.value }}
 
   ### For latest ECS optimized AMIs: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
 Mappings:
-  AWSRegionToAMI:
-    eu-central-1:
-      AMIID: ami-0bce3fe782b5b6394
-    eu-west-1:
-      AMIID: ami-0a490cbd46f8461a9
-    eu-west-2:
-      AMIID: ami-04c120561ae718c4e
-    eu-west-3:
-      AMIID: ami-05d7e0c35c7d138c5
   AWSRegionToAmzn2AMI:
     eu-central-1:
       AMIID: ami-0d2e4df42e13655e0
@@ -95,7 +86,7 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !ImportValue "{{ organization.cfn_name | title }}MonitoringSubaccount-ScheduledRule5minArn"
 
-{% if non_fargate_count > 0 %}
+{% if non_fargate_count.value > 0 %}
   ### AWS::IAM::Role and AWS::IAM::InstanceProfile
   ECSServiceRole:
     Type: AWS::IAM::Role
@@ -266,21 +257,21 @@ Resources:
                 grep -q '{{ key.key }}' /home/ec2-user/.ssh/authorized_keys || echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
 {%     endfor %}
 {%   endif %}
-          /etc/cfn/cfn-hup.conf:
-            mode: "000400"
-            owner: root
-            group: root
-            content: !Sub |
-              [main]
-              stack=${AWS::StackId}
-              region=${AWS::Region}
-              interval=5
-          /etc/cfn/hooks.d/cfn-auto-reloader.conf:
-            content: !Sub |
-              [cfn-auto-reloader-hook]
-              triggers=post.update
-              path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
-              action=/opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ContainerInstances
+            /etc/cfn/cfn-hup.conf:
+              mode: "000400"
+              owner: root
+              group: root
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                interval=5
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ContainerInstances
           services:
             sysvinit:
               cfn-hup:
