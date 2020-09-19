@@ -24,54 +24,62 @@ Description: |
 
 Resources:
 
+  DeployUserPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DeployUserPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+{% if s3_origin_list|length > 0 %}
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:PutObjectACL
+            Resource:
+{%   for s3 in s3_origin_list %}
+              - "{{ s3 }}"
+{%   endfor %}
+           - Effect: Allow
+             Action:
+               - s3:ListAllMyBuckets
+             Resource:
+               - "*"
+{% endif %}
+          - Effect: Allow
+            Action:
+              - "acm:ListCertificates"
+              - "cloudfront:GetDistribution"
+              - "cloudfront:GetDistributionConfig"
+              - "cloudfront:ListDistributions"
+              - "cloudfront:ListCloudFrontOriginAccessIdentities"
+              - "cloudfront:CreateInvalidation"
+              - "cloudfront:GetInvalidation"
+              - "cloudfront:ListInvalidations"
+              - "elasticloadbalancing:DescribeLoadBalancers"
+              - "iam:ListServerCertificates"
+              - "sns:ListSubscriptionsByTopic"
+              - "sns:ListTopics"
+              - "waf:GetWebACL"
+              - "waf:ListWebACLs"
+            Resource:
+              - "*"
+      Groups:
+        - !Ref DeployUserGroup
+
+  DeployUserGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: DeployUserGroup
+
   DeployUser:
     Type: AWS::IAM::User
     Properties:
       UserName: "deploy-{{ project }}"
       Path: "/"
-      Policies:
-{% if s3_origin_list|length > 0 %}
-        - PolicyName: AllowAccessToBuckets
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:PutObjectACL
-                Resource:
-{%   for s3 in s3_origin_list %}
-                  - "{{ s3 }}"
-{%   endfor %}
-              - Effect: Allow
-                Action:
-                  - s3:ListAllMyBuckets
-                Resource:
-                  - "*"
-{% endif %}
-        - PolicyName: AllowInvalidationAccessToCloudFrontDistribution
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "acm:ListCertificates"
-                  - "cloudfront:GetDistribution"
-                  - "cloudfront:GetDistributionConfig"
-                  - "cloudfront:ListDistributions"
-                  - "cloudfront:ListCloudFrontOriginAccessIdentities"
-                  - "cloudfront:CreateInvalidation"
-                  - "cloudfront:GetInvalidation"
-                  - "cloudfront:ListInvalidations"
-                  - "elasticloadbalancing:DescribeLoadBalancers"
-                  - "iam:ListServerCertificates"
-                  - "sns:ListSubscriptionsByTopic"
-                  - "sns:ListTopics"
-                  - "waf:GetWebACL"
-                  - "waf:ListWebACLs"
-                Resource:
-                  - "*"
+      Groups:
+        - !Ref DeployUserGroup
 
   DeployAccessKey:
     Type: AWS::IAM::AccessKey
