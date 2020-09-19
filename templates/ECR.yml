@@ -122,11 +122,18 @@ Resources:
     Properties:
       UserName:
         !Ref ECRPush
+{%       if iam_accesskey_serial is defined %}
+      Serial: {{ iam_accesskey_serial }}
+{%       endif %}
+
   KeyECRPull:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName:
         !Ref ECRPull
+{%       if iam_accesskey_serial is defined %}
+      Serial: {{ iam_accesskey_serial }}
+{%       endif %}
 
 Outputs:
   AccessKeyECRPush:
