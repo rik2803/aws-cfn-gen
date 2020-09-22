@@ -1,3 +1,10 @@
+{% set non_fargate_count = namespace(value=0) %}
+{% for app in applicationconfig %}
+{%   if app.launchtype | default('EC2') == 'EC2' %}
+{%     set non_fargate_count.value = non_fargate_count.value + 1 %}
+{%   endif %}
+{% endfor %}
+
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: |
@@ -148,18 +155,21 @@ Resources:
     Properties:
 {%   if ecs.cluster.amz2ami is defined %}
       ImageId: {{ ecs.cluster.amz2ami }}
-{% else %}
+{%   else %}
       ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
 {%   endif %}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
-{%   if ecs.cluster.ebs_size is defined %}
+{%   if (ecs.cluster.ebs_size is defined) or (ecs.cluster.encrypt_ebs | default(false)) %}
       BlockDeviceMappings:
-      - DeviceName: "/dev/xvda"
-        Ebs:
-          VolumeSize: '{{ ecs.cluster.ebs_size }}'
+        - DeviceName: "/dev/xvda"
+          Ebs:
+            VolumeSize: "{{ ecs.cluster.ebs_size | default('30') }}"
+{%     if ecs.cluster.encrypt_ebs | default(false) %}
+            Encrypted: true
+{%     endif %}
 {%   endif %}
       KeyName: "{{ ecs.cluster.keypair }}"
 {%   if ecs.cluster.spot_price is defined %}
@@ -272,18 +282,21 @@ Resources:
     Properties:
 {%   if ecs.cluster.amzami is defined %}
       ImageId: {{ ecs.cluster.amzami }}
-{% else %}
+{%   else %}
       ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMIID]
 {%   endif %}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       InstanceType: "{{ ecs.cluster.instance_type }}"
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
-{%   if ecs.cluster.ebs_size is defined %}
+{%   if (ecs.cluster.ebs_size is defined) or (ecs.cluster.encrypt_ebs | default(false)) %}
       BlockDeviceMappings:
       - DeviceName: "/dev/xvdcz"
         Ebs:
-          VolumeSize: '{{ ecs.cluster.ebs_size }}'
+          VolumeSize: "{{ ecs.cluster.ebs_size | default('30') }}"
+{%     if ecs.cluster.encrpyt_ebs | default(false) %}
+          Encrypted: true
+{%     endif %}
 {%   endif %}
       KeyName: "{{ ecs.cluster.keypair }}"
 {%   if ecs.cluster.spot_price is defined %}
@@ -357,6 +370,7 @@ Resources:
 {%   endfor %}
 {% endif %}
 
+{% if non_fargate_count > 0 %}
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -365,9 +379,9 @@ Resources:
         - "{{ vpc_privatesubnet_az2 }}"
         - "{{ vpc_privatesubnet_az3 }}"
       LaunchConfigurationName: !Ref 'ContainerInstances'
-      MinSize: '{{ ecs.cluster.cluster_size.min | default("1") }}'
-      MaxSize: '{{ ecs.cluster.cluster_size.max | default( [ ecs.cluster.cluster_size.max, 1 ] | max ) }}'
-      DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | default( [ ecs.cluster.cluster_size.min, 1 ] | max ) }}'
+      MinSize: '{{ ecs.cluster.cluster_size.min | int | default("1") }}'
+      MaxSize: '{{ ecs.cluster.cluster_size.max | int | default( [ ecs.cluster.cluster_size.max | int, 1 ] | max ) }}'
+      DesiredCapacity: '{{ ecs.cluster.cluster_size.desired | int | default( [ ecs.cluster.cluster_size.min | int, 1 ] | max ) }}'
       Tags:
       - Key: Application
         Value: "{{ application }}"
@@ -387,6 +401,7 @@ Resources:
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: 'true'
+{% endif %}
 
   ### Resources for Tasks and Services
 {% for app in applicationconfig %}
@@ -444,12 +459,25 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: "task-{{ project }}-{{ app.name }}"
+{%     if app.launchtype | default('EC2') == 'FARGATE' %}
+      Cpu: "{{ app.ecs.cpu }}"
+      Memory: "{{ app.ecs.memory }}"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+{%     endif %}
 {%     if app.ecs.volumes is defined %}
       Volumes:
 {%       for volume in app.ecs.volumes %}
         - Name: {{ volume.name }}
+{%         if app.launchtype | default('EC2') == 'FARGATE' %}
+          EFSVolumeConfiguration:
+            FileSystemId: !ImportValue {{ volume.efs_import }}
+            TransitEncryption: ENABLED
+{%         else %}
           Host:
             SourcePath: {{ volume.hostpath }}
+{%         endif %}
 {%       endfor %}
 {%     endif %}
       ContainerDefinitions:
@@ -505,6 +533,9 @@ Resources:
 {%     if app.ecs.task_role_arn is defined %}
       TaskRoleArn: "{{ app.ecs.task_role_arn }}"
 {%     endif %}
+{%     if app.ecs.execution_role_arn is defined %}
+      ExecutionRoleArn: "{{ app.ecs.execution_role_arn }}"
+{%     endif %}
 
 {%     if app.target | lower == 'ecs_scheduled_task' %}
   EventRuleScheduledTask{{ cfn_project }}{{ app.cfn_name }}:
@@ -520,6 +551,19 @@ Resources:
         EcsParameters:
           TaskCount: 1
           TaskDefinitionArn: !Ref Task{{ cfn_project }}{{ app.cfn_name }}
+{%       if app.launchtype | default('EC2') == 'FARGATE' %}
+          LaunchType: FARGATE
+          PlatformVersion: "1.4.0"
+          NetworkConfiguration:
+            AwsVpcConfiguration:
+              AssignPublicIp: "DISABLED"
+              SecurityGroups:
+                - "{{ vpc_sg_app }}"
+              Subnets:
+                - "{{ vpc_privatesubnet_az1 }}"
+                - "{{ vpc_privatesubnet_az2 }}"
+                - "{{ vpc_privatesubnet_az3 }}"
+{%       endif %}
 {%     endif %}
 
 {%     if app.target | lower == 'ecs' %}
@@ -529,10 +573,26 @@ Resources:
     Properties:
       ServiceName: "{{ project }}-{{ app.name }}"
       Cluster: !Ref 'ECSCluster'
-      DesiredCount: '{{ app.ecs.desiredcount | default(1) }}'
+      DesiredCount: '{{ app.ecs.desiredcount | default(1) | int }}'
       ### The DeploymentConfiguration settings are the defaults, they were added
       ### for documentation reasons
       ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html
+{%       if app.launchtype | default('EC2') == 'FARGATE' %}
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: "DISABLED"
+          SecurityGroups:
+            - "{{ vpc_sg_app }}"
+          Subnets:
+            - "{{ vpc_privatesubnet_az1 }}"
+            - "{{ vpc_privatesubnet_az2 }}"
+            - "{{ vpc_privatesubnet_az3 }}"
+{%       else %}
+{#         You cannot specify an IAM role for services that require a service linked role (as FARGATE does). #}
+      Role: !Ref 'ECSServiceRole'
+{%       endif %}
 {%       if app.deploymentconfiguration is defined %}
       DeploymentConfiguration:
         MaximumPercent: {{ app.deploymentconfiguration.max_percent | default(200) }}
@@ -541,7 +601,6 @@ Resources:
       TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
 {%       if app.lb is defined %}
       HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
-      Role: !Ref 'ECSServiceRole'
       LoadBalancers:
         - ContainerName: "{{ project }}-{{ app.name }}"
           ContainerPort: "{{ app.ecs.containerport }}"

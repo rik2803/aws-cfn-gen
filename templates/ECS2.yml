@@ -1,0 +1,946 @@
+{% set non_fargate_count = namespace(value=0) %}
+{% for app in applicationconfig %}
+{%   if app.launchtype | default('EC2') == 'EC2' %}
+{%     set non_fargate_count.value = non_fargate_count.value + 1 %}
+{%   endif %}
+{% endfor %}
+
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: |
+  Create an ECS stack for {{ project }} (aws-cfn-gen version: {{ gittag | default('na') }})
+
+  non_fargate_count is {{ non_fargate_count.value }}
+
+  ### For latest ECS optimized AMIs: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
+Mappings:
+  AWSRegionToAmzn2AMI:
+    eu-central-1:
+      AMIID: ami-0d2e4df42e13655e0
+    eu-west-1:
+      AMIID: ami-0a74b180a0c97ecd1
+    eu-west-2:
+      AMIID: ami-04967dd60612d3b49
+    eu-west-3:
+      AMIID: ami-032a9f3e531acca53
+  Region2ELBAccountId:
+    us-east-1:
+      AccountId: "127311923021"
+    us-west-1:
+      AccountId: "027434742980"
+    us-west-2:
+      AccountId: "797873946194"
+    eu-west-1:
+      AccountId: "156460612806"
+    eu-west-2:
+      AccountId: "652711504416"
+    eu-west-3:
+      AccountId: "009996457667"
+    ap-northeast-1:
+      AccountId: "582318560864"
+    ap-northeast-2:
+      AccountId: "600734575887"
+    ap-northeast-3:
+      AccountId: "383597477331"
+    ap-southeast-1:
+      AccountId: "114774131450"
+    ap-southeast-2:
+      AccountId: "783225319266"
+    ap-south-1:
+      AccountId: "718504428378"
+    us-east-2:
+      AccountId: "033677994240"
+    sa-east-1:
+      AccountId: "507241528517"
+    cn-north-1:
+      AccountId: "638102146993"
+    eu-central-1:
+      AccountId: "054676820928"
+
+Resources:
+
+  ### Resources for the ECS Cluster and the Container Instances
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: "ecs-{{ project }}"
+
+  LambdaCumulativeReservationMetric:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: ecs-cumulative-cpu-and-memory-reservation-metric.lambda_handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LambdaCloudWatchAndECSListExecutionRole"
+      Environment:
+        Variables:
+          ECS_CLUSTER_NAME: "ecs-{{ project }}"
+      Code:
+        S3Bucket: "{{ lambda_function_bucket_name }}"
+        S3Key: "aws-lambda-ecs-cumulative-cpu-and-memory-reservation-metric-8df91afee7676cb9623e6a4c37cb569425104725.zip"
+      Runtime: python2.7
+
+  LambdaPermissionCumulativeReservationMetric:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaCumulativeReservationMetric.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !ImportValue "{{ organization.cfn_name | title }}MonitoringSubaccount-ScheduledRule5minArn"
+
+{% if non_fargate_count.value > 0 %}
+  ### AWS::IAM::Role and AWS::IAM::InstanceProfile
+  ECSServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: ['elasticloadbalancing:DeregisterInstancesFromLoadBalancer', 'elasticloadbalancing:DeregisterTargets',
+                         'elasticloadbalancing:Describe*', 'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+                         'elasticloadbalancing:RegisterTargets', 'ec2:Describe*', 'ec2:AuthorizeSecurityGroupIngress']
+                Resource: '*'
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+        - "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+        - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
+                         'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
+                         'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', 'ecr:GetAuthorizationToken' ]
+                Resource: '*'
+
+  AutoscalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [application-autoscaling.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: service-autoscaling
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: ['application-autoscaling:*', 'cloudwatch:DescribeAlarms', 'cloudwatch:PutMetricAlarm',
+                         'ecs:DescribeServices', 'ecs:UpdateService']
+                Resource: '*'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref 'EC2Role']
+
+  ContainerInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+{%   if ecs2.cluster.amz2ami is defined %}
+      ImageId: {{ ecs2.cluster.amz2ami }}
+{%   else %}
+      ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
+{%   endif %}
+      SecurityGroups:
+        - "{{ vpc_sg_app }}"
+      InstanceType: "{{ ecs2.cluster.instance_type }}"
+      IamInstanceProfile: !Ref 'EC2InstanceProfile'
+{%   if (ecs2.cluster.ebs_size is defined) or (ecs2.cluster.encrypt_ebs | default(false)) %}
+      BlockDeviceMappings:
+        - DeviceName: "/dev/xvda"
+          Ebs:
+            VolumeSize: "{{ ecs2.cluster.ebs_size | default('30') }}"
+{%     if ecs2.cluster.encrypt_ebs | default(false) %}
+            Encrypted: true
+{%     endif %}
+{%   endif %}
+      KeyName: "{{ ecs2.cluster.keypair }}"
+{%   if ecs2.cluster.spot_price is defined %}
+      SpotPrice: "{{ ecs2.cluster.spot_price }}"
+{%   endif %}
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+          - |
+            Content-Type: multipart/mixed; boundary="===============8943416319660996992=="
+            MIME-Version: 1.0
+
+
+            --===============8943416319660996992==
+            Content-Type: text/x-shellscript; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="ecs_config.cloudinit"
+
+            #!/bin/bash -xe
+
+            ### Install SSM agent
+            cd /tmp
+            yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm || true
+            cd -
+
+{%   if ecs2.efs is defined %}
+            yum install -y nfs-utils
+{%     for fs in ecs2.efs | default([]) %}
+            mkdir -p {{ fs.mountpoint }}
+            echo -e '{{ '${' }}{{ fs.export_name }}{{ '}' }}.efs.${AWS::Region}.amazonaws.com:/ {{ fs.mountpoint }} nfs4 noresvport,_netdev,nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0' >> /etc/fstab
+            mount -a
+{%     endfor %}
+{%   endif %}
+            echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+            yum install -y https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm || true
+            yum install -y aws-cfn-bootstrap hibagent
+            /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ContainerInstances
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+            /usr/bin/enable-ec2-spot-hibernation
+
+          -
+            dummy:
+              "dummy"
+{%   for fs in ecs2.efs | default([]) %}
+            {{ fs.export_name }}:
+              Fn::ImportValue:
+                "{{ fs.export_name }}"
+{%   endfor %}
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+
+          commands:
+            01_add_instance_to_cluster:
+              command: !Sub echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+            02_enable_cloudwatch_agent:
+              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:AmazonCloudWatch-linux -s
+            03_create_authorized_keys_file:
+              command: /usr/local/bin/create_authorized_keys
+{%   if ecs2.metadata is defined and ecs2.metadata.commands is defined %}
+{%     for metadata_command in ecs2.metadata.commands %}
+            {{ metadata_command.id}}:
+              command: {{ metadata_command.command }}
+{%     endfor %}
+{%   endif %}
+          files:
+            /usr/local/bin/create_authorized_keys:
+              mode: "000755"
+              owner: root
+              group: root
+              content: |
+                #! /bin/env bash
+                echo "### Updating /home/ec2-user/.ssh/authorized_keys ###"
+{%   if bastion is defined and bastion.pubkeys is defined %}
+{%     for key in bastion.pubkeys %}
+                grep -q '{{ key.key }}' /home/ec2-user/.ssh/authorized_keys || echo '{{ key.key }}' >> /home/ec2-user/.ssh/authorized_keys
+{%     endfor %}
+{%   endif %}
+            /etc/cfn/cfn-hup.conf:
+              mode: "000400"
+              owner: root
+              group: root
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                interval=5
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ContainerInstances
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: true
+                ensureRunning: true
+                files:
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - "{{ vpc_privatesubnet_az1 }}"
+        - "{{ vpc_privatesubnet_az2 }}"
+        - "{{ vpc_privatesubnet_az3 }}"
+      LaunchConfigurationName: !Ref 'ContainerInstances'
+      MinSize: '{{ ecs2.cluster.cluster_size.min | int | default("1") }}'
+      MaxSize: '{{ ecs2.cluster.cluster_size.max | int | default( [ ecs2.cluster.cluster_size.max | int, 1 ] | max ) }}'
+      DesiredCapacity: '{{ ecs2.cluster.cluster_size.desired | int | default( [ ecs2.cluster.cluster_size.min | int, 1 ] | max ) }}'
+      Tags:
+        - Key: Application
+          Value: "{{ application }}"
+          PropagateAtLaunch: true
+        - Key: Environment
+          Value: "{{ env }}"
+          PropagateAtLaunch: true
+        - Key: Customer
+          Value: "{{ customer | default('NA') }}"
+          PropagateAtLaunch: true
+        - Key: ECSClusterName
+          Value: "ecs-{{ project }}"
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+{% endif %}
+
+  ### Resources for Tasks and Services
+{% for app in applicationconfig %}
+{%   if (app.target | lower == 'ecs') or (app.target | lower == 'ecs_scheduled_task') %}
+  ### AWS::Logs::LogGroup for {{ app.name }}
+  CW{{ app.cfn_name }}:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "cw-{{ project }}-{{ app.name }}"
+      RetentionInDays: 14
+
+  ### AWS::CloudWatch::MetricFilter for CloudWatch logs for application {{ app.name }}
+  MetricFilterAppStart{{ app.cfn_name }}:
+    Type: "AWS::Logs::MetricFilter"
+    Properties:
+      LogGroupName: !Ref CW{{ app.cfn_name }}
+      FilterPattern: "{{ (app.monitoring | default({})).start_filter_string | default('Started Application in') }}"
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: "{{ cfn_project }}/ServiceStart"
+          MetricName: "{{ app.cfn_name }}"
+
+{%     if app.logs_subscription_filter is defined %}
+  CWSubscrFilter{{ app.cfn_name }}:
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+{%       if app.logs_subscription_filter.type == 'lambda' %}
+      DestinationArn: !ImportValue "{{ cfn_project }}Lambda-{{ app.logs_subscription_filter.lambda_cfn_export_name }}"
+{%     endif %}
+      FilterPattern: '{{ app.logs_subscription_filter.filter_pattern | default('') }}'
+      LogGroupName: !Ref CW{{ app.cfn_name }}
+{%     endif %}
+
+  ### AWS::ECS::TaskDefinition for {{ app.name }}
+  Task{{ app.cfn_name }}:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: "task-{{ project }}-{{ app.name }}"
+{%     if app.launchtype | default('EC2') == 'FARGATE' %}
+      Cpu: "{{ app.ecs.cpu }}"
+      Memory: "{{ app.ecs.memory }}"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+{%     endif %}
+{%     if app.ecs.volumes is defined %}
+      Volumes:
+{%       for volume in app.ecs.volumes %}
+        - Name: {{ volume.name }}
+{%         if app.launchtype | default('EC2') == 'FARGATE' %}
+          EFSVolumeConfiguration:
+            FileSystemId: !ImportValue {{ volume.efs_import }}
+            TransitEncryption: ENABLED
+{%         else %}
+          Host:
+            SourcePath: {{ volume.hostpath }}
+{%         endif %}
+{%       endfor %}
+{%     endif %}
+      ContainerDefinitions:
+        - Name: "{{ project }}-{{ app.name }}"
+          Cpu: "{{ app.ecs.cpu | default('10') }}"
+          Essential: 'true'
+          Image: "{{ app.ecs.image }}"
+{%     if app.ecs.memory_reservation is defined %}
+          MemoryReservation: "{{ app.ecs.memory_reservation }}"
+{%     else %}
+          Memory: "{{ app.ecs.memory | default(1024) }}"
+{%     endif %}
+{%     if app.ecs.volumes is defined %}
+          MountPoints:
+{%       for volume in app.ecs.volumes %}
+            - ContainerPath: {{ volume.containerpath }}
+              SourceVolume: {{ volume.name }}
+              ReadOnly: false
+{%       endfor %}
+{%     endif %}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CW{{ app.cfn_name }}"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "{{ project }}-{{ app.name }}"
+          PortMappings:
+            - ContainerPort: {{ app.ecs.containerport }}
+{%     if app.ecs.extra_portmappings is defined %}
+{%       for portmapping in app.ecs.extra_portmappings %}
+            - ContainerPort: {{ portmapping.container_port }}
+{%         if portmapping.host_port is defined %}
+              HostPort: {{ portmapping.host_port }}
+{%         endif %}
+              Protocol: {{ portmapping.protocol | default('tcp') }}
+{%       endfor %}
+{%     endif %}
+{%     if app.ecs.ulimits is defined %}
+          Ulimits:
+{%       for ulimit in app.ecs.ulimits %}
+            - Name: {{ ulimit.name | lower }}
+              SoftLimit: {{ ulimit.soft_limit }}
+              HardLimit: {{ ulimit.hard_limit }}
+{%       endfor %}
+{%     endif %}
+          Environment:
+            - Name: Application
+              Value: "{{ project }}"
+{%     for env in app.environment | default([]) %}
+            - Name: "{{ env.name }}"
+              Value: "{{ env.value }}"
+{%     endfor %}
+{%     if app.ecs.task_role_arn is defined %}
+      TaskRoleArn: "{{ app.ecs.task_role_arn }}"
+{%     endif %}
+{%     if app.ecs.execution_role_arn is defined %}
+      ExecutionRoleArn: "{{ app.ecs.execution_role_arn }}"
+{%     endif %}
+
+{%     if app.target | lower == 'ecs_scheduled_task' %}
+  EventRuleScheduledTask{{ app.cfn_name }}:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Schedule for Scheduled Task for {{ app.cfn_name }}
+      ScheduleExpression: "{{ app.execution_schedule | default('cron(0 3 * * ? *)') }}"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ECSCluster.Arn
+          Id: Target{{ cfn_project }}{{ app.cfn_name }}
+          RoleArn: "{{ app.ecs.target_role_arn | default('arn:aws:iam::' + target_account.account_id + ':role/ecsEventsRole') }}"
+          EcsParameters:
+            TaskCount: 1
+            TaskDefinitionArn: !Ref Task{{ app.cfn_name }}
+{%       if app.launchtype | default('EC2') == 'FARGATE' %}
+            LaunchType: FARGATE
+            PlatformVersion: "1.4.0"
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: "DISABLED"
+                SecurityGroups:
+                  - "{{ vpc_sg_app }}"
+                Subnets:
+                  - "{{ vpc_privatesubnet_az1 }}"
+                  - "{{ vpc_privatesubnet_az2 }}"
+                  - "{{ vpc_privatesubnet_az3 }}"
+{%       endif %}
+{%     endif %}
+
+{%     if app.target | lower == 'ecs' %}
+  ### AWS::ECS::Service for {{ app.name }}
+  Service{{ app.cfn_name }}:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - "Listener{{ app.lb.name }}"
+      - "LB{{ app.lb.name }}"
+      - "{{ app.cfn_name }}{{ app.lb.name }}"
+{%       if app.domains is defined and app.lb is defined %}
+{%         for dom in app.domains %}
+      - "ListenerRule{{ app.cfn_name }}{{ dom.cfn_name }}{{ dom.cfn_name_suffix | default('') }}{{ dom.listener_rule_path_pattern | default("All") | replace('*', 'Star') | replace('/', ' ') | title | replace(' ', '') }}"
+{%         endfor %}
+{%       endif %}
+    Properties:
+      Cluster: !Ref 'ECSCluster'
+      DesiredCount: '{{ app.ecs.desiredcount | default(1) | int }}'
+      ### The DeploymentConfiguration settings are the defaults, they were added
+      ### for documentation reasons
+      ### Also see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html
+{%       if app.launchtype | default('EC2') == 'FARGATE' %}
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: "DISABLED"
+          SecurityGroups:
+            - "{{ vpc_sg_app }}"
+          Subnets:
+            - "{{ vpc_privatesubnet_az1 }}"
+            - "{{ vpc_privatesubnet_az2 }}"
+            - "{{ vpc_privatesubnet_az3 }}"
+{%       else %}
+{#         You cannot specify an IAM role for services that require a service linked role (as FARGATE does). #}
+      Role: !Ref 'ECSServiceRole'
+{%       endif %}
+{%       if app.deploymentconfiguration is defined %}
+      DeploymentConfiguration:
+        MaximumPercent: {{ app.deploymentconfiguration.max_percent | default(200) }}
+        MinimumHealthyPercent: {{ app.deploymentconfiguration.min_healthy_percent | default(100) }}
+{%       endif %}
+      TaskDefinition: !Ref "Task{{ app.cfn_name }}"
+{%       if app.lb is defined %}
+      HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
+      LoadBalancers:
+        - ContainerName: "{{ project }}-{{ app.name }}"
+          ContainerPort: "{{ app.ecs.containerport }}"
+          TargetGroupArn: !Ref "{{ app.cfn_name }}{{ app.lb.name }}"
+{%       endif %}
+
+{%       if app.domains is defined and route53 is defined %}
+{%         for domain in app.domains %}
+{%           for private_hosted_zone in route53.private_hosted_zones | default([]) %}
+{%             if private_hosted_zone.cfn_name == domain.cfn_name %}
+{%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
+{%                 if domain.skiproute53private is not defined or not domain.skiproute53private %}
+{%                   if domain.listener_rule_host_header != private_hosted_zone.name %}
+{#                     Skip RecordSet creation in private hosted zone if host in the listener rule == the domainname #}
+{#                     APEX record creation not supported in private hosted zones on aws-cfn-gen #}
+  ### AWS::Route53::RecordSet for {{ app.name }} in private hosted zones
+  Route53RecordSet{{ app.cfn_name }}{{ domain.cfn_name }}{{ domain.cfn_name_suffix | default('') }}:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !ImportValue "{{ cfn_project }}Route53-Route53PrivateHostedZone{{ domain.cfn_name }}"
+      Comment: "DNS name for {{ cfn_project }}{{ app.cfn_name }}{{ domain.cfn_name }}."
+      Name: "{{ domain.listener_rule_host_header }}."
+      Type: CNAME
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt "LB{{ app.lb.name }}.DNSName"
+{%                   endif %}
+{%                 endif %}
+{%               endif %}
+{%             endif %}
+{%           endfor %}
+{%         endfor %}
+{%       endif %}
+
+{%       if app.domains is defined and route53 is defined %}
+{%         for domain in app.domains %}
+{%           for public_hosted_zone in route53.public_hosted_zones | default([]) %}
+{%             if app.lb.type is defined and app.lb.type == 'public' and public_hosted_zone.cfn_name == domain.cfn_name %}
+{%               if domain.skiproute53 is not defined or not domain.skiproute53 %}
+{%                 if domain.skiproute53public is not defined or not domain.skiproute53public %}
+{%                   if domain.listener_rule_host_header != public_hosted_zone.name %}
+{%                     set record_type = 'CNAME' %}
+{%                     set alias = 'No' %}
+{%                     set alias_hosted_zone_id = '' %}
+{%                   else %}
+{%                     set record_type = 'A' %}
+{%                     set alias = 'Yes' %}
+{%                     set alias_hosted_zone_id = alb_hosted_zone_id[target_account.region] %}
+{%                   endif %}
+### AWS::Route53::RecordSet for {{ app.name }} in public hosted zones
+{%                     set cfn_name = domain.listener_rule_host_header | replace('_', ' ') | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '')  %}
+  Route53PublicRecordSet{{ cfn_name }}:
+    Type: Custom::CNAME
+    Properties:
+      ServiceToken: {{ public_hosted_zone.sns_arn }}
+      Source: {{ domain.listener_rule_host_header }}.
+      Target: !GetAtt "LB{{ app.lb.name }}.DNSName"
+      RecordType: "{{ record_type }}"
+      Alias: "{{ alias }}"
+      AliasHostedZoneId: "{{ alias_hosted_zone_id }}"
+{%                 endif %}
+{%               endif %}
+{%             endif %}
+{%           endfor %}
+{%         endfor %}
+{%       endif %}
+{%     endif %}
+
+{%   endif %}
+{% endfor %}
+
+{% for item in loadbalancers2 %}
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+  S3ALBAccessLogs{{ item.name }}:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: "{{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - ExpirationInDays: {{ item.accesslogs.log_expiry_days | default('1') }}
+          Status: "Enabled"
+{%   if item.accesslogs is defined and item.accesslogs.s3_objectcreated_lambda_import is defined %}
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function: !ImportValue "{{ item.accesslogs.s3_objectcreated_lambda_import }}"
+          Event: "s3:ObjectCreated:*"
+{%   endif %}
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+
+  S3ALBAccessLogsBucketPolicy{{ item.name }}:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: "S3ALBAccessLogs{{ item.name }}"
+    Properties:
+      Bucket: !Ref S3ALBAccessLogs{{ item.name }}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        -   Sid: S3AccessForLoadbalancer
+            Effect: Allow
+            Action: "s3:PutObject"
+            Resource: !Sub arn:aws:s3:::{{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}/*
+            Principal:
+              AWS: !FindInMap [Region2ELBAccountId, !Ref 'AWS::Region', AccountId]
+
+{%     if item.accesslogs.cw_logs is defined %}
+  CloudWatch{{ item.name }}:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "{{ item.accesslogs.cw_logs.log_group_name }}"
+      RetentionInDays: "{{ item.accesslogs.log_expiry_days }}"
+{%     endif %}
+
+{%     if item.accesslogs.cw_logs_subscription_filter is defined %}
+  CWSubscrFilter{{ item.name }}:
+    Type: AWS::Logs::SubscriptionFilter
+    DependsOn:
+      - CloudWatch{{ item.name }}
+    Properties:
+{%         if item.accesslogs.cw_logs_subscription_filter.type == 'lambda' %}
+      DestinationArn: !ImportValue "{{ cfn_project }}Lambda-{{ item.accesslogs.cw_logs_subscription_filter.lambda_cfn_export_name }}"
+{%         endif %}
+      FilterPattern: '{{ item.accesslogs.cw_logs_subscription_filter.filter_pattern | default('') }}'
+      LogGroupName: "{{ item.accesslogs.cw_logs_subscription_filter.log_group_name }}"
+{%     endif %}
+
+{% endif %}
+
+  LB{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+    DependsOn:
+      - "S3ALBAccessLogs{{ item.name }}"
+      - "S3ALBAccessLogsBucketPolicy{{ item.name }}"
+{% endif %}
+    Properties:
+      Name: "lb-{{ project }}-{{ item.name }}"
+      Scheme: "{{ item.scheme }}"
+      Type: "application"
+{% if "internal" in item.scheme %}
+      SecurityGroups:
+        - "{{ vpc_sg_app }}"
+        - "{{ vpc_sg_elb }}"
+      Subnets:
+        - "{{ vpc_privatesubnet_az1 }}"
+        - "{{ vpc_privatesubnet_az2 }}"
+        - "{{ vpc_privatesubnet_az3 }}"
+{% else %}
+      SecurityGroups:
+        - "{{ vpc_sg_elb }}"
+      Subnets:
+        - "{{ vpc_elbsubnet_az1 }}"
+        - "{{ vpc_elbsubnet_az2 }}"
+        - "{{ vpc_elbsubnet_az3 }}"
+{% endif %}
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: {{ item.idle_timeout_seconds | default('60') }}
+{% if item.accesslogs is defined and item.accesslogs.state == 'enabled' %}
+        - Key: access_logs.s3.enabled
+          Value: true
+        - Key: access_logs.s3.bucket
+          Value: {{ application }}-{{ env }}-accesslogs-{{ item.name | lower }}
+{% else %}
+        - Key: access_logs.s3.enabled
+          Value: false
+{% endif %}
+      Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+
+{% if "internal" not in item.scheme or (item.force_tls | default(False)) %}
+  Listener{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'TGDefaultHTTPS{{ item.name }}'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
+      Port: '443'
+      Protocol: HTTPS
+      SslPolicy: "{{ item.ssl_policy | default('ELBSecurityPolicy-2016-08') }}"
+      Certificates:
+        - CertificateArn: {{ item.certificate_arn }}
+  Listener{{ item.name }}HTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: redirect
+        RedirectConfig:
+          StatusCode: 'HTTP_301'
+          Protocol: 'HTTPS'
+          Port: '443'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
+      Port: '80'
+      Protocol: HTTP
+{% else %}
+  Listener{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'TGDefaultHTTP{{ item.name }}'
+      LoadBalancerArn: !Ref 'LB{{ item.name }}'
+      Port: '80'
+      Protocol: HTTP
+{% endif %}
+
+  TGDefaultHTTPS{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: "LB{{ item.name }}"
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: {{ item.def_tg_https_healthcheckpath | default('/') }}
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Name: tg-{{ shortproject }}-{{ item.name | lower }}-def-443
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: "{{ vpc_id }}"
+
+  TGDefaultHTTP{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: "LB{{ item.name }}"
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath:  {{ item.def_tg_http_healthcheckpath | default('/') }}
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: "{{ vpc_id }}"
+      Tags:
+        - Key: "Name"
+          Value: "tg-{{ shortproject }}-{{ item.name | lower }}-def-80"
+
+## Create configuration for redirects
+{% for redirect in item.redirects | default([]) %}
+{%   set redir_resource_basename = redirect.host_header | replace('.', ' ') | replace('-', ' ') | title | replace(' ', '') %}
+  RedirAction{{ item.name }}{{ redir_resource_basename }}:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref Listener{{ item.name }}
+      Priority: "{{ redirect.priority }}"
+      Conditions:
+        - Field: host-header
+          Values:
+            - "{{ redirect.host_header }}"
+{%   if redirect.path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ redirect.path_pattern }}"
+{%   endif %}
+      Actions:
+        - Type: redirect
+          RedirectConfig:
+            StatusCode: "{{ redirect.status_code | default('HTTP_301') }}"
+            Host: "{{ redirect.to | default('#{host}') }}"
+            Path: "{{ redirect.path | default('/#{path}') }}"
+            Port: "{{ redirect.port | default('#{port}') }}"
+            Protocol: "{{ redirect.protocol | default('#{protocol}') }}"
+            Query: "{{ redirect.query | default('#{query}') }}"
+
+{%   if redirect.skiproute53 is not defined or not redirect.skiproute53 %}
+  ### Route53 (does not yet support creation of APEX alias)
+  RedirR53{{ item.name }}{{ redir_resource_basename }}:
+    Type: Custom::CNAME
+    Properties:
+      ServiceToken: {{ redirect.sns_topic_arn_for_r53 }}
+      Source: "{{ redirect.host_header }}."
+      Target: !GetAtt LB{{ item.name }}.DNSName
+      RecordType: CNAME
+{%   endif %}
+{% endfor %}
+
+## Create configuration for fixed responses
+{% for fixed_respone in item.fixed_responses | default([]) %}
+  FixedResponse{{ item.name }}{{ fixed_respone.cfn_name }}:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref Listener{{ item.name }}
+      Priority: "{{ fixed_respone.priority }}"
+      Conditions:
+{%   if fixed_respone.host_header is not defined and fixed_respone.path_pattern is not defined %}
+{#     Default behavior if path nor host are defined #}
+        - Field: host-header
+          Values:
+            - "defaultwillneverhappen.com"
+{%   endif %}
+{%   if fixed_respone.host_header is defined %}
+        - Field: host-header
+          Values:
+            - "{{ fixed_respone.host_header }}"
+{%   endif %}
+{%   if fixed_respone.path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ fixed_respone.path_pattern }}"
+{%   endif %}
+      Actions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: "{{ fixed_respone.content_type | default('text/plain') }}"
+            StatusCode: "{{ fixed_respone.status_code | default('HTTP_404') }}"
+            MessageBody: "{{ fixed_respone.message_body | default(fixed_respone.status_code | default('HTTP_404')) }}"
+{% endfor %}
+
+  ## Create application listener rules
+{% for app in applicationconfig | default([]) %}
+{%   if app.domains is defined and app.lb is defined and app.lb.name == item.name %}
+{%     for dom in app.domains %}
+  ListenerRule{{ app.cfn_name }}{{ dom.cfn_name }}{{ dom.cfn_name_suffix | default('') }}{{ dom.listener_rule_path_pattern | default("All") | replace('*', 'Star') | replace('/', ' ') | title | replace(' ', '') }}:
+    Type: "AWS::ElasticLoadBalancingV2::ListenerRule"
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref "{{ app.cfn_name }}{{ item.name }}"
+      Conditions:
+        - Field: host-header
+          Values:
+            - "{{ dom.listener_rule_host_header }}"
+{%       if dom.listener_rule_path_pattern is defined %}
+        - Field: path-pattern
+          Values:
+            - "{{ dom.listener_rule_path_pattern }}"
+{%       endif %}
+      ListenerArn: !Ref "Listener{{ item.name }}"
+      Priority: {{ dom.priority }}
+
+{%     endfor %}
+
+
+  ## Create the application target groups
+  {{ app.cfn_name }}{{ item.name }}:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: "LB{{ item.name }}"
+    Properties:
+      HealthCheckEnabled: {{ app.lb.health_check_enabled | default(true) }}
+      HealthCheckIntervalSeconds: {{ app.lb.health_check_interval_seconds | default('10') }}
+      HealthCheckTimeoutSeconds: {{ app.lb.health_check_timeout_seconds | default('5') }}
+      HealthyThresholdCount: {{ app.lb.healthy_threshold_count | default('2') }}
+      UnhealthyThresholdCount: {{ app.lb.unhealthy_threshold_count | default('2') }}
+      HealthCheckPath: {{ app.lb.healthcheckpath | default('/') }}
+{%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
+      HealthCheckProtocol: HTTPS
+{%     else %}
+      HealthCheckProtocol: HTTP
+{%     endif %}
+{%     if app.launchtype | default('EC2') == 'FARGATE' %}
+      TargetType: ip
+{%     endif %}
+      Matcher:
+        HttpCode: {{ app.lb.healthcheckokcode | default('200-299') }}
+{%     if app.lb.protocol is defined and app.lb.protocol | upper == 'HTTPS' %}
+      Port: 443
+      Protocol: HTTPS
+{%     else %}
+      Port: 80
+      Protocol: HTTP
+{%     endif %}
+{%     if (app.lb.sticky is defined and app.lb.sticky) or app.lb.targetgroup_attributes is defined %}
+      TargetGroupAttributes:
+{%       if app.lb.sticky is defined and app.lb.sticky %}
+        - Key: "stickiness.enabled"
+          Value: "true"
+        - Key: "stickiness.type"
+          Value: "lb_cookie"
+{%       endif %}
+{%       for tgatt in app.lb.targetgroup_attributes | default([]) %}
+        - Key: "{{ tgatt.key }}"
+          Value: "{{ tgatt.value }}"
+{%       endfor %}
+{%     endif %}
+      VpcId: "{{ vpc_id }}"
+      Tags:
+        - Key: "Name"
+          Value: "{{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) }}"
+
+{%   endif %}
+{% endfor %}
+{% endfor %}
+
+Outputs:
+{% for item in loadbalancers2 %}
+  {{ item.name }}:
+    Value: !Ref "LB{{ item.name }}"
+    Description: "{{ item.description | default(item.name) }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}"
+  {{ item.name }}DNS:
+    Value: !GetAtt LB{{ item.name }}.DNSName
+    Description: "{{ item.description | default(item.name) }} DNS name"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}DNS"
+  {{ item.name }}CanonicalHostedZoneID:
+    Value: !GetAtt LB{{ item.name }}.CanonicalHostedZoneID
+    Description: "{{ item.description | default(item.name) }}"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ item.name }}CanonicalHostedZoneID"
+  TGDefaultHTTP{{ item.name }}:
+    Value: !Ref "TGDefaultHTTP{{ item.name }}"
+    Description: "Default Target Group for HTTP."
+    Export:
+      Name: !Sub "${AWS::StackName}-TGDefaultHTTP{{ item.name }}"
+  TGDefaultHTTPS{{ item.name }}:
+    Value: !Ref "TGDefaultHTTPS{{ item.name }}"
+    Description: "Default Target Group for HTTPS."
+    Export:
+      Name: !Sub "${AWS::StackName}-TGDefaultHTTPS{{ item.name }}"
+{% for app in applicationconfig | default([]) %}
+{%   if app.domains is defined and app.lb.name == item.name %}
+  TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
+    Value: !Ref "{{ app.cfn_name }}{{ item.name }}"
+    Description: "Target Group for application {{ app.name }} in project {{ project }}."
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}"
+
+{%   endif %}
+{% endfor %}
+{% endfor %}
+

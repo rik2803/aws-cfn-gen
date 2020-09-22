@@ -1,3 +1,4 @@
+{# Create a list of buckets for which to create and attach a policy for the oai #}
 {# Create a list of origin buckets to be used in the deploy user creation #}
 {% set s3_origin_list = [] %}
 {% for cloudfront in cloudfront_distributions %}
@@ -23,60 +24,72 @@ Description: |
 
 Resources:
 
+  DeployUserPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DeployUserPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+{% if s3_origin_list|length > 0 %}
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:PutObjectACL
+            Resource:
+{%   for s3 in s3_origin_list %}
+              - "{{ s3 }}"
+{%   endfor %}
+           - Effect: Allow
+             Action:
+               - s3:ListAllMyBuckets
+             Resource:
+               - "*"
+{% endif %}
+          - Effect: Allow
+            Action:
+              - "acm:ListCertificates"
+              - "cloudfront:GetDistribution"
+              - "cloudfront:GetDistributionConfig"
+              - "cloudfront:ListDistributions"
+              - "cloudfront:ListCloudFrontOriginAccessIdentities"
+              - "cloudfront:CreateInvalidation"
+              - "cloudfront:GetInvalidation"
+              - "cloudfront:ListInvalidations"
+              - "elasticloadbalancing:DescribeLoadBalancers"
+              - "iam:ListServerCertificates"
+              - "sns:ListSubscriptionsByTopic"
+              - "sns:ListTopics"
+              - "waf:GetWebACL"
+              - "waf:ListWebACLs"
+            Resource:
+              - "*"
+      Groups:
+        - !Ref DeployUserGroup
+
+  DeployUserGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: DeployUserGroup
+
   DeployUser:
     Type: AWS::IAM::User
     Properties:
       UserName: "deploy-{{ project }}"
       Path: "/"
-      Policies:
-{% if s3_origin_list|length > 0 %}
-        - PolicyName: AllowAccessToBuckets
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:PutObjectACL
-                Resource:
-{%   for s3 in s3_origin_list %}
-                  - "{{ s3 }}"
-{%   endfor %}
-              - Effect: Allow
-                Action:
-                  - s3:ListAllMyBuckets
-                Resource:
-                  - "*"
-{% endif %}
-        - PolicyName: AllowInvalidationAccessToCloudFrontDistribution
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "acm:ListCertificates"
-                  - "cloudfront:GetDistribution"
-                  - "cloudfront:GetDistributionConfig"
-                  - "cloudfront:ListDistributions"
-                  - "cloudfront:ListCloudFrontOriginAccessIdentities"
-                  - "cloudfront:CreateInvalidation"
-                  - "cloudfront:GetInvalidation"
-                  - "cloudfront:ListInvalidations"
-                  - "elasticloadbalancing:DescribeLoadBalancers"
-                  - "iam:ListServerCertificates"
-                  - "sns:ListSubscriptionsByTopic"
-                  - "sns:ListTopics"
-                  - "waf:GetWebACL"
-                  - "waf:ListWebACLs"
-                Resource:
-                  - "*"
+      Groups:
+        - !Ref DeployUserGroup
 
   DeployAccessKey:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName:
         !Ref DeployUser
+{% if iam_accesskey_serial is defined %}
+      Serial: {{ iam_accesskey_serial }}
+{% endif %}
+
 
 {% for cloudfront in cloudfront_distributions %}
 {%   for cname in cloudfront.cnames %}
@@ -178,6 +191,35 @@ Resources:
 {%   endfor %}
 {% endfor %}
 
+{% for oai in cloudfront_oai | default([]) %}
+{%   set cfn_oai = oai | replace('-', ' ') | title | replace(' ', '') %}
+  Oai{{ cfn_oai }}:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "Oai{{ cfn_oai }}"
+
+  S3BucketPolicy{{ cfn_oai }}:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: "{{ oai }}"
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: "PolicyForCloudFrontPrivateContent{{ cfn_oai }}"
+        Statement:
+          - Sid: '1'
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${Oai{{ cfn_oai }}}"
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - "arn:aws:s3:::{{ oai }}/*"
+              - "arn:aws:s3:::{{ oai }}"
+
+{% endfor %}
+
 {% for cloudfront in cloudfront_distributions %}
   S3{{ cfn_project }}{{ cloudfront.name | replace('-', ' ') | title | replace(' ', '') }}DefaultCloudfrontOrigin:
     Type: AWS::S3::Bucket
@@ -206,12 +248,17 @@ Resources:
         ServerSideEncryptionConfiguration:
         - ServerSideEncryptionByDefault:
             SSEAlgorithm: "AES256"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
       AccessControl: "LogDeliveryWrite"
       Tags:
         - Key: "ass:s3:clean-bucket-on-stop"
           Value: "yes"
 
-        {%   endif %}
+{%   endif %}
 
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
     DependsOn:
@@ -228,6 +275,9 @@ Resources:
 {%   endfor %}
         Comment: "CloudFront distribution for {{ application }}"
         Enabled: true
+{%   if cloudfront.webacl_id is defined %}
+        WebACLId: {{ cloudfront.webacl_id }}
+{%   endif %}
         HttpVersion: http2
         DefaultRootObject: "{{ cloudfront.default_root_object | default('index.html') }}"
 {%   if cloudfront.custom_error_responses is defined %}
@@ -330,19 +380,26 @@ Resources:
 {%     else %}
             DomainName: "{{ origin.origin_name }}.s3-website.{{ target_account.region }}.amazonaws.com"
 {%     endif %}
+{%     if origin.oai is defined %}
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub
+                - "origin-access-identity/cloudfront/${OAI}"
+                - OAI: !Ref {{ origin.oai }}
+{%     else %}
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: {{ origin.protocol_policy | default('http-only') }}
-              OriginSSLProtocols: 
+              OriginSSLProtocols:
                 - {{ origin.origin_ssl_protocols | default('TLSv1.2') }}
-{%    if origin.origin_custom_headers is defined %}
+{%     endif %}
+{%     if origin.origin_custom_headers is defined %}
             OriginCustomHeaders:
-{%      for header in origin.origin_custom_headers %}
+{%       for header in origin.origin_custom_headers %}
               - HeaderName: "{{ header.name }}"
                 HeaderValue: "{{ header.value }}"
-{%      endfor %}
-{%    endif %} 
+{%       endfor %}
+{%     endif %}
 {%   endfor %}
         PriceClass: PriceClass_100
         ViewerCertificate:
@@ -366,3 +423,10 @@ Outputs:
       !Ref DeployAccessKey
   SecretKeyDeployUser:
     Value: !GetAtt DeployAccessKey.SecretAccessKey
+{% for cloudfront in cloudfront_distributions %}
+  CloudFrontDistribution{{ cloudfront.cfn_name }}:
+    Value: !Sub "arn:aws:cloudfront::{{ target_account.account_id }}:distribution/${CloudFrontDistribution{{ cloudfront.cfn_name }}}"
+    Description: "Cloudfront Distribution {{ cloudfront.cfn_name }}"
+    Export:
+      Name: !Sub "${AWS::StackName}{{ cloudfront.cfn_name }}"
+{% endfor %}

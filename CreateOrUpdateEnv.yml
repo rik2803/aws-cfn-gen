@@ -55,6 +55,9 @@
             then
               aws s3 mb "s3://{{ project.name }}-cfn-templates"
             fi
+            aws s3api put-bucket-encryption \
+              --bucket {{ project.name }}-cfn-templates \
+              --server-side-encryption-configuration '{"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}'
 
       tags: [ 'always' ]
 
@@ -84,13 +87,14 @@
   tasks:
     - name: Set all stack_deletion_order variables
       set_fact:
-        stack_deletion_order_dynamodb:           "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb                | default(0)  }}{% endif %}"
+        stack_deletion_order_dynamodb:           "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).dynamodb           | default(0)  }}{% endif %}"
         stack_deletion_order_vpc:                "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).vpc                | default(0)  }}{% endif %}"
         stack_deletion_order_vpcendpoints:       "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).vpcendpoints       | default(0)  }}{% endif %}"
         stack_deletion_order_cloudfront:         "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).cloudfront         | default(0)  }}{% endif %}"
         stack_deletion_order_rdsparametergroups: "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).rdsparametergroups | default(0)  }}{% endif %}"
         stack_deletion_order_bastionhost:        "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).bastionhost        | default(10) }}{% endif %}"
         stack_deletion_order_ecs:                "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).ecs                | default(10) }}{% endif %}"
+        stack_deletion_order_ecs2:               "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).ecs2               | default(10) }}{% endif %}"
         stack_deletion_order_route53:            "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).route53            | default(20) }}{% endif %}"
         stack_deletion_order_alb:                "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb                | default(30) }}{% endif %}"
       tags: [ 'always' ]
@@ -446,6 +450,45 @@
 
       tags: [ 'rds' ]
       when: "rds is defined"
+
+    - name: ChatNotifications
+      block:
+        - name: Create CFN template from Ansible template for ChatNotifications
+          template:
+            src: "ChatNotifications.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml"
+        - name: Put CFN template for ChatNotification on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-chatnotifications.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the ChatNotifications template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-chatnotifications.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the ChatNotifications CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}ChatNotifications"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}ChatNotifications{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}ChatNotifications" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}ChatNotifications{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}ChatNotifications --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+      tags: [ 'chat_notifications' ]
+      when: "chat_notifications is defined"
 
     - name: Bastion
       block:
@@ -949,6 +992,46 @@
       when: "sns is defined"
       tags: [ 'sns' ]
 
+    - name: S3 buckets
+      block:
+        - name: Create CFN template from Ansible template for project S3 buckets
+          template:
+            src: S3.yml
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-s3.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-s3.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the S3 CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}S3"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}S3{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}S3" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}S3{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}S3 --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+
+      when: "s3 is defined"
+      tags: [ 's3' ]
+
     - name: CloudFront
       block:
         - name: Create CFN template from Ansible template for the CloudFront CDNs
@@ -1031,7 +1114,7 @@
           tags: [ 'deploy' ]
 
       when: "route53 is defined and route53.private_hosted_zones is defined"
-      tags: [ 'createstack', 'route53', 'ecs' ]
+      tags: [ 'createstack', 'route53', 'ecs', 'ecs2' ]
 
     - name: ECS Cluster
       block:
@@ -1039,12 +1122,12 @@
           template:
             src: ECS.yml
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml"
-        - name: Put CFN template on s3
+        - name: Put CFN template for ECS on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml" \
                       "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecs.yml"
           tags: [ 'deploy' ]
-        - name: Get presigned URL for the template on S3
+        - name: Get presigned URL for ECS the template on S3
           shell: |
             aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecs.yml"
           register: presign
@@ -1075,27 +1158,69 @@
       when: "ecs is defined"
       tags: [ 'ecs' ]
 
-    - name: S3 buckets
+    - name: ECS2 Cluster
       block:
-        - name: Create CFN template from Ansible template for project S3 buckets
+        - name: Create CFN template from Ansible template for the ECS2 Cluster
           template:
-            src: S3.yml
-            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
-        - name: Put CFN template on s3
+            src: ECS2.yml
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs2.yml"
+        - name: Put CFN template for ECS2 on s3
           shell: |
-            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml" \
-                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-s3.yml"
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs2.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecs2.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the ECS2 template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-ecs2.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the ECS2 CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}ECS2"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}ECS2{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              stack_deletion_order:  "{{ stack_deletion_order_ecs2 }}"
+              ass:cfn:deletion-order:  "{{ stack_deletion_order_ecs2 }}"
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}ECS2" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}ECS2{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}ECS2 --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+
+      when: "ecs2 is defined and loadbalancers2 is defined"
+      tags: [ 'ecs2' ]
+
+    - name: WAF Associations
+      block:
+        - name: Create CFN template from Ansible template for the WAF Associations
+          template:
+            src: WAFAssociations.yml
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml"
+        - name: "Put CFN template for WAF associations on s3"
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-waf-associations.yml"
           tags: [ 'deploy' ]
         - name: Get presigned URL for the template on S3
           shell: |
-            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-s3.yml"
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-waf-associations.yml"
           register: presign
           tags: [ 'deploy' ]
-        - name: Create or Update the S3 CloudFormation stack
+        - name: Create or Update the WAF associations stack
           cloudformation:
-            stack_name: "{{ cfn_project }}S3"
+            stack_name: "{{ cfn_project }}WAFAssociations"
             create_changeset: "{{ create_changeset }}"
-            changeset_name: "{{ cfn_project }}S3{{ changeset_suffix }}"
+            changeset_name: "{{ cfn_project }}WAFAssociations{{ changeset_suffix }}"
             state: "present"
             disable_rollback: false
             template_url: "{{ presign.stdout }}"
@@ -1104,14 +1229,13 @@
           tags: [ 'deploy' ]
         - name: Add result of changeset to a local file
           shell: |
-            echo "{{ cfn_project }}S3" >> changeset_report.txt
+            echo "{{ cfn_project }}WAFAssociations" >> changeset_report.txt
             aws cloudformation describe-change-set \
-                --change-set-name={{ cfn_project }}S3{{ changeset_suffix }} \
-                --stack-name={{ cfn_project }}S3 --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --change-set-name={{ cfn_project }}WAFAssociations{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}WAFAssociations --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
                 --output text >> changeset_report.txt
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
 
-      when: "s3 is defined"
-      tags: [ 's3' ]
-
+      when: "waf_associations is defined"
+      tags: [ 'waf_associations' ]

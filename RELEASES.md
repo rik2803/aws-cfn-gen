@@ -9,6 +9,169 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.5.0` (20200922)
+
+### `ECS2`
+
+A new template that combines ALB and ECS to avoid circular dependencies and
+problems when changing or removing services.
+
+Uses `ecs2` and `loadbalancer2` top-level properties in the config files.
+
+### Bastion
+
+* `bastion.eip` creates an EIP and attaches it to the bastion host
+* `bastion.encrypt_ebs` will encrypt the bastion storage
+
+### `IAM`
+
+* Set the top-level property `iam_accesskey_serial` to re-create access keys in
+  following templates:
+  * `CloudFront`
+  * `ECR`
+  * `ECSMgmt`
+  * `IAM`
+* Stop using inline policies in favor of group, policies and group membership in
+  following templates:
+  * `CloudFront`
+  * `ECR`
+  
+### `S3`
+
+* `bucket.public_access_block_configuration` can be used to block public bucket access:
+
+```yaml
+s3:
+  - name: myBucket
+    ...
+    bucket.public_access_block_configuration: true
+``` 
+
+```yaml
+s3:
+  - name: myBucket
+    ...
+    bucket.public_access_block_configuration:
+      block_public_acls: true
+      block_public_policy: true
+      ignore_public_acls: true
+      restrict_public_buckets: true
+```
+
+* `bucket.send_create_events_to_lambda_import` can be used to run a Lambda on
+  `s3:ObjectCreated:*` bucket events../
+### `ALB`
+
+* Force TLS on internal LBs with `force_tls`
+
+```yaml
+loadbalancers:
+  - name ALBInt
+    ...
+    force_tls: true
+```
+
+* Allow fixed responses in ALB listener rules
+
+```yaml
+loadbalancers:
+  - name: myAlb
+    ...
+    fixed_responses:
+      - cfn_name: "FixedResponse001"
+        path_pattern: "/path"
+        priority: 5
+        status_code: "404"
+        content_type: "text/html"
+        message_body: "<h1>404 - page not found</h1>"
+```
+
+* End to End TLS when `applicationconfig[n].lb.protocol` is `HTTPS`
+* Make all health check settings configurable
+
+### `Cloudfront`
+
+* S3 origins with OAI and bucket policy for cloudfront access
+
+```yaml
+cloudfront_oai:
+  - myOai
+
+cloudfront_distributions:
+  - name: c19distributionmyDistribution
+    ...
+    origins_and_cachebehaviors:
+      - origin_name: myOrigin
+        ...
+        oai: "myOai"
+```
+
+### `WAF`
+
+Add `waf_associations` to associate an existing (manually created) web acl to a
+loadbalancer.
+
+```yaml
+waf_associations:
+  # The WebACL needs to be created manually for now. Only the association of the WebACL with the external
+  # LoadBalancer is automatic.
+  - name: WafToAlbExt
+    waf_arn: "arn:aws:wafv2:{{ target_account.region }}:{{ target_account.account_id }}:regional/webacl/{{ target_account.waf_alb.name }}/{{ target_account.waf_alb.id }}"
+    arn_import: "{{ app_cfn }}{{ env_cfn }}ECS2-ALBExt"
+```
+
+### `ECS`
+
+* `ecs.cluster.encrypt_ebs` will encrypt the ECS cluster instance storage
+* `applicationconfig[n].launchtype` can be set to `FARGATE` to run the service on a _FARGATE_
+  cluster. If all services are `FARGATE` services, no cluster instances will be created.
+ 
+### `VPC`
+
+* Add VPC interface endpoint support
+
+```yaml
+vpc_interface_endpoints:
+  - cfn_name: "SSM"
+    aws_service: "com.amazonaws.eu-central-1.ssm"
+    subnet_imports:
+      - "VPCFor{{ app_and_env_cfn }}-PrivateSubnetAZ1"
+      - "VPCFor{{ app_and_env_cfn }}-PrivateSubnetAZ2"
+      - "VPCFor{{ app_and_env_cfn }}-PrivateSubnetAZ3"
+    sg_imports:
+      - "VPCFor{{ app_and_env_cfn }}-SGAPP"
+    vpc_import: "VPCFor{{ app_and_env_cfn }}-VPC"
+  - cfn_name: "SecretsManager"
+    aws_service: "com.amazonaws.eu-central-1.secretsmanager"
+    subnet_imports:
+      - "VPCFor{{ app_and_env_cfn }}-PrivateSubnetAZ1"
+      - "VPCFor{{ app_and_env_cfn }}-PrivateSubnetAZ2"
+      - "VPCFor{{ app_and_env_cfn }}-PrivateSubnetAZ3"
+    sg_imports:
+      - "VPCFor{{ app_and_env_cfn }}-SGAPP"
+    vpc_import: "VPCFor{{ app_and_env_cfn }}-VPC"
+```
+
+### `ECR`
+
+* Add task definition and ECS service permissions to `ecr-push` user
+
+### `ecsmgmt`
+
+* `ecsmgmt.ass.disable` skips the creation of `ASS` resources.
+
+### `chat_notifications`
+
+* Add template to add resources that subscribe to the monitoring SNS topic to
+  send notifications. Works for Slack and Google chat.
+
+```yaml
+chat_notifications:
+  - host: "hooks.slack.com"
+    path: "{{ target_account.slack_notifications_path }}"
+    cfn_name: "Slack{{ app_and_env_cfn }}"
+```
+
 ## `0.4.1` (20200708)
 
 ### Features

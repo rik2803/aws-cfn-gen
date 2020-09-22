@@ -33,18 +33,6 @@ Resources:
               - Effect: Allow
                 Action: [ 'ecr:GetDownloadUrlForLayer', 'ecr:BatchGetImage', 'ecr:BatchCheckLayerAvailability', 'ecr:GetAuthorizationToken' ]
                 Resource: '*'
-  DeleteAndCreateTaggedStacksTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: [ecs-tasks.amazonaws.com]
-            Action: ['sts:AssumeRole']
-      Path: /
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AdministratorAccess
 
   ECSEventsRole:
     Type: AWS::IAM::Role
@@ -59,19 +47,6 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
 
-  AwsAssTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: [ecs-tasks.amazonaws.com]
-            Action: ['sts:AssumeRole']
-      Path: /
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AdministratorAccess
-
   CWCreateDashboardTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -85,6 +60,123 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchFullAccess
         - !Sub "arn:aws:iam::${AWS::AccountId}:policy/ReadOnlyAccessLocal"
+
+  TaskCWCreateDashboard:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchCWCreateDashboard
+    Properties:
+      Family: "task-cw-create-dashboard"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 1024
+      Cpu: 512
+      ContainerDefinitions:
+        - Name: "cw-create-dashboard"
+          Essential: "true"
+          Image: "tryxcom/aws-cw-create-dashboard:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchCWCreateDashboard"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "cw-create-dashboard"
+          Environment:
+            - Name: "ALARM_ACTION_ARN"
+              Value: !ImportValue "{{ organization.cfn_name }}MonitoringSubaccount-MonitoringSNSTopic"
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt CWCreateDashboardTaskRole.Arn
+
+  CloudWatchDeleteAndCreateTaggedCloudformationStacks:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "cw-{{ project }}-delete-tagged-cfn-stacks"
+      RetentionInDays: 14
+
+{% if ecsmgmt.ass is defined and not (ecsmgmt.ass.disable | default(true)) %}
+  AwsAssTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+  DeleteAndCreateTaggedStacksTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  TaskAwsAssStop:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchAwsAss
+    Properties:
+      Family: "task-aws-ass-stop"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 1024
+      Cpu: 512
+      ContainerDefinitions:
+        - Name: "aws-ass-stop"
+          Essential: "true"
+          Image: "tryxcom/aws-ass-stop:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchAwsAss"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "aws-ass-stop"
+{%   if ecsmgmt.ass is defined and ecsmgmt.ass.tag_prefix is defined %}
+          Environment:
+            - Name: "ASS_TAG_PREFIX"
+              Value: "{{ ecsmgmt.ass.tag_prefix }}"
+{%   endif %}
+          ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+          TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
+
+  TaskAwsAssStart:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - CloudWatchAwsAss
+    Properties:
+      Family: "task-aws-ass-start"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Memory: 1024
+      Cpu: 512
+      ContainerDefinitions:
+        - Name: "aws-ass-start"
+          Essential: "true"
+          Image: "tryxcom/aws-ass-start:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "CloudWatchAwsAss"
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "aws-ass-start"
+{%   if ecsmgmt.ass is defined and ecsmgmt.ass.tag_prefix is defined %}
+          Environment:
+            - Name: "ASS_TAG_PREFIX"
+              Value: "{{ ecsmgmt.ass.tag_prefix }}"
+{%   endif %}
+          ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+          TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
 
   TaskDeleteTaggedCloudformationStacks:
     Type: AWS::ECS::TaskDefinition
@@ -134,108 +226,10 @@ Resources:
       ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
       TaskRoleArn: !GetAtt DeleteAndCreateTaggedStacksTaskRole.Arn
 
-  TaskAwsAssStop:
-    Type: AWS::ECS::TaskDefinition
-    DependsOn:
-      - CloudWatchAwsAss
-    Properties:
-      Family: "task-aws-ass-stop"
-      RequiresCompatibilities:
-        - FARGATE
-      NetworkMode: awsvpc
-      Memory: 1024
-      Cpu: 512
-      ContainerDefinitions:
-        - Name: "aws-ass-stop"
-          Essential: "true"
-          Image: "tryxcom/aws-ass-stop:latest"
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref "CloudWatchAwsAss"
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: "aws-ass-stop"
-{% if ecsmgmt.ass is defined and ecsmgmt.ass.tag_prefix is defined %}
-          Environment:
-            - Name: "ASS_TAG_PREFIX"
-              Value: "{{ ecsmgmt.ass.tag_prefix }}"
-{% endif %}
-      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
-      TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
-
-  TaskAwsAssStart:
-    Type: AWS::ECS::TaskDefinition
-    DependsOn:
-      - CloudWatchAwsAss
-    Properties:
-      Family: "task-aws-ass-start"
-      RequiresCompatibilities:
-        - FARGATE
-      NetworkMode: awsvpc
-      Memory: 1024
-      Cpu: 512
-      ContainerDefinitions:
-        - Name: "aws-ass-start"
-          Essential: "true"
-          Image: "tryxcom/aws-ass-start:latest"
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref "CloudWatchAwsAss"
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: "aws-ass-start"
-{% if ecsmgmt.ass is defined and ecsmgmt.ass.tag_prefix is defined %}
-          Environment:
-            - Name: "ASS_TAG_PREFIX"
-              Value: "{{ ecsmgmt.ass.tag_prefix }}"
-{% endif %}
-
-      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
-      TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
-
-  TaskCWCreateDashboard:
-    Type: AWS::ECS::TaskDefinition
-    DependsOn:
-      - CloudWatchCWCreateDashboard
-    Properties:
-      Family: "task-cw-create-dashboard"
-      RequiresCompatibilities:
-        - FARGATE
-      NetworkMode: awsvpc
-      Memory: 1024
-      Cpu: 512
-      ContainerDefinitions:
-        - Name: "cw-create-dashboard"
-          Essential: "true"
-          Image: "tryxcom/aws-cw-create-dashboard:latest"
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref "CloudWatchCWCreateDashboard"
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: "cw-create-dashboard"
-          Environment:
-            - Name: "ALARM_ACTION_ARN"
-              Value: !ImportValue "{{ organization.cfn_name }}MonitoringSubaccount-MonitoringSNSTopic"
-      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
-      TaskRoleArn: !GetAtt CWCreateDashboardTaskRole.Arn
-
-  CloudWatchDeleteAndCreateTaggedCloudformationStacks:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: "cw-{{ project }}-delete-tagged-cfn-stacks"
-      RetentionInDays: 14
-
   CloudWatchAwsAss:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: "cw-{{ project }}-aws-ass"
-      RetentionInDays: 14
-
-  CloudWatchCWCreateDashboard:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: "cw-{{ project }}-cw-create-dashboard"
       RetentionInDays: 14
 
   DeleteAndCreateTaggedCloudformationStacksUser:
@@ -307,6 +301,13 @@ Resources:
     Properties:
       UserName:
         !Ref DeleteAndCreateTaggedCloudformationStacksUser
+{% endif %}
+
+  CloudWatchCWCreateDashboard:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "cw-{{ project }}-cw-create-dashboard"
+      RetentionInDays: 14
 
 {% for scheduled_task in ecsmgmt.scheduled_tasks | default([]) %}
   EventRuleScheduledTask{{ scheduled_task.cfn_name }}:
@@ -340,6 +341,9 @@ Resources:
     Properties:
       UserName:
         !Ref IAMUser{{ fargate_task.cfn_name }}
+{%       if iam_accesskey_serial is defined %}
+      Serial: {{ iam_accesskey_serial }}
+{%       endif %}
 
   IAMUser{{ fargate_task.cfn_name }}:
     Type: AWS::IAM::User
@@ -424,6 +428,9 @@ Resources:
 {% endfor %}
 
 Outputs:
+  Dummy:
+    Value: dummy
+{% if ecsmgmt.ass is defined and not (ecsmgmt.ass.disable | default(true)) %}
   AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
     Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
   SecretKeyDeleteAndCreateTaggedCloudformationStacksUser:
@@ -432,6 +439,7 @@ Outputs:
     Value: !Ref KeyAwsAssUser
   SecretKeyAwsAssUser:
     Value: !GetAtt KeyAwsAssUser.SecretAccessKey
+{% endif %}
 {% for fargate_task in ecsmgmt.fargate_tasks | default([]) %}
   AccessKey{{ fargate_task.cfn_name }}:
     Value: !Ref IAMAccessKey{{ fargate_task.cfn_name }}

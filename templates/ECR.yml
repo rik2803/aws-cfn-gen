@@ -4,7 +4,7 @@ Description: |
   Create ECS Container Registries and a ecr-push user (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
-{% for repo in ecr.repositories %}
+{% for repo in ecr.repositories | default([]) %}
   {{ repo.cfn_name }}:
     Type: AWS::ECR::Repository
     Properties:
@@ -46,50 +46,94 @@ Resources:
           }
 {% endfor %}
 
+  ECRPushPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ECRPushPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - iam:PassRole
+            Effect: Allow
+            Resource:
+              - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSTaskRole*'
+              - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSExecutionRole'
+              - 'arn:aws:iam::{{ target_account.account_id }}:role/ECSExecutionRole*'
+              - 'arn:aws:iam::{{ target_account.account_id }}:role/CwEvent*'
+          - Action:
+              - events:ListRules
+              - events:ListTargetsByRule
+              - events:PutTargets
+              - events:DescribeRule
+              - events:PutEvents
+            Effect: Allow
+            Resource: '*'
+          - Action:
+              - ecs:UpdateService
+              - ecs:ListServices
+              - ecs:DescribeServices
+            Effect: Allow
+            Resource: '*'
+          - Action:
+              - cloudwatch:DescribeAlarms
+              - cloudwatch:DisableAarmActions
+              - cloudwatch:EnableAlarmActions
+            Effect: Allow
+            Resource: '*'
+          - Action:
+              - ecs:ListTaskDefinitionFamilies
+              - ecs:RegisterTaskDefinition
+              - ecs:ListTaskDefinitions
+              - ecs:DescribeTaskDefinition
+            Effect: Allow
+            Resource: '*'
+      Groups:
+        - !Ref ECRPushGroup
+
+  ECRPushGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: ECRPushGroup
+
   ECRPush:
     Type: AWS::IAM::User
     Properties:
       UserName: ecr-push
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
-      Policies:
-        - PolicyName: AllowServiceUpdate
-          PolicyDocument:
-            Statement:
-            - Action:
-                - ecs:UpdateService
-              Effect: Allow
-              Resource: '*'
-            Version: '2012-10-17'
-        - PolicyName: AllowCloudWatchEnableAndDisableAlarms
-          PolicyDocument:
-            Statement:
-            - Action:
-                - cloudwatch:DescribeAlarms
-                - cloudwatch:DisableAlarmActions
-                - cloudwatch:EnableAlarmActions
-              Effect: Allow
-              Resource: '*'
-            Version: '2012-10-17'
+      Groups:
+        - !Ref ECRPushGroup
 
+  ECRPullGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: ECRPullGroup
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
 
   ECRPull:
     Type: AWS::IAM::User
     Properties:
       UserName: ecr-pull
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Groups:
+        - !Ref ECRPullGroup
 
   KeyECRPush:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName:
         !Ref ECRPush
+{%       if iam_accesskey_serial is defined %}
+      Serial: {{ iam_accesskey_serial }}
+{%       endif %}
+
   KeyECRPull:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName:
         !Ref ECRPull
+{%       if iam_accesskey_serial is defined %}
+      Serial: {{ iam_accesskey_serial }}
+{%       endif %}
 
 Outputs:
   AccessKeyECRPush:

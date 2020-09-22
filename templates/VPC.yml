@@ -155,7 +155,17 @@ Resources:
       FromPort: "2049"
       ToPort: "2049"
       SourceSecurityGroupId: !Ref SGAPP
-      
+
+  # Required for Interface VPC endpoints
+  SGAPPIngressHTTPS:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SGAPP
+      IpProtocol: "tcp"
+      FromPort: "443"
+      ToPort: "443"
+      SourceSecurityGroupId: !Ref SGAPP
+
   VPC:
     Type: AWS::EC2::VPC
     Properties:
