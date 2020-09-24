@@ -19,6 +19,7 @@ the image.
 | `name`                      | yes       | Repository name                                        |         |
 | `cfn_name`                  | yes       | Name for the CloudFormation resource                   |         |
 | `cross_account_access.pull` | no        | List of **existing** AWS account id's with pull access |         |
+| `scanonpush`                | no        | Scan Docker images on push                             |         |
 
 ## Example Configuration
 
@@ -31,4 +32,5 @@ ecr:
         pull:
           - 112233445566
           - 223344556611
+      scanonpush:
 ```
