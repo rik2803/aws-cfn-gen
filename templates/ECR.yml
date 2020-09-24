@@ -99,6 +99,8 @@ Resources:
     Type: AWS::IAM::Group
     Properties:
       GroupName: ECRPushGroup
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
 
   ECRPush:
     Type: AWS::IAM::User

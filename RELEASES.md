@@ -9,6 +9,10 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.5.3` (20200924)
+
+Re-assign required AmazonEC2ContainerRegistryFullAccess to ecr-push user
+
 ## `0.5.2` (20200924)
 
 ECS2: Remove obsolete outputs
