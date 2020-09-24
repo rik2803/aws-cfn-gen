@@ -9,6 +9,10 @@ Resources:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: "{{ repo.name }}"
+{%   if repo.scanonpush is defined %}
+      ImageScanningConfiguration:
+        ScanOnPush: true
+{%   endif %}
 {%   if repo.cross_account_access is defined and repo.cross_account_access.pull is defined %}
       RepositoryPolicyText:
         Version: "2012-10-17"
