@@ -920,25 +920,5 @@ Outputs:
     Description: "{{ item.description | default(item.name) }}"
     Export:
       Name: !Sub "${AWS::StackName}-{{ item.name }}CanonicalHostedZoneID"
-  TGDefaultHTTP{{ item.name }}:
-    Value: !Ref "TGDefaultHTTP{{ item.name }}"
-    Description: "Default Target Group for HTTP."
-    Export:
-      Name: !Sub "${AWS::StackName}-TGDefaultHTTP{{ item.name }}"
-  TGDefaultHTTPS{{ item.name }}:
-    Value: !Ref "TGDefaultHTTPS{{ item.name }}"
-    Description: "Default Target Group for HTTPS."
-    Export:
-      Name: !Sub "${AWS::StackName}-TGDefaultHTTPS{{ item.name }}"
-{% for app in applicationconfig | default([]) %}
-{%   if app.domains is defined and app.lb.name == item.name %}
-  TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}:
-    Value: !Ref "{{ app.cfn_name }}{{ item.name }}"
-    Description: "Target Group for application {{ app.name }} in project {{ project }}."
-    Export:
-      Name: !Sub "${AWS::StackName}-{{ ('tg-' + shortproject + '-' + (item.name | lower) + '-' + (app.name | lower)) | truncate(32, True, '', 0) }}"
-
-{%   endif %}
-{% endfor %}
 {% endfor %}
 
