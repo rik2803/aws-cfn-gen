@@ -41,11 +41,11 @@ Resources:
 {%   for s3 in s3_origin_list %}
               - "{{ s3 }}"
 {%   endfor %}
-           - Effect: Allow
-             Action:
-               - s3:ListAllMyBuckets
-             Resource:
-               - "*"
+          - Effect: Allow
+            Action:
+              - s3:ListAllMyBuckets
+            Resource:
+              - "*"
 {% endif %}
           - Effect: Allow
             Action:
