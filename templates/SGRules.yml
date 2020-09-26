@@ -1,0 +1,20 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Create SG Rule and add it to an existing SG (aws-cfn-gen version: {{ gittag | default('na') }})
+
+Resources:
+
+{% for sgrule in sgrules %}
+{%   if sgrule.type == "ingress" %}
+  {{ sgrule.cfn_name }}:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: "{{ sgrule.sg_id }}"
+      Description: "{{ sgrule.description | default('NA') }}"
+      IpProtocol: "{{ sgrule.protocol | default('tcp') }}"
+      FromPort: "{{ sgrule.from_port }}"
+      ToPort: "{{ sgrule.to_port }}"
+      SourceSecurityGroupId: "{{ sgrule.source_sg_id }}"
+{%   endif %}
+{% endfor %}

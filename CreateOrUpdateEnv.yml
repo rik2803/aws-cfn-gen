@@ -287,6 +287,45 @@
 
       when: "referenced_stacks is defined and referenced_stacks.VPCStackName is defined"
 
+    - name: SGRules
+      block:
+        - name: Create CFN template from Ansible template for Security Group Rules
+          template:
+            src: "SGRules.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sgrules.yml"
+        - name: Put CFN template for SGRules on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sgrules.yml" \
+                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-sgrules.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the SGRules template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-sgrules.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the SGRules CloudFormation stack
+          cloudformation:
+            stack_name: "{{ cfn_project }}SGRules"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}SGRules{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}SGRules" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}SGRules{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}SGRules --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+      tags: [ 'sgrules' ]
+      when: "sgrules is defined"
+
     - name: KMS
       block:
         - name: Create CFN template from Ansible template for KMS

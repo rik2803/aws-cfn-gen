@@ -9,6 +9,22 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.5.5` (20200926)
+
+A new module SGRules to add ingress rule to existing security groups.
+
+```yaml
+sgrules:
+  - cfn_name: AddTcp8080ToSGInternal
+    type: "ingress"
+    sg_id: "sg_123456789"
+    source_sg_id: "sg_123456789"
+    description: "Allow intra SG traffic to port 8080"
+    protocol: "tcp"
+    from_port: "8080"
+    to_port: "8080"
+```
+
 ## `0.5.3` (20200924)
 
 Re-assign required AmazonEC2ContainerRegistryFullAccess to ecr-push user
