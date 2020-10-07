@@ -321,17 +321,6 @@ Resources:
       LogGroupName: !Sub "cw-{{ project }}-{{ app.name }}"
       RetentionInDays: 14
 
-  ### AWS::CloudWatch::MetricFilter for CloudWatch logs for application {{ app.name }}
-  MetricFilterAppStart{{ app.cfn_name }}:
-    Type: "AWS::Logs::MetricFilter"
-    Properties:
-      LogGroupName: !Ref CW{{ app.cfn_name }}
-      FilterPattern: "{{ (app.monitoring | default({})).start_filter_string | default('Started Application in') }}"
-      MetricTransformations:
-        - MetricValue: "1"
-          MetricNamespace: "{{ cfn_project }}/ServiceStart"
-          MetricName: "{{ app.cfn_name }}"
-
 {%     if app.logs_subscription_filter is defined %}
   CWSubscrFilter{{ app.cfn_name }}:
     Type: AWS::Logs::SubscriptionFilter

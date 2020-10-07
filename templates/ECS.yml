@@ -413,17 +413,6 @@ Resources:
       LogGroupName: !Sub "cw-{{ project }}-{{ app.name }}"
       RetentionInDays: 14
 
-  ### AWS::CloudWatch::MetricFilter for CloudWatch logs for application {{ app.name }}
-  MetricFilterAppStart{{ cfn_project }}{{ app.cfn_name }}:
-    Type: "AWS::Logs::MetricFilter"
-    Properties:
-      LogGroupName: !Ref CloudWatch{{ cfn_project }}{{ app.cfn_name }}
-      FilterPattern: "{{ (app.monitoring | default({})).start_filter_string | default('Started Application in') }}"
-      MetricTransformations:
-        - MetricValue: "1"
-          MetricNamespace: "{{ cfn_project }}/ServiceStart"
-          MetricName: "{{ app.cfn_name }}"
-
 {%     if app.logs_subscription_filter is defined %}
   CWSubscrFilter{{ cfn_project }}{{ app.cfn_name }}:
     Type: AWS::Logs::SubscriptionFilter
@@ -433,25 +422,6 @@ Resources:
 {%     endif %}
       FilterPattern: '{{ app.logs_subscription_filter.filter_pattern | default('') }}'
       LogGroupName: !Ref CloudWatch{{ cfn_project }}{{ app.cfn_name }}
-{%     endif %}
-
-{%     if app.disable_alarm is not defined or app.disable_alarm %}
-  ### AWS::CloudWatch::Alarm for MetricFilterAppStart
-  AlarmAppStart{{ cfn_project }}{{ app.cfn_name }}:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      ActionsEnabled: "{{ (app.monitoring | default({})).alarm_actions_enabled | default('false') }}"
-      AlarmDescription: "Start Alarm for {{ cfn_project }}{{ app.cfn_name }}"
-      AlarmActions:
-        - !ImportValue "{{ organization.cfn_name | title }}MonitoringSubaccount-MonitoringSNSTopic"
-      MetricName: "{{ app.cfn_name }}"
-      Namespace: "{{ cfn_project }}/ServiceStart"
-      Statistic: Average
-      Period: '60'
-      EvaluationPeriods: '1'
-      Threshold: '1'
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
 {%     endif %}
 
   ### AWS::ECS::TaskDefinition for {{ app.name }}

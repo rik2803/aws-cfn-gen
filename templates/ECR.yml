@@ -17,19 +17,45 @@ Resources:
       RepositoryPolicyText:
         Version: "2012-10-17"
         Statement:
+{%     if repo.cross_account_access.pull is defined %}
           -
             Sid: AllowPull
             Effect: Allow
             Principal:
               AWS:
-{%     for account_id in repo.cross_account_access.pull %}
+{%       for account_id in repo.cross_account_access.pull %}
                 - "arn:aws:iam::{{ account_id }}:root"
-{%     endfor %}
+{%       endfor %}
             Action:
               - "ecr:GetDownloadUrlForLayer"
               - "ecr:BatchGetImage"
               - "ecr:BatchCheckLayerAvailability"
               - "ecr:GetAuthorizationToken"
+{%     endif %}
+{%     if repo.cross_account_access.push is defined %}
+          -
+            Sid: AllowPush
+            Effect: Allow
+            Principal:
+              AWS:
+{%       for account_id in repo.cross_account_access.push %}
+                - "arn:aws:iam::{{ account_id }}:root"
+{%       endfor %}
+            Action:
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:GetAuthorizationToken"
+              - "ecr:GetRepositoryPolicy"
+              - "ecr:DescribeRepositories"
+              - "ecr:ListImages"
+              - "ecr:DescribeImages"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+              - "ecr:PutImage"
+
+{%     endif %}
 {%   endif %}
       LifecyclePolicy:
         LifecyclePolicyText: |
