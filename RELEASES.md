@@ -9,6 +9,13 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.5.6`
+
+* Block all public access on bucket where template is uploaded
+* Remove start/stop metric filter and cw alarm from ecs service cloudwatch loggroups
+* Allow cross account ECR push for selected accounts
+
+
 ## `0.5.5` (20200926)
 
 A new module SGRules to add ingress rule to existing security groups.
