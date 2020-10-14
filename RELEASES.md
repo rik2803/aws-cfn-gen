@@ -9,6 +9,11 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.5.7` (20201014)
+
+Fix issue where ECS EC2 instances are added to the cluster even when all
+services are configured as `FARGATE` service.
+
 ## `0.5.6`
 
 * Block all public access on bucket where template is uploaded

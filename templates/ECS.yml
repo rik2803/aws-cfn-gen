@@ -370,7 +370,7 @@ Resources:
 {%   endfor %}
 {% endif %}
 
-{% if non_fargate_count > 0 %}
+{% if non_fargate_count.value > 0 %}
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
