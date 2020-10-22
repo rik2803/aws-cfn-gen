@@ -65,8 +65,8 @@ Resources:
         SecurityGroupIds:
           - "{{ vpc_sg_app }}"
 {%   endif %}
-      Timeout: "{{ lambda.timeout | default('3') }}"
-      MemorySize: "{{ lambda.memory_size | default('128') }}"
+      Timeout: "{{ lambda.timeout | default('30') }}"
+      MemorySize: "{{ lambda.memory_size | default('256') }}"
       Tags:
         - Key: Application
           Value: "{{ application }}"
