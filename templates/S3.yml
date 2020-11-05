@@ -71,12 +71,12 @@ Resources:
         Value: "{{ env }}"
       - Key: Customer
         Value: "{{ customer | default('NA') }}"
-{%   if bucket.tags is defined %}
-{%     for tag in bucket.tags %}
+{%  for tag in bucket.tags | default([]) %}
+{%    if tag.key is defined and tag.value is defined %}
       - Key: "{{ tag.key }}"
         Value: "{{ tag.value }}"
-{%     endfor %}
-{%   endif %}
+{%    endif %}
+{%  endfor %}
 
 {% endfor %}
 
