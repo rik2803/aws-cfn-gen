@@ -74,7 +74,7 @@ Resources:
 {%   if bucket.tags is defined %}
 {%     for tag in bucket.tags %}
       - Key: "{{ tag.key }}"
-        Value: "{{ tag.key }}"
+        Value: "{{ tag.value }}"
 {%     endfor %}
 {%   endif %}
 
