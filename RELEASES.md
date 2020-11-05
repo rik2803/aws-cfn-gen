@@ -9,6 +9,10 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.5.8` (20201105)
+
+Fix indentation bug in `ECSMgmt.yml`
+
 ## `0.5.7` (20201014)
 
 Fix issue where ECS EC2 instances are added to the cluster even when all
