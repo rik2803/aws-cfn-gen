@@ -146,8 +146,8 @@ Resources:
             - Name: "ASS_TAG_PREFIX"
               Value: "{{ ecsmgmt.ass.tag_prefix }}"
 {%   endif %}
-          ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
-          TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
 
   TaskAwsAssStart:
     Type: AWS::ECS::TaskDefinition
@@ -175,8 +175,8 @@ Resources:
             - Name: "ASS_TAG_PREFIX"
               Value: "{{ ecsmgmt.ass.tag_prefix }}"
 {%   endif %}
-          ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
-          TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
+      ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
+      TaskRoleArn: !GetAtt AwsAssTaskRole.Arn
 
   TaskDeleteTaggedCloudformationStacks:
     Type: AWS::ECS::TaskDefinition
