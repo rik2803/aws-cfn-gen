@@ -817,6 +817,13 @@ s3:
         - 'PUT'
       allowed_origins:
         - '*'
+    tags:
+      - key: "ass:s3:backup-and-empty-bucket-on-stop"
+        value: "yes"
+      - key: "ass:s3:backup-and-enpty-bucket-on-stop-acl"
+        value: "private"
+      - key: "..."
+        value: "..."  
 ```
 
 #### `name`
@@ -947,6 +954,23 @@ Omitting a property from the configuration will use following defaults:
 * `allowed_methods`: `['GET', 'PUT']`
 * `allowed_headers`: `['*']`
 * No defaults for `exposed_headers`
+
+#### `tags`
+
+Give custom tags to S3 buckets (e.g. `ass:s3:backup-and-empty-bucket-on-stop`)
+
+* `ass:s3:backup-and-empty-bucket-on-stop`: lets `ass-start-stop know if this bucket is part of the backup process.
+* `ass:s3:backup-and-enpty-bucket-on-stop-acl`: acl settings for `ass-start-stop` (default: `private`).
+
+```
+    tags:
+      - key: "ass:s3:backup-and-empty-bucket-on-stop"
+        value: "yes"
+      - key: "ass:s3:backup-and-enpty-bucket-on-stop-acl"
+        value: "private"
+      - key: "..."
+        value: "..."
+```
 
 
 ### `applicationconfig`
