@@ -102,6 +102,10 @@
         stack_deletion_order_alb:                "{% if env == 'prd' %}0{% else %}{{ (stack_deletion_order | default({})).alb                | default(30) }}{% endif %}"
       tags: [ 'always' ]
 
+    - name: Set all cfn-lint checks to ignore
+      set_fact:
+        cfn_lint_ignore_list: "E3012,W1001,W3005,E1029"
+
     - name: Dump Stack Deletion facts
       block:
         - debug:
@@ -168,7 +172,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml"
         - name: Check generated VPC CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpc.yml" \
@@ -258,7 +262,7 @@
                 dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
             - name: Check generated VPCEndPoint CloudFormation file against linter.
               shell: |
-                cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
+                cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml"
             - name: Put CFN template on s3
               shell: |
                 aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-vpcendpoint.yml" \
@@ -304,7 +308,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sgrules.yml"
         - name: Check generated Security Group Rule CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sgrules.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sgrules.yml"
         - name: Put CFN template for SGRules on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sgrules.yml" \
@@ -346,7 +350,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-kms.yml"
         - name: Check generated KMS CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-kms.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-kms.yml"
         - name: Put CFN template for KMS on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-kms.yml" \
@@ -388,7 +392,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-secretsmanager.yml"
         - name: Check generated SecretsManager CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-secretsmanager.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-secretsmanager.yml"
         - name: Put CFN template for SecretsManager on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-secretsmanager.yml" \
@@ -430,7 +434,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rdsparametergroups.yml"
         - name: Check generated RDSParameterGroups CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rdsparametergroups.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rdsparametergroups.yml"
         - name: Put CFN template for RDSParameterGroups on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rdsparametergroups.yml" \
@@ -475,7 +479,7 @@
           with_items: "{{ rds | default([]) }}"
         - name: Check generated RDS Database CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml"
         - name: Put CFN template for RDS on s3
           shell: |
             aws s3 cp \
@@ -522,7 +526,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml"
         - name: Check generated ChatNotifications CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml"
         - name: Put CFN template for ChatNotification on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-chatnotifications.yml" \
@@ -564,7 +568,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml"
         - name: Check generated Bastion CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml" \
@@ -608,7 +612,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml"
         - name: Check generated ECR CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecr.yml" \
@@ -650,7 +654,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecsmgmt.yml"
         - name: Check generated ECSMgmt CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecsmgmt.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecsmgmt.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecsmgmt.yml" \
@@ -693,7 +697,7 @@
           with_items: "{{ route53_delegation | default([]) }}"
         - name: Check generated Route53 Delegation CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53delegation-{{ item.hostedzone.id }}.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53delegation-{{ item.hostedzone.id }}.yml"
         - name: Put CFN template for Route53 Delegation on s3
           shell: |
             aws s3 cp \
@@ -739,7 +743,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml"
         - name: Check generated IAM CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-iam.yml" \
@@ -788,7 +792,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml"
         - name: Check generated Lambda CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambda.yml" \
@@ -836,7 +840,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambdacloudfront.yml"
         - name: Check generated Lambda Cloudfront CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambdacloudfront.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambdacloudfront.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambdacloudfront.yml" \
@@ -879,7 +883,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cw.yml"
         - name: Check generated CloudWatch CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cw.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cw.yml"
         - name: Put CloudWatch CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cw.yml" \
@@ -921,7 +925,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml"
         - name: Check generated EFS CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-efs.yml" \
@@ -964,7 +968,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml"
         - name: Check generated DynamoDB CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-dynamodb.yml" \
@@ -1010,7 +1014,7 @@
           with_items: "{{ loadbalancers | default([]) }}"
         - name: Check generated LoadBalancers CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp \
@@ -1059,7 +1063,7 @@
           dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sns.yml"
       - name: Check generated SNS CloudFormation file against linter.
         shell: |
-          cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sns.yml"
+          cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sns.yml"
       - name: Put SNS CFN template on s3
         shell: |
           aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-sns.yml" \
@@ -1102,7 +1106,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
         - name: Check generated S3 CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-s3.yml" \
@@ -1145,7 +1149,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml"
         - name: Check generated CloudFront CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-cloudfront.yml" \
@@ -1190,7 +1194,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml"
         - name: Check generated Route53 Hosted Zones CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53.yml" \
@@ -1235,7 +1239,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml"
         - name: Check generated ECS Cluster CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml"
         - name: Put CFN template for ECS on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs.yml" \
@@ -1280,7 +1284,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs2.yml"
         - name: Check generated ECS2 Cluster CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs2.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs2.yml"
         - name: Put CFN template for ECS2 on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecs2.yml" \
@@ -1325,7 +1329,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml"
         - name: Check generated WAF Associations CloudFormation file against linter.
           shell: |
-            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml"
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml"
         - name: "Put CFN template for WAF associations on s3"
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-waf-associations.yml" \
