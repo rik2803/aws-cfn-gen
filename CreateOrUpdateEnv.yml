@@ -105,6 +105,7 @@
     - name: Set all cfn-lint checks to ignore
       set_fact:
         cfn_lint_ignore_list: "E3012,W1001,W3005,E1029"
+      tags: [ 'always' ]
 
     - name: Dump Stack Deletion facts
       block:
