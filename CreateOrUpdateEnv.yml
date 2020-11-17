@@ -564,7 +564,7 @@
             dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml"
         - name: Check generated Bastion CloudFormation file against linter.
           shell: |
-            cfn-lint "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml"
+            cfn-lint --ignore-checks=E3012,W1001,W3005,E1029 "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-bastionhost.yml" \
