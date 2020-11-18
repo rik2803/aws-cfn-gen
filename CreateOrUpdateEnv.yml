@@ -481,6 +481,7 @@
         - name: Check generated RDS Database CloudFormation file against linter.
           shell: |
             cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml"
+          with_items: "{{ rds | default([]) }}"
         - name: Put CFN template for RDS on s3
           shell: |
             aws s3 cp \
