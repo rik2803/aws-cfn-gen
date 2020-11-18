@@ -105,6 +105,7 @@
     - name: Set all cfn-lint checks to ignore
       set_fact:
         cfn_lint_ignore_list: "E3012,W1001,W3005,E1029"
+      tags: [ 'always' ]
 
     - name: Dump Stack Deletion facts
       block:
@@ -698,6 +699,7 @@
         - name: Check generated Route53 Delegation CloudFormation file against linter.
           shell: |
             cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-route53delegation-{{ item.hostedzone.id }}.yml"
+          with_items: "{{ route53_delegation | default([]) }}"
         - name: Put CFN template for Route53 Delegation on s3
           shell: |
             aws s3 cp \
