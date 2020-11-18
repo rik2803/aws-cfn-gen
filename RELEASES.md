@@ -9,6 +9,14 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.5.11` (20201118)
+
+Bugfixes in CloudFormation lint checker
+
+## `0.5.10` (20201117)
+
+Add `cfn-lint` check after template generation, but before template deploy
+
 ## `0.5.8` (20201105)
 
 Fix indentation bug in `ECSMgmt.yml`
