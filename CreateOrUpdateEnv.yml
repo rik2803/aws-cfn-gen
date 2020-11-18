@@ -104,7 +104,7 @@
 
     - name: Set all cfn-lint checks to ignore
       set_fact:
-        cfn_lint_ignore_list: "E3012,W1001,W3005,E1029"
+        cfn_lint_ignore_list: "E3012,W1001,W3005,E1029,W2501"
       tags: [ 'always' ]
 
     - name: Dump Stack Deletion facts
@@ -481,6 +481,7 @@
         - name: Check generated RDS Database CloudFormation file against linter.
           shell: |
             cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-rds-{{ item.db_instance_id }}.yml"
+          with_items: "{{ rds | default([]) }}"
         - name: Put CFN template for RDS on s3
           shell: |
             aws s3 cp \
@@ -1005,6 +1006,7 @@
         - name: Check generated LoadBalancers CloudFormation file against linter.
           shell: |
             cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers | default([]) }}"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp \
