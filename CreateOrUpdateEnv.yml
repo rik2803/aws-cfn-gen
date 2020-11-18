@@ -780,12 +780,6 @@
 
     - name: Lambda
       block:
-        - name: Get unique version_id to name the Lambda version resource
-          shell: openssl rand -hex 12
-          register: openssl
-        - name: Save version_id
-          set_fact:
-            version_id: "{{ openssl.stdout }}"
         - name: Create CFN template from Ansible template for the Lambda functions
           template:
             src: "Lambda.yml"
@@ -828,12 +822,6 @@
 
     - name: LambdaCloudfront
       block:
-        - name: Get unique version_id to name the Lambda version resource
-          shell: openssl rand -hex 12
-          register: openssl
-        - name: Save version_id
-          set_fact:
-            version_id: "{{ openssl.stdout }}"
         - name: Create CFN template from Ansible template for the Lambda functions in us-east-1
           template:
             src: "LambdaCloudfront.yml"
