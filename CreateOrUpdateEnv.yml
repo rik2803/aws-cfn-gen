@@ -1017,6 +1017,7 @@
         - name: Check generated LoadBalancers CloudFormation file against linter.
           shell: |
             cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-alb-{{ item.name }}.yml"
+          with_items: "{{ loadbalancers | default([]) }}"
         - name: Put CFN template on s3
           shell: |
             aws s3 cp \
