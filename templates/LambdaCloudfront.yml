@@ -56,13 +56,6 @@ Resources:
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
 
-# TODO: Version creation fails when function is unchanged
-#  {{ lambda_cfn_name }}Version{{ version_id }}:
-#    Type: AWS::Lambda::Version
-#    Properties:
-#      FunctionName: !Ref {{ lambda_cfn_name }}
-
-
 {%   for liv in lambda.invoke_permissions | default([]) %}
 {%     if liv.type == 'predefined' and liv.name == 'logs' %}
   {{ lambda_cfn_name }}CWLogsInvokePermission:
@@ -104,13 +97,5 @@ Outputs:
     Description: "Lambda function {{ lambda_cfn_name }} Arn"
     Export:
       Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}Arn"
-
-# TODO: Version creation fails when function is unchanged
-#  {{ lambda_cfn_name }}VersionOutput:
-#    Value: !GetAtt {{ lambda_cfn_name }}Version{{ version_id }}.Version
-#    Description: "Lambda Version {{ lambda_cfn_name }}Version{{ version_id }} Version"
-#    Export:
-#      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}VersionVersion"
-
 
 {% endfor %}
