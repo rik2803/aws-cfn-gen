@@ -14,22 +14,22 @@ Description: |
 Mappings:
   AWSRegionToAMI:
     eu-central-1:
-      AMIID: ami-0bce3fe782b5b6394
+      AMIID: ami-091ae1d0073cfc44e
     eu-west-1:
-      AMIID: ami-0a490cbd46f8461a9
+      AMIID: ami-0d3c55e1582bd84fd
     eu-west-2:
-      AMIID: ami-04c120561ae718c4e
+      AMIID: ami-033427751d2bcb33a
     eu-west-3:
-      AMIID: ami-05d7e0c35c7d138c5
+      AMIID: ami-0288926e74a35212f
   AWSRegionToAmzn2AMI:
     eu-central-1:
-      AMIID: ami-0d2e4df42e13655e0
+      AMIID: ami-065c1e34da68f2b02
     eu-west-1:
-      AMIID: ami-0a74b180a0c97ecd1
+      AMIID: ami-0c9ef930279337028
     eu-west-2:
-      AMIID: ami-04967dd60612d3b49
+      AMIID: ami-0ce75da72db51b0f0
     eu-west-3:
-      AMIID: ami-032a9f3e531acca53
+      AMIID: ami-015011bcdf1c3377a
 
 Resources:
 
