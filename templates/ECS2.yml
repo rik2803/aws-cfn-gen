@@ -14,13 +14,13 @@ Description: |
 Mappings:
   AWSRegionToAmzn2AMI:
     eu-central-1:
-      AMIID: ami-0d2e4df42e13655e0
+      AMIID: ami-065c1e34da68f2b02
     eu-west-1:
-      AMIID: ami-0a74b180a0c97ecd1
+      AMIID: ami-0c9ef930279337028
     eu-west-2:
-      AMIID: ami-04967dd60612d3b49
+      AMIID: ami-0ce75da72db51b0f0
     eu-west-3:
-      AMIID: ami-032a9f3e531acca53
+      AMIID: ami-015011bcdf1c3377a
   Region2ELBAccountId:
     us-east-1:
       AccountId: "127311923021"
@@ -687,7 +687,7 @@ Resources:
       LoadBalancerArn: !Ref 'LB{{ item.name }}'
       Port: '443'
       Protocol: HTTPS
-      SslPolicy: "{{ item.ssl_policy | default('ELBSecurityPolicy-2016-08') }}"
+      SslPolicy: "{{ item.ssl_policy | default('ELBSecurityPolicy-FS-1-2-Res-2019-08') }}"
       Certificates:
         - CertificateArn: {{ item.certificate_arn }}
   Listener{{ item.name }}HTTP:
