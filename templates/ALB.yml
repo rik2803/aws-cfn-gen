@@ -168,7 +168,7 @@ Resources:
       LoadBalancerArn: !Ref 'LB{{ item.name }}'
       Port: '443'
       Protocol: HTTPS
-      SslPolicy: "{{ item.ssl_policy | default('ELBSecurityPolicy-2016-08') }}"
+      SslPolicy: "{{ item.ssl_policy | default('ELBSecurityPolicy-FS-1-2-Res-2019-08') }}"
       Certificates:
         - CertificateArn: {{ item.certificate_arn }}
   Listener{{ item.name }}HTTP:
