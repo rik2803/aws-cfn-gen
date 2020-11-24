@@ -9,6 +9,19 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.0` (20201124)
+
+### Warning
+
+Upgrading to this version will possibly cause downtime because new AMI's will be used
+
+### Changes
+ 
+* Default TLS policies for ALB and CloudFront are updated to `ELBSecurityPolicy-FS-1-2-Res-2019-08`
+  and `TLSv1.2_2019` respectively
+* AMI's for Bastion and ECS cluster are updated
+* Only Amazon2 linux AMI's are allowed for EC2 based ECS clusters and Bastion hosts
+
 ## `0.5.12` (20201118)
 
 Bugfixes in CloudFormation lint checker
