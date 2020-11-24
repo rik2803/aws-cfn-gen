@@ -7,13 +7,13 @@ Description: |
 Mappings:
   AWSRegionToAmzn2AMI:
     eu-central-1:
-      AMIID: ami-0cc293023f983ed53
+      AMIID: ami-0649a2ac1437cf3b7
     eu-west-1:
-      AMIID: ami-0bbc25e23a7640b9b
+      AMIID: ami-014ce76919b528bff
     eu-west-2:
-      AMIID: ami-0d8e27447ec2c8410
+      AMIID: ami-0271d331ac7dab654
     eu-west-3:
-      AMIID: ami-0adcddd3324248c4c
+      AMIID: ami-0c3d23d707737957d
 
 Resources:
 

@@ -14,13 +14,13 @@ Description: |
 Mappings:
   AWSRegionToAmzn2AMI:
     eu-central-1:
-      AMIID: ami-065c1e34da68f2b02
+      AMIID: ami-0e6de310858faf4dc
     eu-west-1:
-      AMIID: ami-0c9ef930279337028
+      AMIID: ami-0bf2c3827d202c3bb
     eu-west-2:
-      AMIID: ami-0ce75da72db51b0f0
+      AMIID: ami-08265e8ea5c79d579
     eu-west-3:
-      AMIID: ami-015011bcdf1c3377a
+      AMIID: ami-0c566b8d4c555b53e
   Region2ELBAccountId:
     us-east-1:
       AccountId: "127311923021"
