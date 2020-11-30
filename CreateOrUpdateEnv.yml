@@ -736,7 +736,7 @@
           when: "create_changeset is defined and create_changeset == 'yes'"
           with_items: "{{ presign.results }}"
           tags: [ 'deploy' ]
-      tags: [ 'route53delegation' ]
+      tags: [ 'route53delegation', 'route53_delegation' ]
 
     - name: IAM
       block:
