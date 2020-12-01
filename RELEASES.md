@@ -9,6 +9,42 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.2` (20201201)
+
+You can now skip linter checks using the Ansible `--skip-tags` option.
+
+Available tags:
+
+* `linter` or `cfn-lint` to skip all lint checks
+* Resource specific tags in the form `lint-<resource>`:
+  * `linter-vpc`
+  * `linter-vpcendpoints`
+  * `linter-sgrules`
+  * `linter-kms`
+  * `linter-secretemanager`
+  * `linter-rdsparametergroups`
+  * `linter-rds`
+  * `linter-chatnotifications`
+  * `linter-bastion`
+  * `linter-ecr`
+  * `linter-ecsmgmt`
+  * `linter-route53delegation`
+  * `linter-iam`
+  * `linter-lambda`
+  * `linter-lambdacloudfront`
+  * `linter-cloudwatch`
+  * `linter-efs`
+  * `linter-dynamodb`
+  * `linter-loadbalancers`
+  * `linter-sns`
+  * `linter-s3`
+  * `linter-cloudfront`
+  * `linter-route53`
+  * `linter-ecs`
+  * `linter-ecs2`
+  * `linter-wafassociations`
+
+
 ## `0.6.1` (20201130)
 
 * Update Policy version from `2008-10-17` to `2012-10-17` to satisfy linter check
