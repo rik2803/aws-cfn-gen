@@ -142,6 +142,48 @@ The _Docker_ image is called `ixor/ansible-aws-cfn-gen` and can be
 found [here](https://hub.docker.com/r/ixor/ansible-aws-cfn-gen/). The documentation for
 this _DockerWrapper_ is in rhe file `README_DOCKERWRAPPER.md` in this repository.
 
+### CloudFormation lint checks
+
+All generated _CloudFront_ templates are checked for correctness by a linter. Templates that fail to pass
+the check will cause the play to fail.
+
+But sometimes, it's not possible or at least not easy to fix certain issues on short notice. Every case
+should be subject to thorough evaluation, but when required and possible, the lint checks can be skipped
+for a specific resource using the Ansible `--skip-tags` option.
+                        
+Available tags:
+
+* `linter` or `cfn-lint` to skip all lint checks
+* Resource specific tags in the form `lint-<resource>`:
+  * `linter-vpc`
+  * `linter-vpcendpoints`
+  * `linter-sgrules`
+  * `linter-kms`
+  * `linter-secretemanager`
+  * `linter-rdsparametergroups`
+  * `linter-rds`
+  * `linter-chatnotifications`
+  * `linter-bastion`
+  * `linter-ecr`
+  * `linter-ecsmgmt`
+  * `linter-route53delegation`
+  * `linter-iam`
+  * `linter-lambda`
+  * `linter-lambdacloudfront`
+  * `linter-cloudwatch`
+  * `linter-efs`
+  * `linter-dynamodb`
+  * `linter-loadbalancers`
+  * `linter-sns`
+  * `linter-s3`
+  * `linter-cloudfront`
+  * `linter-route53`
+  * `linter-ecs`
+  * `linter-ecs2`
+  * `linter-wafassociations`
+
+
+
 ### An example _dockerwrapper_ script
 
 If, for example, you have a configuration file, `config.yml` that is tested and approved
