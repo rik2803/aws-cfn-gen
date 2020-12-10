@@ -9,6 +9,22 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.3` (20201210)
+
+AWS decided to stop support for their case error in `FileSystemId`, so we are
+forced to follow and change to `FilesystemId`.
+
+The old case string will result in stacks failing as from March 1, 2021, as stated in
+CloudFormation event logs:
+
+```
+Stack operations on resource TaskDistribution would fail starting from
+03/01/2021 as the template has invalid properties. Please refer to the
+resource documentation to fix the template. Properties validation failed
+for resource TaskDistribution with message:
+#/Volumes/0/EFSVolumeConfiguration:required key [FilesystemId] not found
+```
+
 ## `0.6.2` (20201201)
 
 You can now skip linter checks using the Ansible `--skip-tags` option.
