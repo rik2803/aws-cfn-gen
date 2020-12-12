@@ -1,8 +1,7 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
+
 Description: |
   Create one or more EFS filesystems (aws-cfn-gen version: {{ gittag | default('na') }})
-
 
 Resources:
 {% for filesystem in efs %}
@@ -21,7 +20,7 @@ Resources:
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ1:
     Type: AWS::EFS::MountTarget
     Properties:
-      FilesystemId: !Ref {{ filesystem.cfn_name }}
+      FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       SubnetId: "{{ vpc_privatesubnet_az1 }}"
@@ -29,7 +28,7 @@ Resources:
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ2:
     Type: AWS::EFS::MountTarget
     Properties:
-      FilesystemId: !Ref {{ filesystem.cfn_name }}
+      FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       SubnetId: "{{ vpc_privatesubnet_az2 }}"
@@ -38,7 +37,7 @@ Resources:
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3:
     Type: AWS::EFS::MountTarget
     Properties:
-      FilesystemId: !Ref {{ filesystem.cfn_name }}
+      FileSystemId: !Ref {{ filesystem.cfn_name }}
       SecurityGroups:
         - "{{ vpc_sg_app }}"
       SubnetId: "{{ vpc_privatesubnet_az3 }}"
