@@ -9,7 +9,7 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
-## `0.6.3` (20201210)
+## `0.6.3` (20201210) and `0.6.4` (20201212)
 
 AWS decided to stop support for their case error in `FileSystemId`, so we are
 forced to follow and change to `FilesystemId`.
