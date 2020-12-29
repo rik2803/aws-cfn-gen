@@ -136,7 +136,7 @@ to deploy these AWS CloudFormation templates to the desired account.
 
 The _Docker_ image contains a combination of _ansible_ and _AWS CLI_ versions, and running
 the _Docker_ image with the right set of environment variables allows the user to choose
-the _tag_ in this repository to checkout for the build and deploy.
+the _tag_ in this repository to check out for the build and deploy.
 
 The _Docker_ image is called `ixor/ansible-aws-cfn-gen` and can be
 found [here](https://hub.docker.com/r/ixor/ansible-aws-cfn-gen/). The documentation for
@@ -725,6 +725,9 @@ loadbalancers:
   - name: ALBExt
     scheme: "internet-facing"
     certificate_arn: "arn:aws:acm:eu-central-1:123456789012:certificate/55555555-4444-4444-7777-555555555555"
+    listener_certificate_list:
+      - cfn_name: "Cert2"
+        arn: "arn:aws:acm:eu-central-1:123456789012:certificate/88888888-2222-6666-9999-111111111111"
     def_tg_http_healthcheckpath: /health
     def_tg_https_healthcheckpath: /health
   - name: ALBInt
@@ -742,10 +745,23 @@ loadbalancers:
         filter_pattern: "-DEBUG"  
 ```
 
-#### `ssl_policy` (optional, default is `ELBSecurityPolicy-2016-08`)
+#### `certificate_arn`: The default certificate to use
 
-The SSL/TLS policy to use for the HTTPS listener. It defaults to today's AWS default
-`ELBSecurityPolicy-2016-08`, and can have any value from the list you can find
+#### `listener_certificate_list`: Optional certificates to add to the listener
+
+Each element in the list has 2 properties:
+
+* `cfn_name`: An alphanumerical string used to uniquely name the CloudFormation resource
+* `arn`: The ARN of an existing and validated Certificate in the same account and region as
+  the load blancer is is user for
+
+For more information on the subject, also see
+[here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#sni-certificate-list)
+
+#### `ssl_policy` (optional, default is `ELBSecurityPolicy-FS-1-2-Res-2019-08`)
+
+The SSL/TLS policy to use for the HTTPS listener. It defaults to
+`ELBSecurityPolicy-FS-1-2-Res-2019-08`, and can have any value from the list you can find
 [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies).
 
 #### `access_logs`

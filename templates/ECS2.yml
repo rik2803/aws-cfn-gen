@@ -690,6 +690,16 @@ Resources:
       SslPolicy: "{{ item.ssl_policy | default('ELBSecurityPolicy-FS-1-2-Res-2019-08') }}"
       Certificates:
         - CertificateArn: {{ item.certificate_arn }}
+
+{%   for listener_certificate in item.listener_certificate_list | default([]) %}
+  Certificate{{ item.name }}{{ listener_certificate.cfn_name }}:
+    Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+      Properties:
+        Certificates:
+          - CertificateArn: {{ listener_certificate.arn }}
+        ListenerArn: !Ref Listener{{ item.name }}
+{%   endfor %}
+
   Listener{{ item.name }}HTTP:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
