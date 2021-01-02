@@ -9,6 +9,12 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.6` (20210102)
+
+Implicitly create the role `ECSExecutionRoleAwsCfnGen` and use it as the
+`ExecutionRoleArn` in the task definitions if no `execution_role_arn` is defined
+in the service configuration.
+
 ## `0.6.5` (20201229)
 
 Allow multiple certificates on 1 ALB HTTPS listener (fixes #53)
