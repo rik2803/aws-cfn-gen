@@ -242,7 +242,7 @@ Following _modules_ have their own documentation file:
 * [Elastic Container Registry](docs/ECR.md)
 * [Elastic Container Service](docs/ECS.md)
 * [The mamagement ECS Fargate cluster](docs/ECSMgmt.md)
-* [KMS](docs/MKS.md)
+* [KMS](docs/KMS.md)
 * [RDS](docs/RDS.md)
 * [RDS Parameter Group](docs/RDSParameterGroups.md)
 * [SecretsManager](docs/SecretsManager.md)
@@ -1103,6 +1103,10 @@ For each service, a lot of resources are created:
         priority: 211
         skiproute53: false
 ```
+
+The role `ECSExecutionRoleAwsCfnGen` that is implicitly created by the IAM
+module will be used as `ExecutionRoleArn` in the task definitions if no
+`execution_role_arn` is defined in the service configuration.
 
 #### `applicationconfig[n].name`
 

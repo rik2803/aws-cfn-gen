@@ -4,6 +4,15 @@ Description: |
 
 Resources:
 
+  ECSExecutionRoleAwsCfnGen:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ECSExecutionRole
+      AssumeRolePolicyDocument:
+        {"Version": "2012-10-17", "Statement": [{"Sid": "", "Effect": "Allow", "Principal": {"Service": "ecs-tasks.amazonaws.com"}, "Action": "sts:AssumeRole"}]}
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
 {% if managed_policies is defined %}
 {%   for policy in managed_policies | default([]) %}
   {{ policy.name }}Policy:
