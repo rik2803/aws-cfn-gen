@@ -4,7 +4,7 @@ Description: |
 
 Resources:
 
-  ECSExecutionRoleRoleAwsCfnGen:
+  ECSExecutionRoleAwsCfnGen:
     Type: AWS::IAM::Role
     Properties:
       RoleName: ECSExecutionRole
