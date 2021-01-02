@@ -413,6 +413,8 @@ Resources:
 {%     endif %}
 {%     if app.ecs.execution_role_arn is defined %}
       ExecutionRoleArn: "{{ app.ecs.execution_role_arn }}"
+{%     else %}
+      ExecutionRoleArn: "ECSExecutionRoleRoleAwsCfnGen"
 {%     endif %}
 
 {%     if app.target | lower == 'ecs_scheduled_task' %}
