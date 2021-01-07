@@ -9,7 +9,11 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
-## `0.6.6` (20210102)
+## `0.6.7` (20210107)
+
+Fix name of IAM role that should have been correct in `v0.6.6`
+
+## `0.6.6` (20210102) (OBSOLETE - Do not use)
 
 Implicitly create the role `ECSExecutionRoleAwsCfnGen` and use it as the
 `ExecutionRoleArn` in the task definitions if no `execution_role_arn` is defined
