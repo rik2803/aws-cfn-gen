@@ -25,6 +25,24 @@ Resources:
 {%   else %}
         Status: Enabled
 {%   endif %}
+{%   if bucket.public_access_block_configuration is defined %}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: {{ bucket.public_access_block_configuration.block_public_acls | default("true") }}
+        BlockPublicPolicy: {{ bucket.public_access_block_configuration.block_public_policy | default("true") }}
+        IgnorePublicAcls: {{ bucket.public_access_block_configuration.ignore_public_acls | default("true") }}
+        RestrictPublicBuckets: {{ bucket.public_access_block_configuration.restrict_public_buckets | default("true") }}
+
+{%   endif %}
+{%   if bucket.cors is defined %}
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: {{ (bucket.cors.allowed_headers | default(['*'])) | to_yaml }}
+            AllowedMethods: {{ (bucket.cors.allowed_methods | default(['GET', 'PUT'])) | to_yaml }}
+            AllowedOrigins: {{ (bucket.cors.allowed_origins | default(['*'])) | to_yaml }}
+{%     if bucket.cors.exposed_headers is defined %}
+            ExposedHeaders: {{ bucket.cors.exposed_headers | to_yaml }}
+{%     endif %}
+{%   endif %}
       LifecycleConfiguration:
 {%   if bucket.lifecycle_configuration is not defined %}
         Rules:
@@ -40,6 +58,12 @@ Resources:
         IndexDocument: {{ bucket.indexdocument | default('index.html') }}
         ErrorDocument: {{ bucket.errordocument | default('index.html') }}
 {%   endif %}
+{%   if bucket.send_create_events_to_lambda_import is defined %}
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Function: !ImportValue {{ bucket.send_create_events_to_lambda_import }}
+{%   endif %}
       Tags:
       - Key: Application
         Value: "{{ application }}"
@@ -47,6 +71,12 @@ Resources:
         Value: "{{ env }}"
       - Key: Customer
         Value: "{{ customer | default('NA') }}"
+{%  for tag in bucket.tags | default([]) %}
+{%    if tag.key is defined and tag.value is defined %}
+      - Key: "{{ tag.key }}"
+        Value: "{{ tag.value }}"
+{%    endif %}
+{%  endfor %}
 
 {% endfor %}
 
@@ -93,6 +123,12 @@ Outputs:
     Description: "S3 bucket {{ bucket.cfn_name }} website domain"
     Export:
       Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-WebsiteDomain"
+
+  {{ cfn_project }}{{ bucket.cfn_name }}DomainName:
+    Value: "{{ application }}-{{ env }}-{{ bucket.name }}.s3.{{ target_account.region }}.amazonaws.com"
+    Description: "S3 bucket {{ bucket.cfn_name }} IPv4 API domain name"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ bucket.cfn_name }}-ApiDomainName"
 
 {%   endfor %}
 {% endif %}
