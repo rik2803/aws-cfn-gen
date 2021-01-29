@@ -9,6 +9,14 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.8` (20210129)
+
+* Update Bastion AMIs in the _BastionHost_ module
+* Update S3 key for a lambda function in the _ECS_ module
+## `0.6.7` (20210102)
+
+Fix IAM role name for FARGATE
+
 ## `0.6.6` (20210102)
 
 Implicitly create the role `ECSExecutionRoleAwsCfnGen` and use it as the
