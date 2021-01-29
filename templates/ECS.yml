@@ -101,6 +101,12 @@ Resources:
     Properties:
       ClusterName: "ecs-{{ project }}"
 
+{% if lambda_s3_keys is defined and lambda_s3_keys.LambdaCumulativeReservationMetricS3Key is defined %}
+{%   set LambdaCumulativeReservationMetricS3Key = lambda_s3_keys.LambdaCumulativeReservationMetricS3Key %}
+{% else %}
+{%   set LambdaCumulativeReservationMetricS3Key = "aws-lambda-ecs-cumulative-cpu-and-memory-reservation-metric-936738431dcb1903564972e25763be8ec286bca5.zip" %}
+{% endif %}
+
   LambdaCumulativeReservationMetric:
     Type: AWS::Lambda::Function
     Properties:
@@ -111,8 +117,8 @@ Resources:
           ECS_CLUSTER_NAME: "ecs-{{ project }}"
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
-        S3Key: "aws-lambda-ecs-cumulative-cpu-and-memory-reservation-metric-8df91afee7676cb9623e6a4c37cb569425104725.zip"
-      Runtime: python2.7
+        S3Key: "{{ LambdaCumulativeReservationMetricS3Key }}"
+      Runtime: python3.8
 
   LambdaPermissionCumulativeReservationMetric:
     Type: AWS::Lambda::Permission
