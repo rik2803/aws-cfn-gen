@@ -13,6 +13,7 @@
 
 * Update Bastion AMIs in the _BastionHost_ module
 * Update S3 key for a lambda function in the _ECS_ module
+
 ## `0.6.7` (20210102)
 
 Fix IAM role name for FARGATE
