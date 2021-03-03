@@ -42,6 +42,33 @@ Resources:
         - "{{ vpc_sg_app }}"
       SubnetId: "{{ vpc_privatesubnet_az3 }}"
 {%   endif %}
+{%   for accesspoint in filesystem.accesspoints | default([]) %}
+
+  {{ accesspoint.cfn_name }}:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref {{ filesystem.cfn_name }}
+{%     if accesspoint.posix_user is defined %}
+      PosixUser:
+        Uid: "{{ accesspoint.posix_user.uid | default('0') }}"
+        Gid: "{{ accesspoint.posix_user.gid | default('0') }}"
+{%       if accesspoint.posix_user.secondary_gids is defined %}
+        SecondaryGids:
+{%         for gid in accesspoint.posix_user.secondary_gids %}
+          - "{{ gid }}"
+{%         endfor %}
+{%       endif %}
+{%     endif %}
+      RootDirectory:
+        Path: {{ accesspoint.path | default('/') }}
+{%     if accesspoint.creation_info is defined %}
+        CreationInfo:
+          OwnerGid: "{{ accesspoint.creation_info.owner_gid | default('0') }}"
+          OwnerUid: "{{ accesspoint.creation_info.owner_uid | default('0') }}"
+          Permissions: "{{ accesspoint.creation_info.permissions | default('0755') }}"
+{%     endif %}
+
+{%   endfor %}
 
 {% endfor %}
 
