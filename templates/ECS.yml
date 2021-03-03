@@ -475,6 +475,9 @@ Resources:
       TaskDefinition: !Ref "Task{{ cfn_project }}{{ app.cfn_name }}"
 {%       if app.lb is defined %}
       HealthCheckGracePeriodSeconds: "{{ app.ecs.healthcheckgraceperiodseconds | default(300) }}"
+      Tags:
+        - Key: "name"
+          Value: "{{ app.name }}"
       LoadBalancers:
         - ContainerName: "{{ project }}-{{ app.name }}"
           ContainerPort: "{{ app.ecs.containerport }}"
