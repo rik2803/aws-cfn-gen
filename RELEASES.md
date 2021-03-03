@@ -9,6 +9,11 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.9` (20210303)
+
+* Add (optional) creation of EFS access points.
+* Add tags to AWS::ECS::Service resources
+
 ## `0.6.8` (20210129)
 
 * Update Bastion AMIs in the _BastionHost_ module
@@ -160,7 +165,9 @@ Bugfix in multiline yaml string in ECS2
 A new template that combines ALB and ECS to avoid circular dependencies and
 problems when changing or removing services.
 
-Uses `ecs2` and `loadbalancer2` top-level properties in the config files.
+Uses `ecs2` and `loadbalancer2` top-level properties in the config files. When using `ecs2`, service
+names are not defined in the cloudformation template and will vary. Keep this into account when
+changing from `ecs` to `ecs2` as this will require ci/cd pipelines to be updated as well.
 
 ### Bastion
 
