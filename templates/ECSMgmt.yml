@@ -85,6 +85,8 @@ Resources:
           Environment:
             - Name: "ALARM_ACTION_ARN"
               Value: !ImportValue "{{ organization.cfn_name }}MonitoringSubaccount-MonitoringSNSTopic"
+            - Name: "ALARM_EXCLUDE_LIST"
+              Value: "{{ ecsmgmt.monitoring.adag_alarm_exclude_list | default('') }}"
       ExecutionRoleArn: !GetAtt AwsLogsExecutionRole.Arn
       TaskRoleArn: !GetAtt CWCreateDashboardTaskRole.Arn
 
