@@ -9,6 +9,12 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.10` (20210308)
+
+### ECSMgmt
+
+* Feature: exclude ADAG alarms with `ecsmgmt.monitoring.adag_alarm_exclude_list` property
+
 ## `0.6.9` (20210303)
 
 * Add (optional) creation of EFS access points.

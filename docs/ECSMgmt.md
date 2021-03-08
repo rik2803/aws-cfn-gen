@@ -30,11 +30,12 @@ images do:
 
 ### Main
 
-| Property         | Required? | Description                                                                                  |
-|------------------|-----------|----------------------------------------------------------------------------------------------|
-| `ass.tag_prefix`  | no        | Prefix used to set the `ASS_TAG_PREFIX` in the `ASS` task definitions                       |
-| `fargate_tasks`   | no        | List of dicts that define custom task definitions to run in the _FARGATE_ cluster           |
-| `scheduled_tasks` | no        | List of dicts that define custom scheduled task definitions to run in the _FARGATE_ cluster |
+| Property          | Required? | Description                                                                                |
+|-------------------|-----------|--------------------------------------------------------------------------------------------|
+| `ass.tag_prefix`  | no       | Prefix used to set the `ASS_TAG_PREFIX` in the `ASS` task definitions                       |
+| `fargate_tasks`   | no       | List of dicts that define custom task definitions to run in the _FARGATE_ cluster           |
+| `scheduled_tasks` | no       | List of dicts that define custom scheduled task definitions to run in the _FARGATE_ cluster |
+| `monitoring`      | no       | Properties related to monitoring                                                            |
 
 ### Fargate task definition
 
@@ -59,12 +60,20 @@ for allowed `memory`/`cpu` combinations. Invalid combinations will cause the sta
 | `schedule_expression`               | yes       | Schedule expression, `cron()` or `rate()`, see AWS docs for details      |
 | `task_definition_cfn_resource_name` | yes       | The task definition to use. Define task definitions with `fargate_tasks` |
 
+### Monitoring properties
+
+| Property                  | Required? | Description                                                                              |
+|---------------------------|-----------|------------------------------------------------------------------------------------------|
+| `adag_alarm_exclude_list` | no        | Alarm names matching one of the strings in this space separated list will not be created |
+
 ## Example configuration
 
 ```yaml
 ecsmgmt:
   ass:
     tag_prefix: "prefix_string"
+  monitoring:
+    adag_alarm_exclude_list: "5XX"
   fargate_tasks:
     - name: task-name
       cfn_name: TaskName

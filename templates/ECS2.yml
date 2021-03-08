@@ -832,7 +832,7 @@ Resources:
             MessageBody: "{{ fixed_respone.message_body | default(fixed_respone.status_code | default('HTTP_404')) }}"
 {% endfor %}
 
-  ## Create application listener rules
+## Create application listener rules
 {% for app in applicationconfig | default([]) %}
 {%   if app.domains is defined and app.lb is defined and app.lb.name == item.name %}
 {%     for dom in app.domains %}
