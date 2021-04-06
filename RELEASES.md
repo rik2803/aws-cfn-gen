@@ -9,6 +9,12 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.11` (20210308)
+
+### ECS2
+
+* Fix: The Lambda LambdaCumulativeReservationMetric was not updated in ECS2
+
 ## `0.6.10` (20210308)
 
 ### ECSMgmt
