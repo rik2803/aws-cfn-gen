@@ -167,8 +167,7 @@ Resources:
       FileSystemConfigs:
       - Arn: !GetAtt {{ filesystem.cfn_name }}AccessPoint.Arn
         LocalMountPath: "/mnt/efs"
-      ## TODO ##  Timeout ?
-      Timeout: "60"
+      Timeout: "900"
       MemorySize: "{{ lambda.memory_size | default('256') }}"
       Tags:
         - Key: Application
