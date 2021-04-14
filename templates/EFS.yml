@@ -97,7 +97,7 @@ Resources:
       - AwsLambdaS3ToEfsCopyInvokePermission
     Properties:
       AccessControl: "Private"
-      BucketName: !Sub "{{ application }}-{{ env }}-efs-${LambdaTesting}"
+      BucketName: !Sub "{{ application }}-{{ env }}-efs-${ {{ filesystem.cfn_name }} }"
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -184,7 +184,7 @@ Resources:
       FunctionName: !Ref AwsLambdaS3ToEfsCopy
       Principal: "s3.amazonaws.com"
       SourceAccount: !Ref AWS::AccountId
-      SourceArn: !Sub "arn:aws:s3:::{{ application }}-{{ env }}-efs-${LambdaTesting}"
+      SourceArn: !Sub "arn:aws:s3:::{{ application }}-{{ env }}-efs-${ {{ filesystem.cfn_name }} }"
 
   LambdaEfsRoleAwsCfnGen:
     Type: AWS::IAM::Role
