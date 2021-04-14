@@ -65,6 +65,13 @@ Resources:
         SecurityGroupIds:
           - "{{ vpc_sg_app }}"
 {%   endif %}
+{%   if lambda.filesystems is defined %}
+      FileSystemConfigs:
+{%     for filesystem in lambda.filesystems %}
+        - Arn: !Sub "arn:aws:elasticfilesystem:eu-central-1:${AWS::AccountId}:access-point/{{ filesystem.access_point_id }}"
+          LocalMountPath: {{ filesystem.mountpath }}
+{%     endfor %}
+{%   endif %}
       Timeout: "{{ lambda.timeout | default('30') }}"
       MemorySize: "{{ lambda.memory_size | default('256') }}"
       Tags:
