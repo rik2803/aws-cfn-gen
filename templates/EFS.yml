@@ -4,80 +4,214 @@ Description: |
   Create one or more EFS filesystems (aws-cfn-gen version: {{ gittag | default('na') }})
 
 Resources:
-{% for filesystem in efs %}
+  {% for filesystem in efs %}
   {{ filesystem.cfn_name }}:
-    Type: AWS::EFS::FileSystem
-    Properties:
-      Encrypted: true
-      FileSystemTags:
-        - Key: Application
-          Value: "{{ application }}"
-        - Key: Environment
-          Value: "{{ env }}"
-        - Key: Customer
-          Value: "{{ customer | default('NA') }}"
+Type: AWS::EFS::FileSystem
+Properties:
+  Encrypted: true
+  FileSystemTags:
+    - Key: Application
+      Value: "{{ application }}"
+    - Key: Environment
+      Value: "{{ env }}"
+    - Key: Customer
+      Value: "{{ customer | default('NA') }}"
 
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ1:
-    Type: AWS::EFS::MountTarget
-    Properties:
-      FileSystemId: !Ref {{ filesystem.cfn_name }}
-      SecurityGroups:
-        - "{{ vpc_sg_app }}"
-      SubnetId: "{{ vpc_privatesubnet_az1 }}"
+                             Type: AWS::EFS::MountTarget
+                             Properties:
+                               FileSystemId: !Ref {{ filesystem.cfn_name }}
+                               SecurityGroups:
+                                 - "{{ vpc_sg_app }}"
+                               SubnetId: "{{ vpc_privatesubnet_az1 }}"
 
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ2:
-    Type: AWS::EFS::MountTarget
-    Properties:
-      FileSystemId: !Ref {{ filesystem.cfn_name }}
-      SecurityGroups:
-        - "{{ vpc_sg_app }}"
-      SubnetId: "{{ vpc_privatesubnet_az2 }}"
+                             Type: AWS::EFS::MountTarget
+                             Properties:
+                               FileSystemId: !Ref {{ filesystem.cfn_name }}
+                               SecurityGroups:
+                                 - "{{ vpc_sg_app }}"
+                               SubnetId: "{{ vpc_privatesubnet_az2 }}"
 
-{%   if vpc_nr_of_azs == "3" %}
+  {%   if vpc_nr_of_azs == "3" %}
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3:
-    Type: AWS::EFS::MountTarget
-    Properties:
-      FileSystemId: !Ref {{ filesystem.cfn_name }}
-      SecurityGroups:
-        - "{{ vpc_sg_app }}"
-      SubnetId: "{{ vpc_privatesubnet_az3 }}"
-{%   endif %}
-{%   for accesspoint in filesystem.accesspoints | default([]) %}
+                             Type: AWS::EFS::MountTarget
+                             Properties:
+                               FileSystemId: !Ref {{ filesystem.cfn_name }}
+                               SecurityGroups:
+                                 - "{{ vpc_sg_app }}"
+                               SubnetId: "{{ vpc_privatesubnet_az3 }}"
+  {%   endif %}
+
+  {%   if filesystem.s3_to_efs_copy is defined %}
+
+  {{ filesystem.cfn_name }}AccessPoint:
+                             Type: AWS::EFS::AccessPoint
+                             Properties:
+                               FileSystemId: !Ref {{ filesystem.cfn_name }}
+                               PosixUser:
+                                 Uid: "1000"
+                                 Gid: "1000"
+                               RootDirectory:
+                                 Path: {{ filesystem.s3_to_efs_copy.efs_directory_path }}
+                                 CreationInfo:
+                                   OwnerGid: "1000"
+                                   OwnerUid: "1000"
+                                   Permissions: "0755"
+  {%   endif %}
+
+  {%   for accesspoint in filesystem.accesspoints | default([]) %}
 
   {{ accesspoint.cfn_name }}:
-    Type: AWS::EFS::AccessPoint
-    Properties:
-      FileSystemId: !Ref {{ filesystem.cfn_name }}
-{%     if accesspoint.posix_user is defined %}
-      PosixUser:
-        Uid: "{{ accesspoint.posix_user.uid | default('0') }}"
-        Gid: "{{ accesspoint.posix_user.gid | default('0') }}"
-{%       if accesspoint.posix_user.secondary_gids is defined %}
-        SecondaryGids:
-{%         for gid in accesspoint.posix_user.secondary_gids %}
-          - "{{ gid }}"
-{%         endfor %}
-{%       endif %}
-{%     endif %}
-      RootDirectory:
-        Path: {{ accesspoint.path | default('/') }}
-{%     if accesspoint.creation_info is defined %}
-        CreationInfo:
-          OwnerGid: "{{ accesspoint.creation_info.owner_gid | default('0') }}"
-          OwnerUid: "{{ accesspoint.creation_info.owner_uid | default('0') }}"
-          Permissions: "{{ accesspoint.creation_info.permissions | default('0755') }}"
-{%     endif %}
+Type: AWS::EFS::AccessPoint
+Properties:
+  FileSystemId: !Ref {{ filesystem.cfn_name }}
+  {%     if accesspoint.posix_user is defined %}
+PosixUser:
+  Uid: "{{ accesspoint.posix_user.uid | default('0') }}"
+  Gid: "{{ accesspoint.posix_user.gid | default('0') }}"
+  {%       if accesspoint.posix_user.secondary_gids is defined %}
+SecondaryGids:
+  {%         for gid in accesspoint.posix_user.secondary_gids %}
+- "{{ gid }}"
+  {%         endfor %}
+  {%       endif %}
+  {%     endif %}
+RootDirectory:
+  Path: {{ accesspoint.path | default('/') }}
+  {%     if accesspoint.creation_info is defined %}
+CreationInfo:
+  OwnerGid: "{{ accesspoint.creation_info.owner_gid | default('0') }}"
+  OwnerUid: "{{ accesspoint.creation_info.owner_uid | default('0') }}"
+  Permissions: "{{ accesspoint.creation_info.permissions | default('0755') }}"
+  {%     endif %}
 
-{%   endfor %}
+  {%   endfor %}
 
-{% endfor %}
+  {%  if filesystem.s3_to_efs_copy is defined %}
+
+# Lambda to EFS copy
+S3ToEfsBucket:
+  Type: AWS::S3::Bucket
+  DependsOn:
+    - AwsLambdaS3ToEfsCopyInvokePermission
+  Properties:
+    AccessControl: "Private"
+    BucketName: !Sub "{{ application }}-{{ env }}-efs-${LambdaTesting}"
+    BucketEncryption:
+      ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+    VersioningConfiguration:
+      Status: Suspended
+    PublicAccessBlockConfiguration:
+      BlockPublicAcls: "true"
+      BlockPublicPolicy: "true"
+      IgnorePublicAcls: "true"
+      RestrictPublicBuckets: "true"
+    CorsConfiguration:
+      CorsRules:
+        - AllowedHeaders:
+            - '*'
+          AllowedMethods:
+            - 'GET'
+            - 'PUT'
+          AllowedOrigins:
+            - '*'
+    LifecycleConfiguration:
+      Rules:
+        - NoncurrentVersionExpirationInDays: 30
+          ExpirationInDays: 30
+          Status: Enabled
+    NotificationConfiguration:
+      LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Function: !GetAtt AwsLambdaS3ToEfsCopy.Arn
+          Filter:
+            S3Key:
+              Rules:
+                - Name: suffix
+                  Value: ".json"
+                - Name: prefix
+                  Value: "trigger"
+    Tags:
+      - Key: Application
+        Value: "{{ application }}"
+      - Key: Environment
+        Value: "{{ env }}"
+      - Key: Customer
+        Value: "{{ customer | default('NA') }}"
+
+AwsLambdaS3ToEfsCopy:
+  Type: AWS::Lambda::Function
+  DependsOn:
+    - {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ1
+    - {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ2
+    - {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3
+  Properties:
+    Handler: "aws-lambda-s3-to-efs-copy.lambda_handler"
+    Role: !GetAtt LambdaEfsRoleAwsCfnGen.Arn
+    Code:
+      S3Bucket: "{{ lambda_function_bucket_name }}"
+      S3Key: "{{ filesystem.s3_to_efs_copy.lambda_key }}"
+    Runtime: python3.8
+    VpcConfig:
+      SubnetIds:
+        - "{{ vpc_privatesubnet_az1 }}"
+        - "{{ vpc_privatesubnet_az2 }}"
+  {%       if vpc_nr_of_azs == 3 %}
+- "{{ vpc_privatesubnet_az3 }}"
+  {%      endif %}
+SecurityGroupIds:
+  - "{{ vpc_sg_app }}"
+FileSystemConfigs:
+  - Arn: !GetAtt {{ filesystem.cfn_name }}AccessPoint.Arn
+    LocalMountPath: "/mnt/efs"
+Timeout: "300"
+MemorySize: "{{ lambda.memory_size | default('256') }}"
+Tags:
+  - Key: Application
+    Value: "{{ application }}"
+  - Key: Environment
+    Value: "{{ env }}"
+  - Key: Customer
+    Value: "{{ customer | default('NA') }}"
+
+AwsLambdaS3ToEfsCopyInvokePermission:
+  Type: AWS::Lambda::Permission
+  Properties:
+    Action: lambda:InvokeFunction
+    FunctionName: !Ref AwsLambdaS3ToEfsCopy
+    Principal: "s3.amazonaws.com"
+    SourceAccount: !Ref AWS::AccountId
+    SourceArn: !Sub "arn:aws:s3:::{{ application }}-{{ env }}-efs-${LambdaTesting}"
+
+LambdaEfsRoleAwsCfnGen:
+  Type: AWS::IAM::Role
+  Properties:
+    RoleName: LambdaEfsRoleAwsCfnGen
+    AssumeRolePolicyDocument:
+      { "Version": "2012-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "Service": "lambda.amazonaws.com" }, "Action": "sts:AssumeRole" } ] }
+    ManagedPolicyArns:
+      - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/LambdaEfsPolicyAwsCfnGen'
+
+LambdaEfsPolicyAwsCfnGen:
+  Type: AWS::IAM::ManagedPolicy
+  Properties:
+    ManagedPolicyName: LambdaEfsPolicyAwsCfnGen
+    Description: "Managed policy LambdaEfsPolicyAwsCfnGen for {{ cfn_project }}"
+    PolicyDocument:
+      { "Version": "2012-10-17","Statement": [ { "Effect": "Allow","Action": [ "s3:ListBucket","s3:ListObjectsV2","s3:GetObject" ],"Resource": [ "arn:aws:s3:::{{ application }}-{{ env }}-efs-fs*","{{ application }}-{{ env }}-efs-fs**/*" ] },{ "Effect": "Allow","Action": [ "logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents","logs:DescribeLogStreams","logs:DescribeLogGroups" ],"Resource": "*" },{ "Effect": "Allow","Action": [ "elasticfilesystem:ClientMount","elasticfilesystem:ClientWrite" ],"Resource": [ "arn:aws:elasticfilesystem:eu-central-1:455872502123:file-system/*" ] },{ "Effect": "Allow","Action": [ "ec2:DescribeNetworkInterfaces","ec2:CreateNetworkInterface","ec2:DeleteNetworkInterface","ec2:DescribeInstances","ec2:AttachNetworkInterface" ],"Resource": "*" } ] }
+
+  {%  endif %}
+  {% endfor %}
 
 Outputs:
-{% for filesystem in efs %}
+  {% for filesystem in efs %}
   {{ filesystem.cfn_name }}Output:
-    Value: !Ref {{ filesystem.cfn_name }}
-    Description: "EFS File System ID"
-    Export:
-      Name: !Sub "${AWS::StackName}{{ filesystem.cfn_name }}"
+                             Value: !Ref {{ filesystem.cfn_name }}
+                             Description: "EFS File System ID"
+                             Export:
+                               Name: !Sub "${AWS::StackName}{{ filesystem.cfn_name }}"
 
-{% endfor %}
+  {% endfor %}
