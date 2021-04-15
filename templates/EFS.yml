@@ -91,10 +91,10 @@ Resources:
 {%  if filesystem.s3_to_efs_copy is defined %}
 
 # Lambda to EFS copy
-  S3ToEfsBucket:
+  S3ToEfsBucket{{ filesystem.cfn_name }}:
     Type: AWS::S3::Bucket
     DependsOn:
-      - AwsLambdaS3ToEfsCopyInvokePermission
+      - AwsLambdaS3ToEfsCopy{{ filesystem.cfn_name }}InvokePermission
     Properties:
       AccessControl: "Private"
       BucketName: !Sub "{{ application }}-{{ env }}-efs-${ {{ filesystem.cfn_name }} }"
@@ -126,7 +126,7 @@ Resources:
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
-            Function: !GetAtt AwsLambdaS3ToEfsCopy.Arn
+            Function: !GetAtt AwsLambdaS3ToEfsCopy{{ filesystem.cfn_name }}.Arn
             Filter:
               S3Key:
                 Rules:
@@ -142,7 +142,7 @@ Resources:
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
 
-  AwsLambdaS3ToEfsCopy:
+  AwsLambdaS3ToEfsCopy{{ filesystem.cfn_name }}:
     Type: AWS::Lambda::Function
     DependsOn:
       - {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ1
@@ -177,11 +177,11 @@ Resources:
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
 
-  AwsLambdaS3ToEfsCopyInvokePermission:
+  AwsLambdaS3ToEfsCopy{{ filesystem.cfn_name }}InvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref AwsLambdaS3ToEfsCopy
+      FunctionName: !Ref AwsLambdaS3ToEfsCopy{{ filesystem.cfn_name }}
       Principal: "s3.amazonaws.com"
       SourceAccount: !Ref AWS::AccountId
       SourceArn: !Sub "arn:aws:s3:::{{ application }}-{{ env }}-efs-${ {{ filesystem.cfn_name }} }"
@@ -213,5 +213,12 @@ Outputs:
     Description: "EFS File System ID"
     Export:
       Name: !Sub "${AWS::StackName}{{ filesystem.cfn_name }}"
+
+{%   for accesspoint in filesystem.accesspoints | default([]) %}
+  {{ accesspoint.cfn_name }}Output:
+     Value: !Ref {{ accesspoint.cfn_name }}
+     Description: "EFS File System Access Point ID"
+     Export:
+       Name: !Sub "${AWS::StackName}{{ accesspoint.cfn_name }}"
 
 {% endfor %}
