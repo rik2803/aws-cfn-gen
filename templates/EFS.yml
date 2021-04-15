@@ -187,6 +187,8 @@ Resources:
 
   LambdaEfsRole{{ filesystem.cfn_name }}:
     Type: AWS::IAM::Role
+    DependsOn:
+      - LambdaEfsPolicy{{ filesystem.cfn_name }}
     Properties:
       RoleName: LambdaEfsRole{{ filesystem.cfn_name }}
       AssumeRolePolicyDocument:
