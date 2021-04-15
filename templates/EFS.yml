@@ -89,7 +89,6 @@ Resources:
 {%   endfor %}
 
 {%  if filesystem.s3_to_efs_copy is defined %}
-
 # Lambda to EFS copy
   S3ToEfsBucket{{ filesystem.cfn_name }}:
     Type: AWS::S3::Bucket
@@ -204,6 +203,7 @@ Resources:
         { "Version": "2012-10-17","Statement": [ { "Effect": "Allow","Action": [ "s3:ListBucket","s3:ListObjectsV2","s3:GetObject" ],"Resource": [ "arn:aws:s3:::{{ application }}-{{ env }}-efs-fs*","arn:aws:s3:::{{ application }}-{{ env }}-efs-fs*/*" ] },{ "Effect": "Allow","Action": [ "logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents","logs:DescribeLogStreams","logs:DescribeLogGroups" ],"Resource": "*" },{ "Effect": "Allow","Action": [ "elasticfilesystem:ClientMount","elasticfilesystem:ClientWrite" ],"Resource": [ "arn:aws:elasticfilesystem:eu-central-1:455872502123:file-system/*" ] },{ "Effect": "Allow","Action": [ "ec2:DescribeNetworkInterfaces","ec2:CreateNetworkInterface","ec2:DeleteNetworkInterface","ec2:DescribeInstances","ec2:AttachNetworkInterface" ],"Resource": "*" } ] }
 
 {%  endif %}
+
 {% endfor %}
 
 Outputs:
@@ -213,12 +213,11 @@ Outputs:
     Description: "EFS File System ID"
     Export:
       Name: !Sub "${AWS::StackName}{{ filesystem.cfn_name }}"
-
+{% endfor %}
 {%   for accesspoint in filesystem.accesspoints | default([]) %}
   {{ accesspoint.cfn_name }}Output:
      Value: !Ref {{ accesspoint.cfn_name }}
      Description: "EFS File System Access Point ID"
      Export:
        Name: !Sub "${AWS::StackName}{{ accesspoint.cfn_name }}"
-
 {% endfor %}
