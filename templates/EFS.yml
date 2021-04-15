@@ -215,11 +215,11 @@ Outputs:
     Description: "EFS File System ID"
     Export:
       Name: !Sub "${AWS::StackName}{{ filesystem.cfn_name }}"
-{% endfor %}
-{% for accesspoint in filesystem.accesspoints | default([]) %}
+{%  for accesspoint in filesystem.accesspoints | default([]) %}
   {{ accesspoint.cfn_name }}Output:
      Value: !Ref {{ accesspoint.cfn_name }}
      Description: "EFS File System Access Point ID"
      Export:
        Name: !Sub "${AWS::StackName}{{ accesspoint.cfn_name }}"
+{%  endfor %}
 {% endfor %}
