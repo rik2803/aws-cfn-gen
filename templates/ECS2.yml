@@ -566,6 +566,35 @@ Resources:
 {%       endif %}
 {%     endif %}
 
+{%     if app.ecs.autoscaling is defined and app.launchtype | default('EC2') == 'FARGATE' %}
+{%       for as in app.ecs.autoscaling %}
+  ScalableTarget{{ app.cfn_name }}{{ as.name | title }}:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: {{ as.max_capacity | default("20") }}
+      MinCapacity: {{ as.max_capacity | default(app.ecs.desiredcount) | default("1") }}
+      RoleARN:
+        Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+      ServiceNamespace: "ecs"
+      ScalableDimension: "ecs:service:DesiredCount"
+      ResourceId: !Sub service/ecs-{{ project }}/${ Service{{ app.cfn_name }}.Name }
+
+  ScalingPolicy{{ app.cfn_name }}{{ as.name | title }}:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn: "ScalableTarget{{ app.cfn_name }}{{ as.name | title }}"
+    Properties:
+      PolicyName: "{{ app.cfn_name }}{{ as.name | title }}"
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref "ScalableTarget{{ app.cfn_name }}{{ as.name | title }}"
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: {{ as.target_value | default("75.0") }}
+        ScaleInCooldown: {{ as.scale_in_cooldown | default("60") }}
+        ScaleOutCooldown: {{ as.scale_out_cooldown | default("60") }}
+        PredefinedMetricSpecification:
+          PredefinedMetricType: {{ as.predefined_metric_type }}
+
+{%       endfor %}
+{%     endif %}
 {%   endif %}
 {% endfor %}
 
