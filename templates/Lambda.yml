@@ -68,7 +68,7 @@ Resources:
 {%   if lambda.filesystems is defined %}
       FileSystemConfigs:
 {%     for filesystem in lambda.filesystems %}
-        - Arn: !Sub "arn:aws:elasticfilesystem:eu-central-1:${AWS::AccountId}:access-point/{{ filesystem.access_point_id }}"
+        - Arn: !GetAtt {{ filesystem.accesspoint_cfn_name }}.Arn
           LocalMountPath: {{ filesystem.mountpath }}
 {%     endfor %}
 {%   endif %}
