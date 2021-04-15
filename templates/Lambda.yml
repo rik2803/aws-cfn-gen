@@ -68,7 +68,7 @@ Resources:
 {%   if lambda.filesystems is defined %}
       FileSystemConfigs:
 {%     for filesystem in lambda.filesystems %}
-        - Arn: !GetAtt {{ filesystem.accesspoint_cfn_name }}.Arn
+        - Arn: !ImportValue {{ application }}{{ env }}{{ filesystem.accesspoint_cfn_name }}.Arn
           LocalMountPath: {{ filesystem.mountpath }}
 {%     endfor %}
 {%   endif %}
