@@ -68,7 +68,7 @@ Resources:
 {%   if lambda.filesystems is defined %}
       FileSystemConfigs:
 {%     for filesystem in lambda.filesystems %}
-        - Arn: !ImportValue {{ app_and_env_cfn }}{{ filesystem.accesspoint_cfn_name }}
+        - Arn: !ImportValue ${AWS::StackName}{{ filesystem.accesspoint_cfn_name }}
           LocalMountPath: {{ filesystem.mountpath }}
 {%     endfor %}
 {%   endif %}
