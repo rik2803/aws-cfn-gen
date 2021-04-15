@@ -149,7 +149,7 @@ Resources:
       - {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3
     Properties:
       Handler: "aws-lambda-s3-to-efs-copy.lambda_handler"
-      Role: !GetAtt LambdaEfsRoleAwsCfnGen.Arn
+      Role: !GetAtt LambdaEfsRole{{ filesystem.cfn_name }}.Arn
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
         S3Key: "{{ filesystem.s3_to_efs_copy.lambda_key }}"
@@ -185,19 +185,19 @@ Resources:
       SourceAccount: !Ref AWS::AccountId
       SourceArn: !Sub "arn:aws:s3:::{{ application }}-{{ env }}-efs-${ {{ filesystem.cfn_name }} }"
 
-  LambdaEfsRoleAwsCfnGen:
+  LambdaEfsRole{{ filesystem.cfn_name }}:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: LambdaEfsRoleAwsCfnGen
+      RoleName: LambdaEfsRole{{ filesystem.cfn_name }}
       AssumeRolePolicyDocument:
         { "Version": "2012-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "Service": "lambda.amazonaws.com" }, "Action": "sts:AssumeRole" } ] }
       ManagedPolicyArns:
-        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/LambdaEfsPolicyAwsCfnGen'
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/LambdaEfsPolicy{{ filesystem.cfn_name }}'
 
-  LambdaEfsPolicyAwsCfnGen:
+  LambdaEfsPolicy{{ filesystem.cfn_name }}:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: LambdaEfsPolicyAwsCfnGen
+      ManagedPolicyName: LambdaEfsPolicy{{ filesystem.cfn_name }}
       Description: "Managed policy LambdaEfsPolicyAwsCfnGen for {{ cfn_project }}"
       PolicyDocument:
         { "Version": "2012-10-17","Statement": [ { "Effect": "Allow","Action": [ "s3:ListBucket","s3:ListObjectsV2","s3:GetObject" ],"Resource": [ "Fn::Sub" : "arn:aws:s3:::{{ application }}-{{ env }}-efs-${ {{ filesystem.cfn_name }} }*", "Fn::Sub" : "arn:aws:s3:::{{ application }}-{{ env }}-efs-${ {{ filesystem.cfn_name }} }*/*" ] },{ "Effect": "Allow","Action": [ "logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents","logs:DescribeLogStreams","logs:DescribeLogGroups" ],"Resource": "*" },{ "Effect": "Allow","Action": [ "elasticfilesystem:ClientMount","elasticfilesystem:ClientWrite" ],"Resource": [ "Fn::Sub" : "arn:aws:elasticfilesystem:eu-central-1:455872502123:file-system/${ {{ filesystem.cfn_name }}}" ] },{ "Effect": "Allow","Action": [ "ec2:DescribeNetworkInterfaces","ec2:CreateNetworkInterface","ec2:DeleteNetworkInterface","ec2:DescribeInstances","ec2:AttachNetworkInterface" ],"Resource": "*" } ] }
