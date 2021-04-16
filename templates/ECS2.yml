@@ -570,6 +570,7 @@ Resources:
 {%       for as in app.ecs.autoscaling %}
   ScalableTarget{{ app.cfn_name }}{{ as.name | title }}:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: "Service{{ app.cfn_name }}"
     Properties:
       MaxCapacity: {{ as.max_capacity | default("20") }}
       MinCapacity: {{ as.max_capacity | default(app.ecs.desiredcount) | default("1") }}
