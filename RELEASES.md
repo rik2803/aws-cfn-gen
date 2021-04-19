@@ -9,6 +9,31 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.12` (20210415)
+
+### ECS and ECS2: Support for autoscaling
+
+* Only if `app.launchtype == "FARGATE"`
+
+```yaml
+applicationconfig:
+  - name: "myservice"
+    ...
+    ecs:
+      ...
+      autoscaling:
+        - name: cpu
+          scale_in_cooldown: 60
+          scale_out_cooldown: 60
+          target_value: 75
+          predefined_metric_type: "ECSServiceAverageCPUUtilization"
+        - name: memory
+          scale_in_cooldown: 60
+          scale_out_cooldown: 60
+          target_value: 75
+          predefined_metric_type: "ECSServiceAverageMemoryUtilization"
+```
+
 ## `0.6.11` (20210308)
 
 ### ECS2
