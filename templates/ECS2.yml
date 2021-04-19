@@ -573,7 +573,7 @@ Resources:
     DependsOn: "Service{{ app.cfn_name }}"
     Properties:
       MaxCapacity: {{ as.max_capacity | default("20") }}
-      MinCapacity: {{ as.max_capacity | default(app.ecs.desiredcount) | default("1") }}
+      MinCapacity: {{ as.min_capacity | default(app.ecs.desiredcount) | default("1") }}
       RoleARN:
         Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
       ServiceNamespace: "ecs"
