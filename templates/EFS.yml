@@ -158,6 +158,7 @@ Resources:
         Variables:
           PROJECT: "{{ application }}"
           ENVIRONMENT: "{{ env }}"
+          FILESYSTEM: "{{ filesystem.cfn_name }}"
 {%     for env in filesystem.lambda.environment %}
           {{ env.name }}: "{{ env.value }}"
 {%     endfor %}
