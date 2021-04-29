@@ -1636,7 +1636,11 @@ cw:
   logshipper_lambda_function_arn_import: "AppEnvLambda-AwsLambdaDatadogLogshipperArn"
 ```
 
-* `retention_in_days`: How long are log streams kept in CW logs
+* `retention_in_days`(optional): How long are log streams kept in CW logs
+  * Default settings:
+    * `production`: 180 days 
+    * `testing|staging`: 14 days
+    * Manual setup also possible.
 * `filter_pattern`: Determines the filter to be applied to incoming messages. See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html) for the syntax.
 * `logshipper_lambda_function_arn_import`: The Lambda to send the logs to. If the destination is _DataDogHQ_
   see the section above, but you can provide your own function, export its ARN and use it instead.
