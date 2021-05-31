@@ -50,14 +50,8 @@ Resources:
     Properties:
       FileSystemId: !Ref {{ filesystem.cfn_name }}
       PosixUser:
-        Uid: "1000"
-        Gid: "1000"
-      RootDirectory:
-        Path: {{ filesystem.s3_to_efs_copy.efs_directory_path }}
-        CreationInfo:
-          OwnerGid: "1000"
-          OwnerUid: "1000"
-          Permissions: "0755"
+        Uid: "0"
+        Gid: "0"
 {%   endif %}
 
 {%   for accesspoint in filesystem.accesspoints | default([]) %}
@@ -126,13 +120,6 @@ Resources:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
             Function: !GetAtt AwsLambdaS3ToEfsCopy{{ filesystem.cfn_name }}.Arn
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: suffix
-                    Value: ".json"
-                  - Name: prefix
-                    Value: "trigger"
       Tags:
         - Key: Application
           Value: "{{ application }}"
@@ -148,7 +135,7 @@ Resources:
       - {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ2
       - {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ3
     Properties:
-      Handler: "aws-lambda-s3-to-efs-copy.lambda_handler"
+      Handler: "aws-lambda-s3-trigger-to-efs.lambda_handler"
       Role: !GetAtt LambdaEfsRole{{ filesystem.cfn_name }}.Arn
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
@@ -159,9 +146,6 @@ Resources:
           PROJECT: "{{ application }}"
           ENVIRONMENT: "{{ env }}"
           FILESYSTEM: "{{ filesystem.cfn_name }}"
-{%     for env in filesystem.lambda.environment %}
-          {{ env.name }}: "{{ env.value }}"
-{%     endfor %}
       VpcConfig:
         SubnetIds:
         - "{{ vpc_privatesubnet_az1 }}"
