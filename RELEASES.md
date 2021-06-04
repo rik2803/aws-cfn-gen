@@ -13,8 +13,8 @@
 
 ### EFS: S3 to EFS copy
 
-* Tranfer files to an EFS volume more easily **without** having to login to the bastion account.
-* Uploading the files to the S3 bucket will automaticly tranfer the files to the s3 bucket.
+* Transfer files to an EFS volume more easily **without** having to log in to the bastion account.
+* Uploading the files to the S3 bucket will automatically transfer the files to the s3 bucket.
 
 ```yaml
 efs:
