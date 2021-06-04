@@ -65,6 +65,13 @@ Resources:
         SecurityGroupIds:
           - "{{ vpc_sg_app }}"
 {%   endif %}
+{%   if lambda.filesystems is defined %}
+      FileSystemConfigs:
+{%     for filesystem in lambda.filesystems %}
+        - Arn: !ImportValue {{ app_and_env_cfn }}EFS{{ filesystem.accesspoint_cfn_name }}
+          LocalMountPath: {{ filesystem.mountpath }}
+{%     endfor %}
+{%   endif %}
       Timeout: "{{ lambda.timeout | default('30') }}"
       MemorySize: "{{ lambda.memory_size | default('256') }}"
       Tags:

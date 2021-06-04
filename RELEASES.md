@@ -9,6 +9,20 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.13` (20210604)
+
+### EFS: S3 to EFS copy
+
+* Transfer files to an EFS volume more easily **without** having to log in to the bastion account.
+* Uploading the files to the S3 bucket will automatically transfer the files to the s3 bucket.
+
+```yaml
+efs:
+  - cfn_name: MyS3ToEFSCopy
+    s3_to_efs_copy:
+      lambda_key: aws-lambda-s3-trigger-to-efs-c78524de709fb97bce19e0e5b4bda04329a0f082.zip
+```
+
 ## `0.6.12` (20210415)
 
 ### ECS and ECS2: Support for autoscaling

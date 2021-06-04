@@ -345,6 +345,7 @@ Resources:
 {%         if app.launchtype | default('EC2') == 'FARGATE' %}
           EFSVolumeConfiguration:
             FilesystemId: !ImportValue {{ volume.efs_import }}
+            RootDirectory: {{ volume.efs_path | default('/') }}
             TransitEncryption: ENABLED
 {%         else %}
           Host:
