@@ -14,7 +14,7 @@
 ### ECS2: Fix indentation error
 
 Adding ACM certificates to a ALB in ECS2 failed because of an indentation error. This
-versino fixes that error.
+version fixes that error.
 
 ## `0.6.13` (20210604)
 
