@@ -16,6 +16,10 @@
 Adding ACM certificates to a ALB in ECS2 failed because of an indentation error. This
 version fixes that error.
 
+### BastionHost: Update AMI
+
+The AMI used for the bastion host is updated to the latest version.
+
 ## `0.6.13` (20210604)
 
 ### EFS: S3 to EFS copy
