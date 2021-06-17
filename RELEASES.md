@@ -9,6 +9,17 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.14` (20210617)
+
+### ECS2: Fix indentation error
+
+Adding ACM certificates to a ALB in ECS2 failed because of an indentation error. This
+version fixes that error.
+
+### BastionHost: Update AMI
+
+The AMI used for the bastion host is updated to the latest version.
+
 ## `0.6.13` (20210604)
 
 ### EFS: S3 to EFS copy
