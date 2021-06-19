@@ -1390,7 +1390,7 @@ This name shoud comply with AWS CloudFormation resource naming convention. The
 
 The optional `cfn_name_suffix` in `applicationconfig[n].domains[n]` can be used
 if 2 service endpoints within the same parent domain should be directed to this
-service's tartget group.
+service's target group.
 
 The value of the property will be appended to the _CloudFormation_ resource name
 for the Route53 recordset.
