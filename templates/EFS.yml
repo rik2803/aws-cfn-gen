@@ -113,8 +113,12 @@ Resources:
               - '*'
       LifecycleConfiguration:
         Rules:
-        - NoncurrentVersionExpirationInDays: 30
-          ExpirationInDays: 30
+        - NoncurrentVersionExpirationInDays: 1
+          ExpirationInDays: 1
+          Status: Enabled
+        - ExpiredObjectDeleteMarker: true
+          AbortIncompleteMultipartUpload:
+            DaysAfterInitiation: 1
           Status: Enabled
       NotificationConfiguration:
         LambdaConfigurations:
