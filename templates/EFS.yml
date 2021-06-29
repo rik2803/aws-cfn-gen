@@ -114,7 +114,7 @@ Resources:
       LifecycleConfiguration:
         Rules:
         - NoncurrentVersionExpirationInDays: 1
-          ExpirationInDays: 1
+          ExpirationInDays: 29
           Status: Enabled
         - ExpiredObjectDeleteMarker: true
           AbortIncompleteMultipartUpload:
