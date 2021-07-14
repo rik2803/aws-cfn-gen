@@ -104,6 +104,7 @@ Resources:
 
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
 {%     if origin.domain is not defined or origin.domain.type == 's3' %}
+{%       if origin.domin is not defined or origin.domain.skip_bucket_creation is not defined or not origin.domain.skip_bucket_creation %}
   S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
 {%       if cloudfront.logging is defined %}
     DependsOn:
@@ -174,6 +175,7 @@ Resources:
           Value: "{{ customer | default('NA') }}"
         - Key: Environment
           Value: "{{ env }}"
+{%       endif %}
 {%     endif %}
 {%   endfor %}
 {% endfor %}
