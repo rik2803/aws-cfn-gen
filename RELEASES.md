@@ -9,6 +9,12 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.15` (20210715)
+
+### CloudFront: Re-use a s3 origin for multiple distributions
+
+### ECS: Add property `execution_schedule_state` to allow ECS scheduled task rule to be disabled
+
 ## `0.6.14` (20210617)
 
 ### ECS2: Fix indentation error

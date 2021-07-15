@@ -430,7 +430,7 @@ Resources:
     Properties:
       Description: Schedule for Scheduled Task for {{ app.cfn_name }}
       ScheduleExpression: "{{ app.execution_schedule | default('cron(0 3 * * ? *)') }}"
-      State: ENABLED
+      State: "{{ app.execution_schedule_state | default('ENABLED') }}"
       Targets:
         - Arn: !GetAtt ECSCluster.Arn
           Id: Target{{ cfn_project }}{{ app.cfn_name }}
