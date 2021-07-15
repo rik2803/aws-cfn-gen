@@ -1144,6 +1144,17 @@ Default value: `cron(0 3 ** ? *)`
 See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html)
 for more information on the syntax.
 
+#### `applicationconfig[n].execution_schedule_state`
+
+Only used for `ecs_scheduled_task`.
+
+Default value: `ENABLED`
+
+Allowed values: `ENABLED` or `DISABLED`
+
+See [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html)
+for more information on the syntax.
+
 #### `applicationconfig[n].environment`
 
 A list of key-value pairs to add to the environment variables of the running container
@@ -1390,7 +1401,7 @@ This name shoud comply with AWS CloudFormation resource naming convention. The
 
 The optional `cfn_name_suffix` in `applicationconfig[n].domains[n]` can be used
 if 2 service endpoints within the same parent domain should be directed to this
-service's tartget group.
+service's target group.
 
 The value of the property will be appended to the _CloudFormation_ resource name
 for the Route53 recordset.
