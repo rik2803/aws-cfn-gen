@@ -9,6 +9,10 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.16` (20210715)
+
+### LambdaCloudfront: use AWS::Serverless::Function to created versioned functions in us-east-1
+
 ## `0.6.15` (20210715)
 
 ### CloudFront: Re-use a s3 origin for multiple distributions

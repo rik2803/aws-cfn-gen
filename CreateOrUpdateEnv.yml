@@ -49,11 +49,23 @@
         - name: Disable all alarms during playbook execution
           shell: |
             aws cloudwatch disable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
-        - name: Create S3 bucket to hold CloudFormation templates
+        - name: "Create S3 bucket to hold CloudFormation templates"
           shell: |
             if ! aws s3 ls | grep "{{ project.name }}-cfn-templates"
             then
               aws s3 mb "s3://{{ project.name }}-cfn-templates"
+            fi
+            aws s3api put-bucket-encryption \
+              --bucket {{ project.name }}-cfn-templates \
+              --server-side-encryption-configuration '{"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}'
+            aws s3api put-public-access-block \
+              --bucket {{ project.name }}-cfn-templates \
+              --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+        - name: "Create S3 bucket to hold CloudFormation templates in us-east-1"
+          shell: |
+            if ! aws s3 ls | grep "{{ project.name }}-cfn-templates-us-east-1" --region us-east-1
+            then
+              aws s3 mb "s3://{{ project.name }}-cfn-templates-us-east-1" --region us-east-1
             fi
             aws s3api put-bucket-encryption \
               --bucket {{ project.name }}-cfn-templates \
@@ -894,16 +906,17 @@
         - name: Put CFN template on s3
           shell: |
             aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-lambdacloudfront.yml" \
-                      "s3://{{ project }}-cfn-templates/cfn-{{ project }}-lambdacloudfront.yml"
+                      "s3://{{ project }}-cfn-templates-us-east-1/cfn-{{ project }}-lambdacloudfront.yml"
           tags: [ 'deploy' ]
         - name: Get presigned URL for the template on S3
           shell: |
-            aws s3 presign "s3://{{ project }}-cfn-templates/cfn-{{ project }}-lambdacloudfront.yml"
+            aws s3 presign "s3://{{ project }}-cfn-templates-us-east-1/cfn-{{ project }}-lambdacloudfront.yml"
           register: presign
           tags: [ 'deploy' ]
         - name: Create or Update the Lambda CloudFormation stack
           cloudformation:
             region: us-east-1
+            capabilities: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"]
             stack_name: "{{ cfn_project }}LambdaCloudfront"
             create_changeset: "{{ create_changeset }}"
             changeset_name: "{{ cfn_project }}LambdaCloudfront{{ changeset_suffix }}"
@@ -922,7 +935,7 @@
                 --output text >> changeset_report.txt
           when: "create_changeset is defined and create_changeset == 'yes'"
           tags: [ 'deploy' ]
-      when: "lambda_functions_cloudfront is defined"
+      when: "lambda_functions_cloudfront is defined or lambda_functions_cloudfront_v2 is defined"
       tags: [ 'lambdacloudfront' ]
 
     - name: CloudWatch
