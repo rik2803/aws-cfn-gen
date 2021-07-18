@@ -1,5 +1,7 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
 Description: |
   Create Lambda functions in us-east-1 for use by CloudFront Lambda@Edge (aws-cfn-gen version: {{ gittag | default('na') }})
 
@@ -11,7 +13,6 @@ Resources:
 {#   Create some variables #}
 {%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
 {%   set lambda_fn_name = (lambda.name.split('_'))[0] %}
-
 
   {{ lambda_cfn_name }}:
     Type: AWS::Lambda::Function
@@ -26,28 +27,10 @@ Resources:
 {% else %}
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/{{ lambda.role }}"
 {% endif %}
-{%   if lambda.environment is defined %}
-      Environment:
-        Variables:
-{%     for env in lambda.environment %}
-         {{ env.name }}: "{{ env.value }}"
-{%     endfor %}
-{%   endif %}
       Code:
         S3Bucket: "{{ lambda.code.s3_bucket }}"
         S3Key: "{{ lambda.code.s3_key }}"
       Runtime: {{ lambda.runtime | default('python2.7') }}
-{%   if lambda.vpc is defined and lambda.vpc %}
-      VpcConfig:
-        SubnetIds:
-          - "{{ vpc_privatesubnet_az1 }}"
-          - "{{ vpc_privatesubnet_az2 }}"
-{%     if vpc_nr_of_azs == 3 %}
-          - "{{ vpc_privatesubnet_az3 }}"
-{%     endif %}
-        SecurityGroupIds:
-          - "{{ vpc_sg_app }}"
-{%   endif %}
       Tags:
         - Key: Application
           Value: "{{ application }}"
@@ -55,34 +38,28 @@ Resources:
           Value: "{{ env }}"
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
+{% endfor %}
 
-{%   for liv in lambda.invoke_permissions | default([]) %}
-{%     if liv.type == 'predefined' and liv.name == 'logs' %}
-  {{ lambda_cfn_name }}CWLogsInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref {{ lambda_cfn_name }}
-      Principal: !Sub "logs.${AWS::Region}.amazonaws.com"
-      SourceAccount: !Ref AWS::AccountId
-{%     endif %}
+{# Create Lambda@Edge functions (v2)) #}
+{% for lambda_edge in lambda_functions_cloudfront_v2 | default([]) %}
+{#   Create some variables #}
+{%   set lambda_cfn_name = lambda_edge.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+  {{ lambda_cfn_name }}:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: "{{ lambda_edge.name}}"
+        CodeUri: "{{ lambda_edge.code_uri }}"
+        Role: "{{ lambda_edge.role_arn }}"
+        Runtime: "{{ lambda_edge.runtime }}"
+        Handler: "{{ lambda_edge.handler }}"
+        Timeout: {{ lambda_edge.timeout | default(3) }}
+        MemorySize: {{ lambda_edge.memory_size | default(128) }}
+        AutoPublishAlias: live
 
-{%     if liv.type == 'predefined' and liv.name == 's3' %}
-  {{ lambda_cfn_name }}CWLogsInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref {{ lambda_cfn_name }}
-      Principal: "s3.amazonaws.com"
-      SourceAccount: !Ref AWS::AccountId
-      SourceArn: "{{ liv.bucket_arn }}"
-{%     endif %}
-
-{%   endfor %}
 {% endfor %}
 
 Outputs:
-{% for lambda in lambda_functions_cloudfront %}
+{% for lambda in lambda_functions_cloudfront | default([]) %}
 {#   Create some variables #}
 {%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
 
@@ -97,5 +74,28 @@ Outputs:
     Description: "Lambda function {{ lambda_cfn_name }} Arn"
     Export:
       Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}Arn"
+
+{% endfor %}
+{% for lambda in lambda_functions_cloudfront_v2 | default([]) %}
+{#   Create some variables #}
+{%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
+
+  {{ lambda_cfn_name }}Output:
+    Value: !Ref {{ lambda_cfn_name }}
+    Description: "Lambda function {{ lambda_cfn_name }} resource logical name"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}"
+
+  {{ lambda_cfn_name }}ArnOutput:
+    Value: !GetAtt {{ lambda_cfn_name }}.Arn
+    Description: "Lambda function {{ lambda_cfn_name }} Arn"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}Arn"
+
+  {{ lambda_cfn_name }}VersionArnOutput:
+    Value: !Ref {{ lambda_cfn_name }}.Version
+    Description: "Lambda function {{ lambda_cfn_name }} Version Arn"
+    Export:
+      Name: !Sub "${AWS::StackName}-{{ lambda_cfn_name }}VersionArn"
 
 {% endfor %}
