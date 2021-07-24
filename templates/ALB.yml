@@ -316,9 +316,12 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref "TGApp{{ cfn_project }}{{ item.name }}{{ app.cfn_name }}"
       Conditions:
+{# Skip host header condition if requested and a path pattern is defined #}
+{%       if dom.skip_host_header_condition is not defined or not dom.skip_host_header_condition or dom.listener_rule_path_pattern is not defined %}
         - Field: host-header
           Values:
             - "{{ dom.listener_rule_host_header }}"
+{%       endif %}
 {%       if dom.listener_rule_path_pattern is defined %}
         - Field: path-pattern
           Values:
