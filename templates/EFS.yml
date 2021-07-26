@@ -102,15 +102,6 @@ Resources:
         BlockPublicPolicy: "true"
         IgnorePublicAcls: "true"
         RestrictPublicBuckets: "true"
-      CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders:
-              - '*'
-            AllowedMethods:
-              - 'GET'
-              - 'PUT'
-            AllowedOrigins:
-              - '*'
       LifecycleConfiguration:
         Rules:
         - NoncurrentVersionExpirationInDays: 1
