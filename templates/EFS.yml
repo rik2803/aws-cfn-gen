@@ -226,6 +226,15 @@ Resources:
               - 'ec2:AttachNetworkInterface'
             Resource: '*'
             Effect: Allow
+
+  SSMParameterS3ToEfsCopy{{ filesystem.cfn_name }}:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "S3ToEfsBucket{{ filesystem.cfn_name }}"
+      Type: "String"
+      Value: !Ref "S3ToEfsBucket{{ filesystem.cfn_name }}"
+      Description: "SSM Parameter S3 bucket used for deploy to {{ filesystem.cfn_name }}."
+
 {%  endif %}
 
 {% endfor %}

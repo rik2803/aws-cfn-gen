@@ -9,6 +9,10 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.17` (20210813)
+
+### EFS: Create a SSM parameter for each S3 to EFS deploy bucket
+
 ## `0.6.16` (20210715)
 
 ### LambdaCloudfront: use AWS::Serverless::Function to created versioned functions in us-east-1
