@@ -13,7 +13,7 @@ Mappings:
     eu-west-2:
       AMIID: "{{ '{{' }}resolve:ssm:EU-WEST-2{{ '}}' }}"
     eu-west-3:
-      AMIID: "ami-0b3e57ee3b63dd76b"
+      AMIID: "{{ '{{' }}resolve:ssm:EU-WEST-3{{ '}}' }}"
 
 Resources:
 
