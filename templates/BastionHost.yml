@@ -7,11 +7,11 @@ Description: |
 Mappings:
   AWSRegionToAmzn2AMI:
     eu-central-1:
-      AMIID: "{{resolve:ssm:EU-CENTRAL-1}}"
+      AMIID: "{{ '{{' }}resolve:ssm:EU-CENTRAL-1{{ '}}' }}"
     eu-west-1:
-      AMIID: "{{resolve:ssm:EU-WEST-1}}"
+      AMIID: "{{ '{{' }}resolve:ssm:EU-WEST-1{{ '}}' }}"
     eu-west-2:
-      AMIID: "{{resolve:ssm:EU-WEST-2}}"
+      AMIID: "{{ '{{' }}resolve:ssm:EU-WEST-2{{ '}}' }}"
     eu-west-3:
       AMIID: "ami-0b3e57ee3b63dd76b"
 
