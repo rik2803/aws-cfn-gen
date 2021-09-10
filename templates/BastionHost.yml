@@ -60,7 +60,7 @@ Resources:
 {% if bastion.encrypt_ebs | default(false) %}
             Encrypted: true
 {% else %}
-            Encrypted: true
+            Encrypted: flase
 {% endif %}
       NetworkInterfaces: 
         - AssociatePublicIpAddress: "true"
