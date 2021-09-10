@@ -59,8 +59,6 @@ Resources:
             VolumeType: gp3
 {% if bastion.encrypt_ebs | default(false) %}
             Encrypted: true
-{% else %}
-            Encrypted: flase
 {% endif %}
       NetworkInterfaces: 
         - AssociatePublicIpAddress: "true"
