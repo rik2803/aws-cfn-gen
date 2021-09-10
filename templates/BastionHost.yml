@@ -7,13 +7,13 @@ Description: |
 Mappings:
   AWSRegionToAmzn2AMI:
     eu-central-1:
-      AMIID: "{{ '{{' }}resolve:ssm:EU-CENTRAL-1{{ '}}' }}"
+      AMIID: "{{ '{{' }}resolve:ssm:BASTION-AMI-EU-CENTRAL-1{{ '}}' }}"
     eu-west-1:
-      AMIID: "{{ '{{' }}resolve:ssm:EU-WEST-1{{ '}}' }}"
+      AMIID: "{{ '{{' }}resolve:ssm:BASTION-AMI-EU-WEST-1{{ '}}' }}"
     eu-west-2:
-      AMIID: "{{ '{{' }}resolve:ssm:EU-WEST-2{{ '}}' }}"
+      AMIID: "{{ '{{' }}resolve:ssm:BASTION-AMI-EU-WEST-2{{ '}}' }}"
     eu-west-3:
-      AMIID: "{{ '{{' }}resolve:ssm:EU-WEST-3{{ '}}' }}"
+      AMIID: "{{ '{{' }}resolve:ssm:BASTION-AMI-EU-WEST-3{{ '}}' }}"
 
 Resources:
 
