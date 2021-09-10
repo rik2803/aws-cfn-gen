@@ -53,10 +53,13 @@ Resources:
       ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
       InstanceType: {{ bastion.instance_type | default('t2.micro') }}
       KeyName: "{{ bastion.keypair_name }}"
-{% if bastion.encrypt_ebs | default(false) %}
       BlockDeviceMappings:
         - DeviceName: "/dev/xvda"
           Ebs:
+            VolumeType: gp3
+{% if bastion.encrypt_ebs | default(false) %}
+            Encrypted: true
+{% else %}
             Encrypted: true
 {% endif %}
       NetworkInterfaces: 
