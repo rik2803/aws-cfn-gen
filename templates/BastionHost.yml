@@ -51,7 +51,7 @@ Resources:
       DisableApiTermination: false
       IamInstanceProfile: !Ref 'BastionEC2InstanceProfile'
       ImageId: !FindInMap [AWSRegionToAmzn2AMI, !Ref 'AWS::Region', AMIID]
-      InstanceType: {{ bastion.instance_type | default('t2.micro') }}
+      InstanceType: {{ bastion.instance_type | default('t3.nano') }}
       KeyName: "{{ bastion.keypair_name }}"
 {% if bastion.encrypt_ebs | default(false) %}
       BlockDeviceMappings:

@@ -61,7 +61,7 @@ Resources:
 {%   elif cw.logshipper_lambda_function_arn is defined %}
           LAMBDA_FUNCTION_ARN: "{{ cw.logshipper_lambda_function_arn }}"
 {%   endif %}
-{%   if environment|lower == "prd" %}
+{%   if env|lower == "prd" %}
           RETENTION_IN_DAYS: "{{ (cw.log_group_settings | default({})).retention_in_days | default('180') }}"
 {%   else %}
           RETENTION_IN_DAYS: "{{ (cw.log_group_settings | default({})).retention_in_days | default('14') }}"

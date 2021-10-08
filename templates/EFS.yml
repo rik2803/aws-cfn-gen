@@ -16,6 +16,15 @@ Resources:
           Value: "{{ env }}"
         - Key: Customer
           Value: "{{ customer | default('NA') }}"
+{%   if filesystem.lifecycle_policies is defined %}
+      LifecyclePolicies:
+{%     for lifecycle_policy in filesystem.lifecycle_policies %}
+        - TransitionToIA: "{{ lifecycle_policy.transition_to_ia | default('AFTER_7_DAYS') }}"
+{%       if lifecycle_policy.transition_to_primary_storage_class is defined %}
+          TransitionToPrimaryStorageClass: "{{ lifecycle_policy.transition_to_primary_storage_class }}"
+{%       endif %}
+{%     endfor %}
+{%   endif %}
 
   {{ filesystem.cfn_name }}MountTargetPrivateSubnetAZ1:
     Type: AWS::EFS::MountTarget
