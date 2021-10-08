@@ -17,6 +17,14 @@
 {%   endif %}
 {% endfor %}
 
+{% set skip_deploy_users = false %}
+{% if ( cloudfront_setting is not defined or
+        (cloudfront_settings.skip_deploy_user_creation is defined and not cloudfront_settings.skip_deploy_user_creation) or
+        (global_settings.skip_deploy_user_creation is defined and not global_settings.skip_deploy_user_creation)
+       ) %}
+{%   set skip_deploy_users = true %}
+{% endif %}
+
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
@@ -24,6 +32,7 @@ Description: |
 
 Resources:
 
+{% if not skip_deploy_users %}
   DeployUserPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -31,22 +40,22 @@ Resources:
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-{% if s3_origin_list|length > 0 %}
+{%   if s3_origin_list|length > 0 %}
           - Effect: Allow
             Action:
               - s3:GetObject
               - s3:PutObject
               - s3:PutObjectACL
             Resource:
-{%   for s3 in s3_origin_list %}
+{%     for s3 in s3_origin_list %}
               - "{{ s3 }}"
-{%   endfor %}
+{%     endfor %}
           - Effect: Allow
             Action:
               - s3:ListAllMyBuckets
             Resource:
               - "*"
-{% endif %}
+{%   endif %}
           - Effect: Allow
             Action:
               - "acm:ListCertificates"
@@ -86,8 +95,9 @@ Resources:
     Properties:
       UserName:
         !Ref DeployUser
-{% if iam_accesskey_serial is defined %}
+{%   if iam_accesskey_serial is defined %}
       Serial: {{ iam_accesskey_serial }}
+{%   endif %}
 {% endif %}
 
 
@@ -420,11 +430,13 @@ Resources:
 {% endfor %}
 
 Outputs:
+{% if not skip_deploy_users %}
   AccessKeyDeployUser:
     Value:
       !Ref DeployAccessKey
   SecretKeyDeployUser:
     Value: !GetAtt DeployAccessKey.SecretAccessKey
+{% endif %}
 {% for cloudfront in cloudfront_distributions %}
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
     Value: !Sub "arn:aws:cloudfront::{{ target_account.account_id }}:distribution/${CloudFrontDistribution{{ cloudfront.cfn_name }}}"
