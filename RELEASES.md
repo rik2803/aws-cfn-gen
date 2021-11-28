@@ -9,6 +9,41 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.21` (20211128): ECS Autoscaling based on Custom CW Metric
+
+```yaml
+applicationconfig:
+  - name: "myservice"
+    ...
+    ecs:
+      ...
+      autoscaling:
+        - name: MyMetric
+          type: custom
+          scale_in_cooldown: 60
+          scale_out_cooldown: 60
+          target_value: 75
+          custom_metric:
+            dimensions:
+              - dim1
+              - dim2
+            metric_name: MyMetric
+            namespace: MyNameSpace
+            statistic: Sum
+```
+
+## `0.6.20` (20211116)
+
+Fix condition in logic to skip deploy user creation
+
+## `0.6.19` (20211026)
+
+Fix autoscaling mincapacity
+
+## `0.6.18` (20211008)
+
+Allow to skip deploy user creation based on a cloudfront or a global property.
+
 ## `0.6.17` (20210813)
 
 ### EFS: Create a SSM parameter for each S3 to EFS deploy bucket
