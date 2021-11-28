@@ -592,9 +592,21 @@ Resources:
         TargetValue: {{ as.target_value | default("75.0") }}
         ScaleInCooldown: {{ as.scale_in_cooldown | default("60") }}
         ScaleOutCooldown: {{ as.scale_out_cooldown | default("60") }}
+{%         if as.type | default('predefined') == 'predefined' %}
         PredefinedMetricSpecification:
           PredefinedMetricType: {{ as.predefined_metric_type }}
-
+{%         else %}
+        CustomizedMetricSpecification:
+{%           if as.custom_metric.dimensions is defined %}
+          Dimensions: {{ as.custom_metric.dimensions }}
+{%           endif %}
+          MetricName: {{ as.custom_metric.metric_name }}
+          Namespace: {{ as.custom_metric.namespace }}
+          Statistic: {{ as.custom_metric.statistic | default('Average') }}
+{%           if as.custom_metric.unit is defined %}
+          Unit: {{ as.custom_metric.unit }}
+{%           endif %}
+{%         endif %}
 {%       endfor %}
 {%     endif %}
 {%   endif %}
