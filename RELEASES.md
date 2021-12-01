@@ -9,6 +9,26 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.22` (20211201): ECR policy support for cross-account Lambda pulls
+
+The `cross_account_access.lambda` property in the ECR repo definition will add a statement
+to the ECR policy that allows all Lambda's in the specified AWS accounts to pull the
+ECR image. Also see [this AWS blog post](https://aws.amazon.com/blogs/compute/introducing-cross-account-amazon-ecr-access-for-aws-lambda/).
+
+```yaml
+ecr:
+  - name: "repoName"
+    cfn_name: RepoName
+    cross_account_access:
+      push:
+        - 000000000000
+      pull:
+        - 111111111111
+        - 222222222222
+      lambda:
+        - 333333333333
+```
+
 ## `0.6.21` (20211128): ECS Autoscaling based on Custom CW Metric
 
 ```yaml
