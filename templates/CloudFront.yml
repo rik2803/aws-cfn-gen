@@ -266,6 +266,10 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: {{ cloudfront.logging.expiration_in_days | default('14') }}
+            Status: Enabled
       AccessControl: "LogDeliveryWrite"
       Tags:
         - Key: "ass:s3:clean-bucket-on-stop"
