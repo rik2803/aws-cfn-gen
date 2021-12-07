@@ -9,6 +9,11 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.23` (20211207): Apply lifecycle rule to CloudFront log buckets
+
+* Default: remove after 14 days
+* Set `logging.expiration_in_days` property in the cloudfront definition to override that setting
+
 ## `0.6.22` (20211201): ECR policy support for cross-account Lambda pulls
 
 The `cross_account_access.lambda` property in the ECR repo definition will add a statement
