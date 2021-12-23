@@ -17,14 +17,14 @@
 {%   endif %}
 {% endfor %}
 
-{% set skip_deploy_users = false %}
+{%- set skip_deploy_users = false %}
 {% if ( cloudfront_settings is defined and (
-        (cloudfront_settings.skip_deploy_user_creation is defined and not cloudfront_settings.skip_deploy_user_creation) or
-        (global_settings.skip_deploy_user_creation is defined and not global_settings.skip_deploy_user_creation)
+        (cloudfront_settings.skip_deploy_user_creation is defined and cloudfront_settings.skip_deploy_user_creation) or
+        (global_settings.skip_deploy_user_creation is defined and global_settings.skip_deploy_user_creation)
        )) %}
 {%   set skip_deploy_users = true %}
-# skip_deploy_users is set to true,_ cloudfront deploy users will not be created
-{% endif %}
+# skip_deploy_users is set to true, cloudfront deploy users will not be created
+{% endif -%}
 
 ---
 AWSTemplateFormatVersion: '2010-09-09'
@@ -33,7 +33,7 @@ Description: |
 
 Resources:
 
-{% if not skip_deploy_users %}
+{%- if not skip_deploy_users %}
   DeployUserPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -100,7 +100,6 @@ Resources:
       Serial: {{ iam_accesskey_serial }}
 {%   endif %}
 {% endif %}
-
 
 {% for cloudfront in cloudfront_distributions %}
 {%   for cname in cloudfront.cnames %}
