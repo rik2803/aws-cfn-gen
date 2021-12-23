@@ -34,6 +34,7 @@ Description: |
 Resources:
 
 {%- if not skip_deploy_users %}
+
   DeployUserPolicy:
     Type: AWS::IAM::Policy
     Properties:
