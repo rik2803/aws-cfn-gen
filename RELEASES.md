@@ -9,7 +9,7 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
-## `0.6.24` (20220103): Provide a way to not create NatGW/IGW
+## `0.6.25` (20220103): Provide a way to not create NatGW/IGW
 
 Add one or both properties to the account's config file to skip the creation
 of the related resource:
@@ -19,6 +19,10 @@ vpc:
   skip_natgw: true
   skip_igw: true
 ```
+
+## `0.6.24` (202111)
+
+Fix condition in logic to skip deploy user creation (again)
 
 ## `0.6.23` (20211207): Apply lifecycle rule to CloudFront log buckets
 
