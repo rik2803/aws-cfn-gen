@@ -181,6 +181,7 @@ Resources:
         - Key: "Environment"
           Value: "{{ vpc.environment }}"
 
+{% if vpc.skip_igw is not defined or not vpc.skip_igw %}
   IGW:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -197,7 +198,9 @@ Resources:
     Properties:
       InternetGatewayId: !Ref IGW
       VpcId: !Ref VPC
+{% endif %}
 
+{% if vpc.skip_natgw is not defined or not vpc.skip_natgw %}
   EipNatGw:
     Type: AWS::EC2::EIP
     Properties:
@@ -213,6 +216,7 @@ Resources:
           - EipNatGw
           - AllocationId
       SubnetId: !Ref SubnetPublic
+{% endif %}
 
   SubnetPublic:
     Type: AWS::EC2::Subnet
@@ -389,6 +393,7 @@ Resources:
         - Key: "Environment"
           Value: "{{ vpc.environment }}"
 
+{% if vpc.skip_igw is not defined or not vpc.skip_igw %}
   RouteDefaultPublic:
     Type: AWS::EC2::Route
     DependsOn:
@@ -399,7 +404,9 @@ Resources:
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref IGW
       RouteTableId: !Ref RouteTablePublicSubnet
+{% endif %}
 
+{% if vpc.skip_natgw is not defined or not vpc.skip_natgw %}
   RouteDefaultPrivate:
     Type: AWS::EC2::Route
     DependsOn:
@@ -409,6 +416,7 @@ Resources:
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref NatGw
       RouteTableId: !Ref RouteTablePrivateSubnet
+{% endif %}
 
   AssociateRouteForPublicSubnetToPublicSubnet:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
