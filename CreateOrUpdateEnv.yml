@@ -31,6 +31,11 @@
           register: token
           failed_when: false
           changed_when: false
+        - name: Test AWS_PROFILE
+          shell: "[[ -n $AWS_PROFILE ]]"
+          register: token
+          failed_when: false
+          changed_when: false
         - name: Test if config file exists
           stat:
             path: "{{ configfile }}"
@@ -41,10 +46,8 @@
           assert:
             that:
               - "configfile is defined"
-              - "key.rc == 0"
-              - "secret.rc == 0"
+              - "(key.rc == 0 and secret.rc == 0 and token.rc == 0) or profile.rc == 0"
               - "region.rc == 0"
-              - "token.rc == 0"
               - "configfilestat.stat.exists"
         - name: Disable all alarms during playbook execution
           shell: |
@@ -228,8 +231,9 @@
     - name: Block for VPC
       block:
         - name: Get facts for the VPC stack
-          cloudformation_facts:
+          cloudformation_info:
             stack_name: "{{ referenced_stacks.VPCStackName }}"
+#            all_facts: true
           register: vpcfacts
           tags: [ 'always' ]
 
@@ -241,29 +245,29 @@
         - name: Set more variables
           set_fact:
             iam_stackname: "{{ cfn_project }}IAM"
-            vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
-            vpc_privatesubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
-            vpc_publicsubnet_routetable: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
-            vpc_sg_app: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
-            vpc_sg_elb: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
-            vpc_sg_dmz: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGDMZ }}"
-            vpc_sg_rds: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGRDS }}"
-            vpc_privatesubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
-            vpc_privatesubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
-            vpc_elbsubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
-            vpc_elbsubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
-            vpc_rdssubnet_az1: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ1 }}"
-            vpc_rdssubnet_az2: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ2 }}"
-            vpc_publicsubnet: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SubnetPublic }}"
-            vpc_nr_of_azs: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
+            vpc_id: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
+            vpc_privatesubnet_routetable: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
+            vpc_publicsubnet_routetable: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
+            vpc_sg_app: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
+            vpc_sg_elb: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGELB }}"
+            vpc_sg_dmz: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGDMZ }}"
+            vpc_sg_rds: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGRDS }}"
+            vpc_privatesubnet_az1: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ1 }}"
+            vpc_privatesubnet_az2: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ2 }}"
+            vpc_elbsubnet_az1: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ1 }}"
+            vpc_elbsubnet_az2: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ2 }}"
+            vpc_rdssubnet_az1: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ1 }}"
+            vpc_rdssubnet_az2: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ2 }}"
+            vpc_publicsubnet: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SubnetPublic }}"
+            vpc_nr_of_azs: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.AZs }}"
 
           tags: [ 'always' ]
 
         - name: Set more variables
           set_fact:
-            vpc_privatesubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
-            vpc_elbsubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
-            vpc_rdssubnet_az3: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ3 }}"
+            vpc_privatesubnet_az3: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.PrivateSubnetAZ3 }}"
+            vpc_elbsubnet_az3: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.ELBSubnetAZ3 }}"
+            vpc_rdssubnet_az3: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RDSSubnetAZ3 }}"
 
           tags: [ 'always' ]
           when: "vpc_nr_of_azs is defined and vpc_nr_of_azs == '3'"
