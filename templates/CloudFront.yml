@@ -183,7 +183,7 @@ Resources:
 {%         for redirect in origin.origin_bucket_redirects %}
           - RedirectRule:
               HostName: "{{ redirect.redirect_rule.hostname }}"
-              HttpRedirectCode: "{{ redirect.redirect_rule.http_redirect_code | default('301') }}"
+              HttpRedirectCode: "{{ redirect.redirect_rule.http_redirect_code | default('302') }}"
               Protocol: "{{ redirect.redirect_rule.protocol | default('https') }}"
               ReplaceKeyWith: "{{ redirect.redirect_rule.replace_key_with | default('') }}"
             RoutingRuleCondition:
