@@ -96,7 +96,8 @@ Resources:
           }
 {%   else %}
   {{ repo.cfn_name }}:
-    Type: AWS::ECR::Repository
+    Type: AWS::ECR::PublicRepository
+    Properties:
       RepositoryName: "{{ repo.name }}"
 {%     if repo.cross_account_access is defined and repo.cross_account_access.push is defined %}
       RepositoryPolicyText:
