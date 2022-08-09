@@ -20,6 +20,7 @@ the image.
 | `cfn_name`                  | yes       | Name for the CloudFormation resource                   |         |
 | `cross_account_access.pull` | no        | List of **existing** AWS account id's with pull access |         |
 | `scanonpush`                | no        | Scan Docker images on push                             |         |
+| `public`                    | no        | Make the repo publicly available (anon pulls)          | `false` |
 
 ## Example Configuration
 
