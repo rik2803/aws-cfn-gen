@@ -240,7 +240,6 @@ follow these steps:
 Following _modules_ have their own documentation file:
 
 * [Elastic Container Registry](docs/ECR.md)
-* [Elastic Container Registry (Public)](docs/ECRPublic.md)
 * [Elastic Container Service](docs/ECS.md)
 * [The mamagement ECS Fargate cluster](docs/ECSMgmt.md)
 * [KMS](docs/KMS.md)
@@ -1220,6 +1219,14 @@ looks for memory, it will require the extra memory allocated above the
 `application[n].ecs.memory_reservation` value, to be freed.
 
 This property is _stronger_ than `application[n].ecs.memory`.
+
+##### `application[n].ecs.cpuarchitecture`
+
+One of `x84_64` (default) or `ARM64`.
+
+##### `application[n].ecs.operatingsystemfamily`
+
+Will mostly be `LINUX`, See AWS documentation for other values. 
 
 ##### `application[n].ecs.cpu`
 
