@@ -5,7 +5,6 @@ Description: |
 
 Resources:
 {% for repo in ecr.repositories | default([]) %}
-{%   if repo.public is not defined or not repo.public %}
   {{ repo.cfn_name }}:
     Type: AWS::ECR::Repository
     Properties:
@@ -94,40 +93,6 @@ Resources:
                   }
               }]
           }
-{%   else %}
-  {{ repo.cfn_name }}:
-    Type: AWS::ECR::PublicRepository
-    Properties:
-      RepositoryName: "{{ repo.name }}"
-{%     if repo.cross_account_access is defined and repo.cross_account_access.push is defined %}
-      RepositoryPolicyText:
-        Version: "2012-10-17"
-        Statement:
-{%       if repo.cross_account_access.push is defined %}
-          -
-            Sid: AllowPush
-            Effect: Allow
-            Principal:
-              AWS:
-{%         for account_id in repo.cross_account_access.push %}
-                - "arn:aws:iam::{{ account_id }}:root"
-{%         endfor %}
-            Action:
-              - "ecr:GetDownloadUrlForLayer"
-              - "ecr:BatchGetImage"
-              - "ecr:BatchCheckLayerAvailability"
-              - "ecr:GetAuthorizationToken"
-              - "ecr:GetRepositoryPolicy"
-              - "ecr:DescribeRepositories"
-              - "ecr:ListImages"
-              - "ecr:DescribeImages"
-              - "ecr:InitiateLayerUpload"
-              - "ecr:UploadLayerPart"
-              - "ecr:CompleteLayerUpload"
-              - "ecr:PutImage"
-{%       endif %}
-{%     endif %}
-{%   endif %}
 {% endfor %}
 
   ECRPushPolicy:

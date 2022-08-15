@@ -240,6 +240,7 @@ follow these steps:
 Following _modules_ have their own documentation file:
 
 * [Elastic Container Registry](docs/ECR.md)
+* [Elastic Container Registry (Public)](docs/ECRPublic.md)
 * [Elastic Container Service](docs/ECS.md)
 * [The mamagement ECS Fargate cluster](docs/ECSMgmt.md)
 * [KMS](docs/KMS.md)
