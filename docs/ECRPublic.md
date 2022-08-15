@@ -1,13 +1,9 @@
-# ECR
+# ECRPublic
 
 ## Description
 
-A list of repositories to create on the AWS account. A default lifecycle configuration
-is assigned to the _repository_. The lifecycle policy will remove all untagged images
-older than 14 days.
-
-This implicitely creates 2 users,`ECRPush` and `ECRPull` and their minimal permissions
-on all defined repositories.
+A list of repositories to create on the AWS account in the `us-east-1` region, as this
+is the onlyu region where public repositories can be created.
 
 It is also possible to optionally provide a list of AWS account id's that can pull
 the image.
@@ -24,7 +20,7 @@ the image.
 ## Example Configuration
 
 ```yaml
-ecr:
+ecrpublic:
   repositories:
     - name: acme/mydockerimage
       cfn_name: AcmeMyDockerImage

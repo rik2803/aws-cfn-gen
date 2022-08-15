@@ -670,6 +670,50 @@
       when: "ecr is defined"
       tags: [ 'ecr' ]
 
+    - name: ECRPublic
+      block:
+        - name: Create CFN template from Ansible template for the ECR Public Repositories
+          template:
+            src: "ECRPublic.yml"
+            dest: "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecrpublic.yml"
+        - name: Check generated ECR CloudFormation file against linter.
+          shell: |
+            cfn-lint --ignore-checks={{ cfn_lint_ignore_list }} "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecrpublic.yml"
+          tags: [ 'cfn-lint', 'linter', 'linter-ecrpublic' ]
+        - name: Put CFN template on s3
+          shell: |
+            aws s3 cp "{{ generated_files_dir | default('generated-files') }}/cfn-{{ project }}-ecrpublic.yml" \
+                      "s3://{{ project }}-cfn-templates-us-east-1/cfn-{{ project }}-ecrpublic.yml"
+          tags: [ 'deploy' ]
+        - name: Get presigned URL for the template on S3
+          shell: |
+            aws s3 presign "s3://{{ project }}-cfn-templates-us-east-1/cfn-{{ project }}-ecrpublic.yml"
+          register: presign
+          tags: [ 'deploy' ]
+        - name: Create or Update the ECR CloudFormation stack
+          cloudformation:
+            region: "us-east-1"
+            stack_name: "{{ cfn_project }}ECRPublic"
+            create_changeset: "{{ create_changeset }}"
+            changeset_name: "{{ cfn_project }}ECRPublic{{ changeset_suffix }}"
+            state: "present"
+            disable_rollback: false
+            template_url: "{{ presign.stdout }}"
+            tags:
+              aws_cfn_gen_tag: "{{ gittag }}"
+          tags: [ 'deploy' ]
+        - name: Add result of changeset to a local file
+          shell: |
+            echo "{{ cfn_project }}ECR" >> changeset_report.txt
+            aws cloudformation describe-change-set \
+                --change-set-name={{ cfn_project }}ECRPublic{{ changeset_suffix }} \
+                --stack-name={{ cfn_project }}ECRPublic --query 'Changes[*].ResourceChange.[Action,LogicalResourceId,Replacement]' \
+                --output text >> changeset_report.txt
+          when: "create_changeset is defined and create_changeset == 'yes'"
+          tags: [ 'deploy' ]
+      when: "ecrpublic is defined"
+      tags: [ 'ecrpublic' ]
+
     - name: ECSMgmt
       block:
         - name: Create CFN template from Ansible template for ECSMgmt
