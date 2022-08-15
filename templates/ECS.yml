@@ -331,11 +331,11 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: "task-{{ project }}-{{ app.name }}"
-{%     if app.launchtype | default('EC2') == 'FARGATE' %}
-      Cpu: "{{ app.ecs.cpu }}"
       RuntimePlatform:
         CpuArchitecture: "{{ app.ecs.cpuarchitecture | default('X86_64') }}"
         OperatingSystemFamily: "{{ app.ecs.operatingsystemfamily | default('LINUX') }}"
+{%     if app.launchtype | default('EC2') == 'FARGATE' %}
+      Cpu: "{{ app.ecs.cpu }}"
       Memory: "{{ app.ecs.memory }}"
       NetworkMode: awsvpc
       RequiresCompatibilities:
