@@ -477,6 +477,126 @@ Resources:
       RouteTableId: !Ref RouteTablePublicSubnet
       SubnetId: !Ref SubnetPublicLBAZ3
 
+  SSMParameterVpc:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Vpc"
+      Name: "/vpc/id"
+      Type: "String"
+      Value: !Ref VPC
+
+  SSMParameterRDSSubnetAZ1:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "RDSSubnetAZ1"
+      Name: "/vpc/subnet/rds/az1"
+      Type: "String"
+      Value: !Ref SubnetPrivateRDSAZ1
+
+  SSMParameterRDSSubnetAZ2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "RDSSubnetAZ2"
+      Name: "/vpc/subnet/rds/az2"
+      Type: "String"
+      Value: !Ref SubnetPrivateRDSAZ2
+
+  SSMParameterRDSSubnetAZ3:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "RDSSubnetAZ3"
+      Name: "/vpc/subnet/rds/az3"
+      Type: "String"
+      Value: !Ref SubnetPrivateRDSAZ3
+
+  SSMParameterPrivateSubnetAZ1:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "PrivateSubnetAZ1"
+      Name: "/vpc/subnet/private/az1"
+      Type: "String"
+      Value: !Ref SubnetPrivateAZ1
+
+  SSMParameterPrivateSubnetAZ2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "PrivateSubnetAZ2"
+      Name: "/vpc/subnet/private/az2"
+      Type: "String"
+      Value: !Ref SubnetPrivateAZ2
+
+  SSMParameterPrivateSubnetAZ3:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "PrivateSubnetAZ3"
+      Name: "/vpc/subnet/private/az3"
+      Type: "String"
+      Value: !Ref SubnetPrivateAZ3
+
+  SSMParameterPublicAlbSubnetAZ1:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "PublicAlbSubnetAZ1"
+      Name: "/vpc/subnet/alb/az1"
+      Type: "String"
+      Value: !Ref SubnetPublicLBAZ1
+
+  SSMParameterPublicAlbSubnetAZ2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "PublicAlbSubnetAZ2"
+      Name: "/vpc/subnet/alb/az2"
+      Type: "String"
+      Value: !Ref SubnetPublicLBAZ2
+
+  SSMParameterPublicAlbSubnetAZ3:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "PublicAlbSubnetAZ3"
+      Name: "/vpc/subnet/alb/az3"
+      Type: "String"
+      Value: !Ref SubnetPublicLBAZ3
+
+  SSMParameterPublicSubnet:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "PublicSubnet"
+      Name: "/vpc/subnet/public"
+      Type: "String"
+      Value: !Ref SubnetPublic
+
+  SSMParameterSgRds:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SgRds"
+      Name: "/vpc/sg/rds"
+      Type: "String"
+      Value: !GetAtt [SGRDS, GroupId]
+
+  SSMParameterSgDmz:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SgDmz"
+      Name: "/vpc/sg/dmz"
+      Type: "String"
+      Value: !GetAtt [SGDMZ, GroupId]
+
+  SSMParameterSgApp:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SgApp"
+      Name: "/vpc/sg/app"
+      Type: "String"
+      Value: !GetAtt [SGAPP, GroupId]
+
+  SSMParameterSgElb:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SgElb"
+      Name: "/vpc/sg/elb"
+      Type: "String"
+      Value: !GetAtt [SGELB, GroupId]
+
 Outputs:
   Application:
     Value: "{{ vpc.application }}"

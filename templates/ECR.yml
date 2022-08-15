@@ -9,30 +9,30 @@ Resources:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: "{{ repo.name }}"
-{%   if repo.scanonpush is defined %}
+{%     if repo.scanonpush is defined %}
       ImageScanningConfiguration:
         ScanOnPush: true
-{%   endif %}
-{%   if repo.cross_account_access is defined and ( repo.cross_account_access.pull is defined or repo.cross_account_access.push is defined or repo.cross_account_access.lambda is defined) %}
+{%     endif %}
+{%     if repo.cross_account_access is defined and ( repo.cross_account_access.pull is defined or repo.cross_account_access.push is defined or repo.cross_account_access.lambda is defined) %}
       RepositoryPolicyText:
         Version: "2012-10-17"
         Statement:
-{%     if repo.cross_account_access.pull is defined %}
+{%       if repo.cross_account_access.pull is defined %}
           -
             Sid: AllowPull
             Effect: Allow
             Principal:
               AWS:
-{%       for account_id in repo.cross_account_access.pull %}
+{%         for account_id in repo.cross_account_access.pull %}
                 - "arn:aws:iam::{{ account_id }}:root"
-{%       endfor %}
+{%         endfor %}
             Action:
               - "ecr:GetDownloadUrlForLayer"
               - "ecr:BatchGetImage"
               - "ecr:BatchCheckLayerAvailability"
               - "ecr:GetAuthorizationToken"
-{%     endif %}
-{%     if repo.cross_account_access.lambda is defined %}
+{%       endif %}
+{%       if repo.cross_account_access.lambda is defined %}
           -
             Sid: AllowPullForCrossAccountLambda
             Effect: Allow
@@ -47,19 +47,19 @@ Resources:
             Condition:
               StringLike:
                 aws:sourceArn:
-{%       for account_id in repo.cross_account_access.lambda %}
+{%         for account_id in repo.cross_account_access.lambda %}
                   - arn:aws:lambda:eu-central-1:{{ account_id }}:function:*
-{%       endfor %}
-{%     endif %}
-{%     if repo.cross_account_access.push is defined %}
+{%         endfor %}
+{%       endif %}
+{%       if repo.cross_account_access.push is defined %}
           -
             Sid: AllowPush
             Effect: Allow
             Principal:
               AWS:
-{%       for account_id in repo.cross_account_access.push %}
+{%         for account_id in repo.cross_account_access.push %}
                 - "arn:aws:iam::{{ account_id }}:root"
-{%       endfor %}
+{%         endfor %}
             Action:
               - "ecr:GetDownloadUrlForLayer"
               - "ecr:BatchGetImage"
@@ -74,8 +74,8 @@ Resources:
               - "ecr:CompleteLayerUpload"
               - "ecr:PutImage"
 
+{%       endif %}
 {%     endif %}
-{%   endif %}
       LifecyclePolicy:
         LifecyclePolicyText: |
           {
