@@ -241,7 +241,7 @@
         - name: Set more variables
           set_fact:
             iam_stackname: "{{ cfn_project }}IAM"
-            vpc_id: "{{ vpcfacts.ansible_facts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
+            vpc_id: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.VPC | default('NA') }}"
             vpc_privatesubnet_routetable: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePrivateSubnet }}"
             vpc_publicsubnet_routetable: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.RouteTablePublicSubnet }}"
             vpc_sg_app: "{{ vpcfacts.cloudformation[referenced_stacks.VPCStackName].stack_outputs.SGAPP }}"
