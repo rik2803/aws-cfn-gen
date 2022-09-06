@@ -27,18 +27,22 @@ Resources:
 {%   if lambda.function_name is defined %}
       FunctionName: {{ lambda.function_name }}
 {%   endif %}
-{%   if 'java' in lambda.runtime %}
-      Handler: "{{ lambda_fn_name }}.{{ lambda.class_name | default('Handler') }}::{{ lambda.handler }}"
-{%   elif 'go' in lambda.runtime %}
-      Handler: "{{ lambda.handler }}"
+{%   if lambda.handler_override is defined %}
+      Handler: "{{ lambda.handler_override }}"
 {%   else %}
+{%     if 'java' in lambda.runtime %}
+      Handler: "{{ lambda_fn_name }}.{{ lambda.class_name | default('Handler') }}::{{ lambda.handler }}"
+{%     elif 'go' in lambda.runtime %}
+      Handler: "{{ lambda.handler }}"
+{%     else %}
       Handler: "{{ lambda_fn_name }}.{{ lambda.handler }}"
-{% endif %}
-{% if lambda.role is not defined %}
+{%     endif %}
+{%   endif %}
+{%   if lambda.role is not defined %}
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LambdaBasicExecutionRole"
-{% else %}
+{%   else %}
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/{{ lambda.role }}"
-{% endif %}
+{%   endif %}
 {%   if lambda.environment is defined %}
       Environment:
         Variables:
@@ -143,7 +147,7 @@ Resources:
 {% endfor %}
 
 Outputs:
-{% for lambda in lambda_functions %}
+{% for lambda in lambda_functions | default([]) %}
 {#   Create some variables #}
 {%   set lambda_cfn_name = lambda.name | replace('-', ' ') | replace('_', ' ') | replace('.', ' ') | title | replace(' ', '') %}
 
