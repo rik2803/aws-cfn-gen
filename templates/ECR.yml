@@ -95,6 +95,7 @@ Resources:
           }
 {% endfor %}
 
+{% if skip_user_creation is not defined or not skip_user_creation %}
   ECRPushPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -126,7 +127,7 @@ Resources:
             Resource: '*'
           - Action:
               - cloudwatch:DescribeAlarms
-              - cloudwatch:DisableAarmActions
+              - cloudwatch:DisableAlarmActions
               - cloudwatch:EnableAlarmActions
             Effect: Allow
             Resource: '*'
@@ -197,3 +198,4 @@ Outputs:
       !Ref KeyECRPull
   SecretKeyECRPull:
     Value: !GetAtt KeyECRPull.SecretAccessKey
+{% endif %}

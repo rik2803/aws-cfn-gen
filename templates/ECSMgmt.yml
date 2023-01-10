@@ -234,6 +234,7 @@ Resources:
       LogGroupName: "cw-{{ project }}-aws-ass"
       RetentionInDays: 14
 
+{%   if skip_user_creation is not defined or not skip_user_creation %}
   DeleteAndCreateTaggedCloudformationStacksUser:
     Type: AWS::IAM::User
     Properties:
@@ -303,6 +304,7 @@ Resources:
     Properties:
       UserName:
         !Ref DeleteAndCreateTaggedCloudformationStacksUser
+{%   endif %}
 {% endif %}
 
   CloudWatchCWCreateDashboard:
@@ -432,7 +434,8 @@ Resources:
 Outputs:
   Dummy:
     Value: dummy
-{% if ecsmgmt.ass is defined and not (ecsmgmt.ass.disable | default(true)) %}
+{% if skip_user_creation is not defined or not skip_user_creation %}
+{%   if ecsmgmt.ass is defined and not (ecsmgmt.ass.disable | default(true)) %}
   AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
     Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
   SecretKeyDeleteAndCreateTaggedCloudformationStacksUser:
@@ -441,6 +444,7 @@ Outputs:
     Value: !Ref KeyAwsAssUser
   SecretKeyAwsAssUser:
     Value: !GetAtt KeyAwsAssUser.SecretAccessKey
+{%   endif %}
 {% endif %}
 {% for fargate_task in ecsmgmt.fargate_tasks | default([]) %}
   AccessKey{{ fargate_task.cfn_name }}:
