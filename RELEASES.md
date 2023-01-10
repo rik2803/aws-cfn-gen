@@ -9,6 +9,23 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.36` (20230110): Introduce skip_user_creation property
+
+Setting the property `skip_user_creation: true` will skip the creation of functional
+AWS users in:
+
+* `ECSMgmt`
+* `ECR`
+* `Cloudfront`
+
+To enable this:
+
+* Add `skip_user_creation: true` in the configuration YAML file
+* Update the `GITTAG` default value in `dockerwrapper`
+* Run the command `ANSIBLE_TAGS=ecs,cloudfront.ecsmgmt ./dockerwrapper`
+
+Add one or both properties to the account's config file to skip the creation
+of the related resource:
 ## `0.6.25` (20220103): Provide a way to not create NatGW/IGW
 
 Add one or both properties to the account's config file to skip the creation
