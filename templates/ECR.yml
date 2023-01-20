@@ -31,6 +31,7 @@ Resources:
               - "ecr:BatchGetImage"
               - "ecr:BatchCheckLayerAvailability"
               - "ecr:GetAuthorizationToken"
+              - "ecr:DescribeImages"
 {%       endif %}
 {%       if repo.cross_account_access.lambda is defined %}
           -
@@ -44,6 +45,7 @@ Resources:
               - "ecr:BatchGetImage"
               - "ecr:BatchCheckLayerAvailability"
               - "ecr:GetAuthorizationToken"
+              - "ecr:DescribeImages"
             Condition:
               StringLike:
                 aws:sourceArn:

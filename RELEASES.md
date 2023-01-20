@@ -9,6 +9,8 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.37` (20230120): Grant `ecr:DescribeImages` permissions to accounts with pull permissions for an ECR repo
+
 ## `0.6.36` (20230110): Introduce skip_user_creation property
 
 Setting the property `skip_user_creation: true` will skip the creation of functional
