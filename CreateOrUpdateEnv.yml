@@ -46,9 +46,6 @@
               - "region.rc == 0"
               - "token.rc == 0"
               - "configfilestat.stat.exists"
-        - name: Disable all alarms during playbook execution
-          shell: |
-            aws cloudwatch disable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
         - name: "Create S3 bucket to hold CloudFormation templates"
           shell: |
             if ! aws s3 ls | grep "{{ project.name }}-cfn-templates"
@@ -79,9 +76,6 @@
   post_tasks:
     - name: Post-tasks block
       block:
-        - name: Enable all alarms after playbook execution
-          shell: |
-            aws cloudwatch enable-alarm-actions --alarm-names $(aws cloudwatch describe-alarms --query "MetricAlarms[*].AlarmName" --output text)
         - name: Report on created changesets
           shell: |
             cat changeset_report.txt | tr '\t' ' '
