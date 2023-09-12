@@ -143,6 +143,9 @@ Resources:
 {%       else %}
       BucketName: "{{ origin.origin_name }}"
 {%       endif %}
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -239,6 +242,9 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: "{{ project }}-{{ cloudfront.name }}-default-cloudfront-origin"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -258,6 +264,9 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: {{ project }}-{{ cloudfront.name }}-logs
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
       BucketEncryption:
         ServerSideEncryptionConfiguration:
         - ServerSideEncryptionByDefault:
