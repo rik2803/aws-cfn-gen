@@ -15,6 +15,9 @@ Resources:
       AccessControl: Private
 {%   endif %}
       BucketName: "{{ application }}-{{ env }}-{{ bucket.name }}"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
