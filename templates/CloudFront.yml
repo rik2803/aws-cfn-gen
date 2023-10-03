@@ -17,6 +17,7 @@
 {%   endif %}
 {% endfor %}
 
+
 {%- set skip_deploy_users = false %}
 {% if ( cloudfront_settings is defined and (
         (cloudfront_settings.skip_deploy_user_creation is defined and cloudfront_settings.skip_deploy_user_creation) or
@@ -127,6 +128,8 @@ Resources:
 {%     endif %}
 {%   endfor %}
 
+
+{# Buckets with PublicRead should have PublicAccessBlockConfiguration set to false #}
 {%   for origin in cloudfront.origins_and_cachebehaviors %}
 {%     if origin.domain is not defined or origin.domain.type == 's3' %}
 {%       if origin.domain is not defined or origin.domain.skip_bucket_creation is not defined or not origin.domain.skip_bucket_creation %}
