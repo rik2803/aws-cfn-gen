@@ -225,6 +225,8 @@ Resources:
 
   S3BucketPolicy{{ cfn_oai }}:
     Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - Oai{{ cfn_oai }}
     Properties:
       Bucket: "{{ oai }}"
       PolicyDocument:
