@@ -140,7 +140,6 @@ Resources:
 {%       endif %}
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: PublicRead
 {%       if origin.domain is defined and origin.domain.type == 's3' %}
       BucketName: "{{ origin.domain.name }}"
 {%       else %}
