@@ -17,6 +17,7 @@
 {%   endif %}
 {% endfor %}
 
+
 {%- set skip_deploy_users = false %}
 {% if ( cloudfront_settings is defined and (
         (cloudfront_settings.skip_deploy_user_creation is defined and cloudfront_settings.skip_deploy_user_creation) or
