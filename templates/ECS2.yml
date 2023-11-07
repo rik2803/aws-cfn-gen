@@ -583,7 +583,7 @@ Resources:
       ServiceNamespace: "ecs"
       ScalableDimension: "ecs:service:DesiredCount"
       ResourceId: !Sub service/ecs-{{ project }}/${ Service{{ app.cfn_name }}.Name }
-{%       if as.scheduledactions is defined %}
+{%       if as.scheduled_actions is defined %}
       ScheduledActions:
 {%         for scheduled_action in as.scheduled_actions %}
         - ScalableTargetAction:
