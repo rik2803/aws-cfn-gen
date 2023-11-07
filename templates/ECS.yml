@@ -568,6 +568,18 @@ Resources:
       ServiceNamespace: "ecs"
       ScalableDimension: "ecs:service:DesiredCount"
       ResourceId: "service/ecs-{{ project }}/{{ project }}-{{ app.name }}"
+{%       if as.scheduledactions is defined %}
+      ScheduledActions:
+{%         for scheduled_action in as.scheduled_actions %}
+        - ScalableTargetAction:
+            MinCapacity: {{ scheduled_action.min_capacity | default("1") }}
+            MaxCapacity: {{ scheduled_action.max_capacity | default("20") }}
+          Schedule: {{ scheduled_action.schedule }}
+          ScheduledActionName: {{ scheduled_action.name }}
+          Timezone: {{ scheduled_action.timezone | default("Europe/Brussels") }}
+
+{%         endfor %}
+{%       endif %}
 
   ScalingPolicy{{ app.cfn_name }}{{ as.name | title }}:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
