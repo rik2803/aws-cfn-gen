@@ -9,6 +9,45 @@
 * `p` release: Bugfixes, introduction of new features that can normally
   be used without any interruption or rebuild of resources.
 
+## `0.6.46` (20241016): Add object_ownership to S3 bucket options
+
+Setting the option `object_ownership` will set the bucket ACLs on (or off)
+
+Possible values are:
+
+* `ObjectWriter` Enables ACLs and puts owner of new objects to the writer
+* `BucketOwnerPreferred` Enabled ACLs and puts owner of new object preferably to the owner, unless ACLs change this
+* `BucketOwnerEnforced` Disables ACLs and enforces bucket owner as owner of all files
+
+```yaml
+s3:
+  - name: mybucket
+    cfn_name: MyBucket
+    access_control: Private
+    object_ownership: ObjectWriter
+    static_website_hosting: no
+    versioning: {Enabled|Suspended}
+    skip_output: {true|false}
+    lifecycle_configuration: |
+      Rules:
+        - ExpirationInDays: 14
+    cors:
+      allowed_headers:
+        - '*'
+      allowed_methods:
+        - 'GET'
+        - 'PUT'
+      allowed_origins:
+        - '*'
+    tags:
+      - key: "ass:s3:backup-and-empty-bucket-on-stop"
+        value: "yes"
+      - key: "ass:s3:backup-and-enpty-bucket-on-stop-acl"
+        value: "private"
+      - key: "..."
+        value: "..."  
+```
+
 ## `0.6.37` (20230120): Grant `ecr:DescribeImages` permissions to accounts with pull permissions for an ECR repo
 
 ## `0.6.36` (20230110): Introduce skip_user_creation property
