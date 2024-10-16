@@ -861,6 +861,7 @@ s3:
   - name: mybucket
     cfn_name: MyBucket
     access_control: Private
+    object_ownership: ObjectWriter
     static_website_hosting: no
     versioning: {Enabled|Suspended}
     skip_output: {true|false}
