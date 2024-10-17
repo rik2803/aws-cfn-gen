@@ -17,7 +17,7 @@ Resources:
       BucketName: "{{ application }}-{{ env }}-{{ bucket.name }}"
       OwnershipControls:
         Rules:
-{%    if bucket.object_ownership is defined and bucket.object_ownership in ["ObjectWriter", "BucketOwnerPreferred", "BucketOwnerEnforced"]}
+{%   if bucket.object_ownership is defined and bucket.object_ownership in ["ObjectWriter", "BucketOwnerPreferred", "BucketOwnerEnforced"] %}
           - ObjectOwnership: {{ bucket.object_ownership }}
 {%   else %}
           - ObjectOwnership: ObjectWriter
