@@ -73,7 +73,7 @@ Resources:
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
         S3Key: "{{ cw.auto_config_log_group_lambda_s3_key }}"
-      Runtime: python3.7
+      Runtime: python3.12
       Tags:
         - Key: Application
           Value: "{{ application | default('NA') }}"
@@ -169,7 +169,7 @@ Resources:
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
         S3Key: "{{ cw.ec2_install_cwagent_lambda_s3_key }}"
-      Runtime: python3.7
+      Runtime: python3.12
       Timeout: 90
       Tags:
         - Key: Application

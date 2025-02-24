@@ -144,7 +144,7 @@ Resources:
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
         S3Key: "{{ filesystem.s3_to_efs_copy.lambda_key }}"
-      Runtime: python3.8
+      Runtime: python3.12
       Environment:
         Variables:
           PROJECT: "{{ application }}"

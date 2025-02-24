@@ -57,7 +57,7 @@ Resources:
       Code:
         S3Bucket: "{{ lambda.code.s3_bucket }}"
         S3Key: "{{ lambda.code.s3_key }}"
-      Runtime: {{ lambda.runtime | default('python2.7') }}
+      Runtime: {{ lambda.runtime | default('python3.12') }}
 {%   if lambda.vpc is defined and lambda.vpc %}
       VpcConfig:
         SubnetIds:

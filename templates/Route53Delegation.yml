@@ -8,7 +8,7 @@ Resources:
     Properties:
       Handler: "CreateOrUpdateRoute53RecordSet.lambda_handler"
       Role: !GetAtt CreateRoute53CNAMERole.Arn
-      Runtime: "{{ item.lambda_runtime | default('python2.7') }}"
+      Runtime: "{{ item.lambda_runtime | default('python3.12) }}"
       Timeout: "{{ item.lambda_timeout | default('10') }}"
       Environment:
         Variables:

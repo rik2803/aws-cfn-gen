@@ -118,7 +118,7 @@ Resources:
       Code:
         S3Bucket: "{{ lambda_function_bucket_name }}"
         S3Key: "{{ LambdaCumulativeReservationMetricS3Key }}"
-      Runtime: python3.8
+      Runtime: python3.12
 
   LambdaPermissionCumulativeReservationMetric:
     Type: AWS::Lambda::Permission
