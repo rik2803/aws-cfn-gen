@@ -212,8 +212,6 @@ Resources:
           Value: "{{ env }}"
 
   S3BucketPolicy{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}:
-    DependsOn:
-      - S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: S3{{ origin.origin_name | replace('-', ' ') | title | replace(' ', '') }}
