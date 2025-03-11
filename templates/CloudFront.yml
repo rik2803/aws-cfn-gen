@@ -103,13 +103,13 @@ Resources:
       Serial: {{ iam_accesskey_serial }}
 {%   endif %}
 
-  ParameterStoreAccessKeyDeploy-{{ project }}:
+  ParameterStoreAccessKeyDeploy{{ cfn_project }}:
     Type: AWS::SSM::Parameter
     Properties:
       Name: "/lemonade/aws-cfn-gen/cloudfront/deploy-{{ project }}/accesskey"
       Type: String
       Value: !Ref DeployAccessKey
-  ParameterStoreSecretKeyDeploy-{{ project }}:
+  ParameterStoreSecretKeyDeploy{{ cfn_project }}:
     Type: AWS::SSM::Parameter
     Properties:
       Name: "/lemonade/aws-cfn-gen/cloudfront/deploy-{{ project }}/secretkey"
@@ -484,9 +484,9 @@ Resources:
 Outputs:
 {% if not skip_deploy_users %}
   AccessKeyDeployUserParameterStoreName:
-    Value: !Ref ParameterStoreAccessKeyDeploy-{{ project }}
+    Value: !Ref ParameterStoreAccessKeyDeploy{{ cfn_project }}
   SecretKeyDeployUserParameterStoreName:
-    Value: !Ref ParameterStoreSecretKeyDeploy-{{ project }}
+    Value: !Ref ParameterStoreSecretKeyDeploy{{ cfn_project }}
 {% endif %}
 {% for cloudfront in cloudfront_distributions %}
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
