@@ -81,6 +81,18 @@ Resources:
 {%       if iam_accesskey_serial is defined %}
       Serial: {{ iam_accesskey_serial }}
 {%       endif %}
+  ParameterStoreAccessKey{{ iam_user.cfn_name | default('A_BUG') }}:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/iam/{{ iam_user.cfn_name | default('A_BUG') }}/accesskey"
+      Type: String
+      Value: !Ref Key{{ iam_user.cfn_name | default('A_BUG') }}
+  ParameterStoreSecretKey{{ iam_user.cfn_name | default('A_BUG') }}:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/iam/{{ iam_user.cfn_name | default('A_BUG') }}/secretkey"
+      Type: String
+      Value: !GetAtt Key{{ iam_user.cfn_name | default('A_BUG') }}.SecretAccessKey
 {%     endif %}
 {%   endfor %}
 {% endif %}
@@ -91,11 +103,10 @@ Outputs:
 {% if iam_users is defined %}
 {%   for iam_user in iam_users | default([]) %}
 {%     if iam_user.create_accesskeys is defined and iam_user.create_accesskeys %}
-  AccessKey{{ iam_user.cfn_name | default('A_BUG') }}:
-    Value:
-      !Ref Key{{ iam_user.cfn_name }}
-  SecretKey{{ iam_user.cfn_name | default('A_BUG') }}:
-    Value: !GetAtt Key{{ iam_user.cfn_name | default('A_BUG') }}.SecretAccessKey
+  AccessKeyParameterStoreName{{ iam_user.cfn_name | default('A_BUG') }}:
+    Value: !Ref ParameterStoreAccessKey{{ iam_user.cfn_name | default('A_BUG') }}
+  SecretKeyParameterStoreName{{ iam_user.cfn_name | default('A_BUG') }}:
+    Value: !Ref ParameterStoreSecretKey{{ iam_user.cfn_name | default('A_BUG') }}
 {%     endif %}
 {%   endfor %}
 {% endif %}

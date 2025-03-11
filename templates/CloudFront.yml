@@ -102,6 +102,20 @@ Resources:
 {%   if iam_accesskey_serial is defined %}
       Serial: {{ iam_accesskey_serial }}
 {%   endif %}
+
+  ParameterStoreAccessKeyDeploy-{{ project }}:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/cloudfront/deploy-{{ project }}/accesskey"
+      Type: String
+      Value: !Ref DeployAccessKey
+  ParameterStoreSecretKeyDeploy-{{ project }}:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/cloudfront/deploy-{{ project }}/secretkey"
+      Type: String
+      Value: !GetAtt DeployAccessKey.SecretAccessKey
+
 {% endif %}
 
 {% for cloudfront in cloudfront_distributions %}
@@ -469,11 +483,10 @@ Resources:
 
 Outputs:
 {% if not skip_deploy_users %}
-  AccessKeyDeployUser:
-    Value:
-      !Ref DeployAccessKey
-  SecretKeyDeployUser:
-    Value: !GetAtt DeployAccessKey.SecretAccessKey
+  AccessKeyDeployUserParameterStoreName:
+    Value: !Ref ParameterStoreAccessKeyDeploy-{{ project }}
+  SecretKeyDeployUserParameterStoreName:
+    Value: !Ref ParameterStoreSecretKeyDeploy-{{ project }}
 {% endif %}
 {% for cloudfront in cloudfront_distributions %}
   CloudFrontDistribution{{ cloudfront.cfn_name }}:
