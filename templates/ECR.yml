@@ -189,15 +189,42 @@ Resources:
       Serial: {{ iam_accesskey_serial }}
 {%       endif %}
 
+  ParameterStoreAccessKeyECRPush:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecr/ECRPush/accesskey"
+      Type: String
+      Value: !Ref KeyECRPush
+
+  ParameterStoreSecretKeyECRPush:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecr/ECRPush/secretkey"
+      Type: String
+      Value: !GetAtt KeyECRPush.SecretAccessKey
+
+  ParameterStoreAccessKeyECRPull:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecr/ECRPull/accesskey"
+      Type: String
+      Value: !Ref KeyECRPull
+
+  ParameterStoreSecretKeyECRPull:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecr/ECRPull/secretkey"
+      Type: String
+      Value: !GetAtt KeyECRPull.SecretAccessKey
+
+
 Outputs:
-  AccessKeyECRPush:
-    Value:
-      !Ref KeyECRPush
-  SecretKeyECRPush:
-    Value: !GetAtt KeyECRPush.SecretAccessKey
-  AccessKeyECRPull:
-    Value:
-      !Ref KeyECRPull
-  SecretKeyECRPull:
-    Value: !GetAtt KeyECRPull.SecretAccessKey
+  AccessKeyParameterStoreNameECRPush:
+    Value: !Ref ParameterStoreAccessKeyECRPush
+  SecretKeyParameterStoreNameECRPush:
+    Value: !Ref ParameterStoreSecretKeyECRPush
+  AccessKeyParameterStoreNameECRPull:
+    Value: !Ref ParameterStoreAccessKeyECRPull
+  SecretKeyParameterStoreNameECRPull:
+    Value: !Ref ParameterStoreSecretKeyECRPull
 {% endif %}

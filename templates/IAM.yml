@@ -84,13 +84,13 @@ Resources:
   ParameterStoreAccessKey{{ iam_user.cfn_name | default('A_BUG') }}:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/iam/{{ iam_user.cfn_name | default('A_BUG') }}/accesskey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/iam/{{ iam_user.cfn_name | default('A_BUG') }}/accesskey"
       Type: String
       Value: !Ref Key{{ iam_user.cfn_name | default('A_BUG') }}
   ParameterStoreSecretKey{{ iam_user.cfn_name | default('A_BUG') }}:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/iam/{{ iam_user.cfn_name | default('A_BUG') }}/secretkey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/iam/{{ iam_user.cfn_name | default('A_BUG') }}/secretkey"
       Type: String
       Value: !GetAtt Key{{ iam_user.cfn_name | default('A_BUG') }}.SecretAccessKey
 {%     endif %}

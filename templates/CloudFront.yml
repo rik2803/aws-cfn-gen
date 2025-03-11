@@ -106,13 +106,13 @@ Resources:
   ParameterStoreAccessKeyDeploy{{ cfn_project }}:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/cloudfront/deploy-{{ project }}/accesskey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/cloudfront/deploy-{{ project }}/accesskey"
       Type: String
       Value: !Ref DeployAccessKey
   ParameterStoreSecretKeyDeploy{{ cfn_project }}:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/cloudfront/deploy-{{ project }}/secretkey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/cloudfront/deploy-{{ project }}/secretkey"
       Type: String
       Value: !GetAtt DeployAccessKey.SecretAccessKey
 

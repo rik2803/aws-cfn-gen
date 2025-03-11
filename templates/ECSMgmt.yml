@@ -272,13 +272,13 @@ Resources:
   ParameterStoreAccessKeyDeleteAndCreateStacksUser:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/ecsmgmt/DeleteAndCreateTaggedCloudformationStacksUser/accesskey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecsmgmt/DeleteAndCreateTaggedCloudformationStacksUser/accesskey"
       Type: String
       Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
   ParameterStoreSecretKeyDeleteAndCreateStacksUser:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/ecsmgmt/DeleteAndCreateTaggedCloudformationStacksUser/secretkey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecsmgmt/DeleteAndCreateTaggedCloudformationStacksUser/secretkey"
       Type: String
       Value: !GetAtt KeyDeleteAndCreateTaggedCloudformationStacksUser.SecretAccessKey
 
@@ -320,14 +320,14 @@ Resources:
   ParameterStoreAccessKeyAwsAssUser:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/ecsmgmt/AwsAssUser/accesskey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecsmgmt/AwsAssUser/accesskey"
       Type: String
       Value: !Ref KeyAwsAssUser
 
   ParameterStoreSecretKeyAwsAssUser:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/ecsmgmt/AwsAssUser/secretkey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecsmgmt/AwsAssUser/secretkey"
       Type: String
       Value: !GetAtt KeyAwsAssUser.SecretAccessKey
 
@@ -407,14 +407,14 @@ Resources:
   ParameterStoreAccessKey{{ fargate_task.cfn_name }}:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/ecsmgmt/IAMUser{{ fargate_task.cfn_name }}/accesskey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecsmgmt/IAMUser{{ fargate_task.cfn_name }}/accesskey"
       Type: String
       Value: !Ref IAMAccessKey{{ fargate_task.cfn_name }}
 
   ParameterStoreSecretKey{{ fargate_task.cfn_name }}:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: "/lemonade/aws-cfn-gen/ecsmgmt/IAMUser{{ fargate_task.cfn_name }}/secretkey"
+      Name: "/{{ organization.cfn_name }}/aws-cfn-gen/ecsmgmt/IAMUser{{ fargate_task.cfn_name }}/secretkey"
       Type: String
       Value: !GetAtt IAMAccessKey{{ fargate_task.cfn_name }}.SecretAccessKey
 
