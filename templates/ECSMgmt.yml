@@ -235,6 +235,11 @@ Resources:
       RetentionInDays: 14
 
 {%   if skip_user_creation is not defined or not skip_user_creation %}
+  KeyDeleteAndCreateTaggedCloudformationStacksUser:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref DeleteAndCreateTaggedCloudformationStacksUser
+
   DeleteAndCreateTaggedCloudformationStacksUser:
     Type: AWS::IAM::User
     Properties:
@@ -263,6 +268,19 @@ Resources:
               ]
             }
           PolicyName: "ECSRunTask"
+
+  ParameterStoreAccessKeyDeleteAndCreateStacksUser:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/ecsmgmt/DeleteAndCreateTaggedCloudformationStacksUser/accesskey"
+      Type: String
+      Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
+  ParameterStoreSecretKeyDeleteAndCreateStacksUser:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/ecsmgmt/DeleteAndCreateTaggedCloudformationStacksUser/secretkey"
+      Type: String
+      Value: !GetAtt KeyDeleteAndCreateTaggedCloudformationStacksUser.SecretAccessKey
 
   KeyAwsAssUser:
     Type: AWS::IAM::AccessKey
@@ -299,11 +317,20 @@ Resources:
             }
           PolicyName: "ECSRunTask"
 
-  KeyDeleteAndCreateTaggedCloudformationStacksUser:
-    Type: AWS::IAM::AccessKey
+  ParameterStoreAccessKeyAwsAssUser:
+    Type: AWS::SSM::Parameter
     Properties:
-      UserName:
-        !Ref DeleteAndCreateTaggedCloudformationStacksUser
+      Name: "/lemonade/aws-cfn-gen/ecsmgmt/AwsAssUser/accesskey"
+      Type: String
+      Value: !Ref KeyAwsAssUser
+
+  ParameterStoreSecretKeyAwsAssUser:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/ecsmgmt/AwsAssUser/secretkey"
+      Type: String
+      Value: !GetAtt KeyAwsAssUser.SecretAccessKey
+
 {%   endif %}
 {% endif %}
 
@@ -377,6 +404,21 @@ Resources:
             }
           PolicyName: "ECSRunTask"
 
+  ParameterStoreAccessKey{{ fargate_task.cfn_name }}:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/ecsmgmt/IAMUser{{ fargate_task.cfn_name }}/accesskey"
+      Type: String
+      Value: !Ref IAMAccessKey{{ fargate_task.cfn_name }}
+
+  ParameterStoreSecretKey{{ fargate_task.cfn_name }}:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "/lemonade/aws-cfn-gen/ecsmgmt/IAMUser{{ fargate_task.cfn_name }}/secretkey"
+      Type: String
+      Value: !GetAtt IAMAccessKey{{ fargate_task.cfn_name }}.SecretAccessKey
+
+
   TaskRole{{ fargate_task.cfn_name }}:
     Type: AWS::IAM::Role
     Properties:
@@ -436,19 +478,19 @@ Outputs:
     Value: dummy
 {% if skip_user_creation is not defined or not skip_user_creation %}
 {%   if ecsmgmt.ass is defined and not (ecsmgmt.ass.disable | default(true)) %}
-  AccessKeyDeleteAndCreateTaggedCloudformationStacksUser:
-    Value: !Ref KeyDeleteAndCreateTaggedCloudformationStacksUser
-  SecretKeyDeleteAndCreateTaggedCloudformationStacksUser:
-    Value: !GetAtt KeyDeleteAndCreateTaggedCloudformationStacksUser.SecretAccessKey
-  AccessKeyAwsAssUser:
-    Value: !Ref KeyAwsAssUser
-  SecretKeyAwsAssUser:
-    Value: !GetAtt KeyAwsAssUser.SecretAccessKey
+  AccessKeyParameterStoreNameDeleteAndCreateStacksUser:
+    Value: !Ref ParameterStoreAccessKeyDeleteAndCreateStacksUser
+  SecretKeyParameterStoreNameDeleteAndCreateStacksUser:
+    Value: !Ref ParameterStoreSecretKeyDeleteAndCreateStacksUser
+  AccessKeyParameterStoreNameAwsAssUser:
+    Value: !Ref ParameterStoreAccessKeyAwsAssUser
+  SecretKeyParameterStoreNameAwsAssUser:
+    Value: !Ref ParameterStoreSecretKeyAwsAssUser
 {%   endif %}
 {% endif %}
 {% for fargate_task in ecsmgmt.fargate_tasks | default([]) %}
-  AccessKey{{ fargate_task.cfn_name }}:
-    Value: !Ref IAMAccessKey{{ fargate_task.cfn_name }}
-  SecretKey{{ fargate_task.cfn_name }}:
-    Value: !GetAtt IAMAccessKey{{ fargate_task.cfn_name }}.SecretAccessKey
+  AccessKeyParameterStoreName{{ fargate_task.cfn_name }}:
+    Value: !Ref ParameterStoreAccessKey{{ fargate_task.cfn_name }}
+  SecretKeyParameterStoreName{{ fargate_task.cfn_name }}:
+    Value: !Ref ParameterStoreSecretKey{{ fargate_task.cfn_name }}
 {% endfor %}
