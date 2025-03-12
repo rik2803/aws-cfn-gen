@@ -12,6 +12,7 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       DisplayName: "{{ topic.display_name }}"
+      KmsMasterKeyId: alias/aws/sns
 {%   if topic.topic_name is defined %}
       TopicName: "{{ topic.topic_name }}"
 {%   endif %}
