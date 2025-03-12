@@ -67,8 +67,9 @@ Resources:
             !GetAtt CreateRoute53CNAME.Arn
           Protocol: lambda
       TopicName: "RequestRoute53CNAME{{ item.hostedzone.id }}"
-      
-      
+      KmsMasterKeyId: alias/aws/sns
+
+
   RequestRoute53CNAMEPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
