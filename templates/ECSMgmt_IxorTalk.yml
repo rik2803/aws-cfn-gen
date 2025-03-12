@@ -20,6 +20,9 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       Policies:
         - PolicyName: awslogs
@@ -38,6 +41,9 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess

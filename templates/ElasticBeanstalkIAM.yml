@@ -18,6 +18,9 @@ Resources:
                 - "elasticbeanstalk.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: "/"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
@@ -37,6 +40,9 @@ Resources:
                 - "ec2.amazonaws.com"
             Action:
               - "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: "/"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/AmazonS3FullAccess"

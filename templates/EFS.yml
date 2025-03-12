@@ -188,7 +188,7 @@ Resources:
     Properties:
       RoleName: LambdaEfsRole{{ filesystem.cfn_name }}
       AssumeRolePolicyDocument:
-        { "Version": "2012-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "Service": "lambda.amazonaws.com" }, "Action": "sts:AssumeRole" } ] }
+        { "Version": "2012-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "Service": "lambda.amazonaws.com" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "aws:SourceAccount": "{{ target_account.account_id }}" } } } ] }
       ManagedPolicyArns:
         - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/LambdaEfsPolicy{{ filesystem.cfn_name }}'
 
