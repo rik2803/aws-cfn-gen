@@ -101,6 +101,9 @@ Resources:
             Principal:
               Service: [ecs.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       Policies:
         - PolicyName: ecs-service
@@ -121,6 +124,9 @@ Resources:
             Principal:
               Service: [ec2.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
@@ -146,6 +152,9 @@ Resources:
             Principal:
               Service: [application-autoscaling.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       Policies:
         - PolicyName: service-autoscaling

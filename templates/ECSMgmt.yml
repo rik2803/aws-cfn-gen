@@ -19,6 +19,9 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       Policies:
         - PolicyName: awslogs
@@ -43,6 +46,9 @@ Resources:
             Principal:
               Service: [events.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
@@ -56,6 +62,9 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchFullAccess
@@ -106,6 +115,9 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess
@@ -118,6 +130,9 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess
@@ -428,6 +443,9 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
+            Condition:
+              StringEquals:
+                aws:SourceAccount: "{{ target_account.account_id }}"
       Path: /
       ManagedPolicyArns:
 {%   for task_role_policy in fargate_task.task_role_policies %}
