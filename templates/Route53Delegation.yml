@@ -59,7 +59,29 @@ Resources:
                   - dynamodb:GetItem
                 Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/{{ route53_delegation_dynamodb_tablename }}"
 
-  RequestRoute53CNAME: 
+  RequestRoute53CNAMEKmsKey:
+    Type: AWS::KMS::Key
+    Description: "KMS Key for R53 Delegation Topic for domain {{ item.hostedzone.domain }}"
+    EnableKeyRotation: false
+    PendingWindowInDays: 30
+    KeyPolicy:
+      Version: 2012-10-17
+      Id: key-default-1
+      Statement:
+        - Sid: Allow use of the key
+          Effect: Allow
+          Principal:
+            AWS: [ "{{ item.allowed_accounts | json_query('[*].account_id')  | join('", "') }}" ]
+          Action:
+            - 'kms:DescribeKey'
+            - 'kms:Encrypt'
+            - 'kms:Decrypt'
+            - 'kms:ReEncrypt*'
+            - 'kms:GenerateDataKey'
+            - 'kms:GenerateDataKeyWithoutPlaintext'
+          Resource: '*'
+
+  RequestRoute53CNAME:
     Type: AWS::SNS::Topic
     Properties:
       Subscription: 
@@ -67,7 +89,7 @@ Resources:
             !GetAtt CreateRoute53CNAME.Arn
           Protocol: lambda
       TopicName: "RequestRoute53CNAME{{ item.hostedzone.id }}"
-      KmsMasterKeyId: alias/aws/sns
+      KmsMasterKeyId: !Ref RequestRoute53CNAMEKmsKey.KeyId
 
 
   RequestRoute53CNAMEPolicy:
